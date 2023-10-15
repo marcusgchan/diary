@@ -1,0 +1,21 @@
+version: "3.3"
+
+services:
+  db:
+    image: mysql:8.0.30
+    restart: always
+    environment:
+      - MYSQL_DATABASE=diary
+      - MYSQL_ROOT_PASSWORD=test123
+    volumes:
+      - diary-db:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - diary
+
+networks:
+  diary:
+
+volumes:
+  diary-db:
