@@ -1,12 +1,11 @@
 import { z } from "zod";
-
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
 
-export const exampleRouter = createTRPCRouter({
+export const diaryRouter = createTRPCRouter({
   hello: publicProcedure
     .input(z.object({ text: z.string() }))
     .query(({ input }) => {
@@ -23,5 +22,3 @@ export const exampleRouter = createTRPCRouter({
     return "you can now see this secret message!";
   }),
 });
-
-

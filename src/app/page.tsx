@@ -1,13 +1,9 @@
-"use client";
-import { api } from "./trpc/api";
+import Link from "next/link";
 
 export default function Home() {
-  const { data, isLoading, isError } = api.example.hello.useQuery({
-    text: "world",
-  });
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      {data?.greeting}
+    <main className="flex h-full items-center justify-center">
+      <Link href="/diary-entries">Go To Diary Entries</Link>
     </main>
   );
 }
