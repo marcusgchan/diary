@@ -8,7 +8,8 @@ export default function DiaryEntriesPage({
   return (
     <div className="flex h-full flex-col">
       <header>
-        <nav className="flex justify-end">
+        <nav className="flex justify-between p-4">
+          <h1 className="text-4xl">Diary</h1>
           <Button type="button">Create Entry</Button>
         </nav>
       </header>
@@ -16,10 +17,9 @@ export default function DiaryEntriesPage({
         <aside className="border-r-2 border-x-red-400 p-4">
           <h2 className="text-2xl">Diary Entries</h2>
           <ul>
-            <li>2023-10-16</li>
-            <li>2023-10-15</li>
-            <li>2023-10-14</li>
-            <li>2023-10-13</li>
+            <li className="px-2 py-4">2023-10-16</li>
+            <li className="px-2 py-4">2023-10-16</li>
+            <li className="px-2 py-4">2023-10-16</li>
           </ul>
         </aside>
         <section className="p-4">{children}</section>
