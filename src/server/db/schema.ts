@@ -21,22 +21,7 @@ import { type AdapterAccount } from "next-auth/adapters";
  */
 export const mysqlTable = mysqlTableCreator((name) => `test_${name}`);
 
-export const example = mysqlTable(
-  "example",
-  {
-    id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
-    name: varchar("name", { length: 256 }),
-    createdAt: timestamp("created_at")
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: timestamp("updatedAt").onUpdateNow(),
-  },
-  (example) => ({
-    nameIndex: uniqueIndex("name_idx").on(example.name),
-  }),
-);
-
-export const users = mysqlTable("user", {
+export const user = mysqlTable("users", {
   id: varchar("id", { length: 255 }).notNull().primaryKey(),
   e: varchar("e", { length: 255 }),
   name: varchar("name", { length: 255 }),
@@ -48,14 +33,14 @@ export const users = mysqlTable("user", {
   image: varchar("image", { length: 255 }),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
-  accounts: many(accounts),
+export const usersRelations = relations(user, ({ many }) => ({
+  accounts: many(account),
 }));
 
-export const accounts = mysqlTable(
-  "account",
+export const account = mysqlTable(
+  "accounts",
   {
-    userId: varchar("userId", { length: 255 }).notNull(),
+    userId: varchar("user_id", { length: 255 }).notNull(),
     type: varchar("type", { length: 255 })
       .$type<AdapterAccount["type"]>()
       .notNull(),
@@ -75,30 +60,30 @@ export const accounts = mysqlTable(
   }),
 );
 
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+export const accountsRelations = relations(account, ({ one }) => ({
+  user: one(user, { fields: [account.userId], references: [user.id] }),
 }));
 
-export const sessions = mysqlTable(
-  "session",
+export const session = mysqlTable(
+  "sessions",
   {
-    sessionToken: varchar("sessionToken", { length: 255 })
+    sessionToken: varchar("session_token", { length: 255 })
       .notNull()
       .primaryKey(),
-    userId: varchar("userId", { length: 255 }).notNull(),
+    userId: varchar("user_id", { length: 255 }).notNull(),
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (session) => ({
-    userIdIdx: index("userId_idx").on(session.userId),
+    userIdIdx: index("user_id_idx").on(session.userId),
   }),
 );
 
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+export const sessionsRelations = relations(session, ({ one }) => ({
+  user: one(user, { fields: [session.userId], references: [user.id] }),
 }));
 
 export const verificationTokens = mysqlTable(
-  "verificationToken",
+  "verification_tokens",
   {
     identifier: varchar("identifier", { length: 255 }).notNull(),
     token: varchar("token", { length: 255 }).notNull(),
@@ -109,11 +94,11 @@ export const verificationTokens = mysqlTable(
   }),
 );
 
-export const diaries = mysqlTable("diaries", {
+export const diary = mysqlTable("diaries", {
   id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
   userId: varchar("userId", { length: 255 })
     .notNull()
-    .references(() => users.id),
+    .references(() => user.id),
   day: datetime("day")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
