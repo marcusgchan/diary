@@ -12,17 +12,31 @@ const getBaseUrl = () => {
   return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
 };
 
-export function TrpcProvider({ children }: { children: React.ReactNode }) {
+export function TrpcProvider(props: {
+  children: React.ReactNode;
+  headers: Headers;
+}) {
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
     trpc.createClient({
       transformer: superjson,
-      links: [httpBatchLink({ url: `${getBaseUrl()}/api/trpc` })],
+      links: [
+        httpBatchLink({
+          url: getBaseUrl(),
+          headers() {
+            const heads = new Map(props.headers);
+            heads.set("x-trpc-source", "react");
+            return Object.fromEntries(heads);
+          },
+        }),
+      ],
     }),
   );
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        {props.children}
+      </QueryClientProvider>
     </trpc.Provider>
   );
 }

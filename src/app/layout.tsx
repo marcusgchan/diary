@@ -23,18 +23,18 @@ export default async function RootLayout({
 }) {
   const session = await getServerAuthSession();
   const headersList = headers();
-  const referer = headersList.get("referer");
+  const url = headersList.get("x-url");
 
-  console.log({ referer, session });
+  console.log({ referer: url, session });
 
-  if (!session && referer && !referer.includes("/login")) {
-    if (referer) {
-      redirect(`/login?redirect=${encodeURIComponent(referer)}`);
+  if (!session && url && !url.includes("/login")) {
+    if (url) {
+      redirect(`/login?redirect=${encodeURIComponent(url)}`);
     }
     redirect("/login");
   }
 
-  if (referer && referer.includes("/login")) {
+  if (url && url.includes("/login")) {
     return <Base>{children}</Base>;
   }
 
@@ -55,7 +55,7 @@ export default async function RootLayout({
           </nav>
         </header>
         <div className="flex-1">
-          <TrpcProvider>{children}</TrpcProvider>
+          <TrpcProvider headers={headers()}>{children}</TrpcProvider>
         </div>
       </div>
     </Base>

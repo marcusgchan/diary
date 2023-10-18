@@ -8,5 +8,5 @@ export default {
     connectionString: env.DATABASE_URL,
   },
   verbose: true,
-  tablesFilter: ["test_*"],
+  //tablesFilter: ["p1_*"],
 } satisfies Config;

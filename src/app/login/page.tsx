@@ -2,7 +2,19 @@
 
 import { signIn } from "next-auth/react";
 import { Button } from "../components/ui/button";
+import { useSearchParams } from "next/navigation";
 
 export default function Login() {
-  return <Button onClick={() => signIn()}>Sign In</Button>;
+  const callbackUrl = useSearchParams();
+  return (
+    <Button
+      onClick={() =>
+        signIn(undefined, {
+          callbackUrl: callbackUrl.get("redirect") ?? "/diaries",
+        })
+      }
+    >
+      Sign In
+    </Button>
+  );
 }

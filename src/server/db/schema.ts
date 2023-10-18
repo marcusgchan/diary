@@ -18,9 +18,9 @@ import { type AdapterAccount } from "next-auth/adapters";
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
-export const mysqlTable = mysqlTableCreator((name) => `test_${name}`);
+export const mysqlTable = mysqlTableCreator((name) => `p1_${name}`);
 
-export const users = mysqlTable("users", {
+export const users = mysqlTable("user", {
   id: varchar("id", { length: 255 }).notNull().primaryKey(),
   e: varchar("e", { length: 255 }),
   name: varchar("name", { length: 255 }),
@@ -37,9 +37,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const accounts = mysqlTable(
-  "accounts",
+  "account",
   {
-    userId: varchar("user_id", { length: 255 })
+    userId: varchar("userId", { length: 255 })
       .notNull()
       .references(() => users.id),
     type: varchar("type", { length: 255 })
@@ -66,7 +66,7 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 }));
 
 export const sessions = mysqlTable(
-  "sessions",
+  "session",
   {
     sessionToken: varchar("sessionToken", { length: 255 })
       .notNull()
@@ -86,7 +86,7 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 }));
 
 export const verificationTokens = mysqlTable(
-  "verification_tokens",
+  "verification_token",
   {
     identifier: varchar("identifier", { length: 255 }).notNull(),
     token: varchar("token", { length: 255 }).notNull(),
@@ -98,7 +98,7 @@ export const verificationTokens = mysqlTable(
 );
 
 export const diariesToUsers = mysqlTable(
-  "diaries_on_users",
+  "diary_to_user",
   {
     userId: varchar("userId", { length: 255 })
       .notNull()
@@ -114,7 +114,7 @@ export const diariesToUsers = mysqlTable(
   },
 );
 
-export const diaries = mysqlTable("diaries", {
+export const diaries = mysqlTable("diary", {
   id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
   name: varchar("name", { length: 255 }).notNull(),
   createdAt: timestamp("createdAt")
@@ -123,7 +123,7 @@ export const diaries = mysqlTable("diaries", {
   updatedAt: timestamp("updatedAt").notNull().onUpdateNow(),
 });
 
-export const entries = mysqlTable("entries", {
+export const entries = mysqlTable("entry", {
   id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
   diaryId: bigint("diaryId", { mode: "number" })
     .notNull()
