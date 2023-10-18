@@ -117,10 +117,12 @@ export const diariesToUsers = mysqlTable(
 export const diaries = mysqlTable("diary", {
   id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
   name: varchar("name", { length: 255 }).notNull(),
-  createdAt: timestamp("createdAt")
+  createdAt: datetime("createdAt")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updatedAt").notNull().onUpdateNow(),
+  updatedAt: datetime("updatedAt")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const entries = mysqlTable("entry", {
@@ -131,5 +133,7 @@ export const entries = mysqlTable("entry", {
   day: datetime("day")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp("updatedAt").notNull().onUpdateNow(),
+  updatedAt: datetime("updatedAt")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });

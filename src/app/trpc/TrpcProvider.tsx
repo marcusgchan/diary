@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api as trpc } from "./api";
-import { httpBatchLink } from "@trpc/react-query";
+import { httpBatchLink, loggerLink } from "@trpc/react-query";
 import superjson from "superjson";
 
 const getBaseUrl = () => {
@@ -21,8 +21,18 @@ export function TrpcProvider(props: {
     trpc.createClient({
       transformer: superjson,
       links: [
+        /**
+         * The function passed to enabled is an example in case you want to the link to
+         * log to your console in development and only log errors in production
+         */
+        loggerLink({
+          enabled: (opts) =>
+            (process.env.NODE_ENV === "development" &&
+              typeof window !== "undefined") ||
+            (opts.direction === "down" && opts.result instanceof Error),
+        }),
         httpBatchLink({
-          url: getBaseUrl(),
+          url: getBaseUrl() + "/api/trpc",
           headers() {
             const heads = new Map(props.headers);
             heads.set("x-trpc-source", "react");

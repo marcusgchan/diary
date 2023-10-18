@@ -6,8 +6,6 @@ import Link from "next/link";
 import { getServerAuthSession } from "~/server/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Button } from "./components/ui/button";
-import { signIn } from "next-auth/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,8 +22,6 @@ export default async function RootLayout({
   const session = await getServerAuthSession();
   const headersList = headers();
   const url = headersList.get("x-url");
-
-  console.log({ referer: url, session });
 
   if (!session && url && !url.includes("/login")) {
     if (url) {
