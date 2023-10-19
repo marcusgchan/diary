@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,11 +9,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "../components/ui/input";
+import { Input } from "@/components/ui/input";
 import { FormEvent, useState } from "react";
-import { api } from "../trpc/api";
+import { api } from "@/app/_trpc/api";
 import Link from "next/link";
-import { cn } from "../utils/cx";
+import { cn } from "@/app/_utils/cx";
 
 export default function Diaries() {
   const { data: dairies, isLoading, isError } = api.diary.getDiaries.useQuery();

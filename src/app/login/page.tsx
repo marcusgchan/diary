@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
 
 export default function Login() {
