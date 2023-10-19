@@ -61,7 +61,9 @@ export default async function RootLayout({
 function Base({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" style={{ colorScheme: "dark" }} className="dark h-full">
-      <body className={`${inter.className} h-full`}>{children}</body>
+      <body className={`${inter.className} mx-auto h-full max-w-7xl`}>
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { diaries, diariesToUsers } from "~/server/db/schema";
+import { diaries, diariesToUsers, entries } from "~/server/db/schema";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -28,4 +28,11 @@ export const diaryRouter = createTRPCRouter({
       return diariesList;
     },
   ),
+  createEntry: protectedProcedure
+    .input(z.object({ diaryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const [inserted] = await ctx.db
+        .insert(entries)
+        .values({ diaryId: input.diaryId });
+    }),
 });

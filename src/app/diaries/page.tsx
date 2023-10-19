@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,33 +13,39 @@ import { FormEvent, useState } from "react";
 import { api } from "@/app/_trpc/api";
 import Link from "next/link";
 import { cn } from "@/app/_utils/cx";
+import { Button } from "@/components/ui/button";
+import FetchResolver from "../_components/FetchResolver";
+import { Skeleton } from "../_components/ui/skeleton";
 
 export default function Diaries() {
-  const { data: dairies, isLoading, isError } = api.diary.getDiaries.useQuery();
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-  if (isError) {
-    return <div>Error</div>;
-  }
+  const diariesQueryState = api.diary.getDiaries.useQuery();
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="grid grid-cols-1 gap-5">
       <Header />
       <main className="h-full">
         <ul className="grid h-full grid-cols-4 gap-4">
-          {dairies.map(({ id, name }) => (
-            <li key={id} className="h-full">
-              <Link
-                href={`${"/diaries"}/${id.toString()}`}
-                className={cn(
-                  "grid aspect-[3/4] w-full place-items-center rounded-md border-2 border-primary p-4",
-                  isOptimistic(id) && "opacity-70",
-                )}
-              >
-                {name}
-              </Link>
-            </li>
-          ))}
+          <FetchResolver
+            {...diariesQueryState}
+            loadingComponent={Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[3/4]" />
+            ))}
+          >
+            {(diaries) =>
+              diaries.map(({ id, name }) => (
+                <li key={id} className="h-full">
+                  <Link
+                    href={`${"/diaries"}/${id.toString()}`}
+                    className={cn(
+                      "grid aspect-[3/4] w-full place-items-center rounded-md border-2 border-primary p-4",
+                      isOptimistic(id) && "opacity-70",
+                    )}
+                  >
+                    {name}
+                  </Link>
+                </li>
+              ))
+            }
+          </FetchResolver>
         </ul>
       </main>
     </div>
@@ -79,7 +84,6 @@ function Header() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   return (
     <header className="flex items-center justify-between">
-      <h2>Diaries</h2>
       <Dialog open={isModalOpen} onOpenChange={(e) => setIsModalOpen(e)}>
         <DialogTrigger asChild>
           <Button>New Diary</Button>
