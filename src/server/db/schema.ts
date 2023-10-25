@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
+  date,
   datetime,
   index,
   int,
@@ -18,7 +19,7 @@ import { type AdapterAccount } from "next-auth/adapters";
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
-export const mysqlTable = mysqlTableCreator((name) => `p1_${name}`);
+export const mysqlTable = mysqlTableCreator((name) => `diary_${name}`);
 
 export const users = mysqlTable("user", {
   id: varchar("id", { length: 255 }).notNull().primaryKey(),
@@ -130,7 +131,10 @@ export const entries = mysqlTable("entry", {
   diaryId: bigint("diaryId", { mode: "number" })
     .notNull()
     .references(() => diaries.id),
-  day: datetime("day")
+  day: date("day")
+    .notNull()
+    .default(sql`(CURDATE())`),
+  createdAt: datetime("createdAt")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime("updatedAt")

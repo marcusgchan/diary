@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { api as trpc } from "./api";
+import { api as trpc } from "~/trpc/client";
 import { httpBatchLink, loggerLink } from "@trpc/react-query";
 import superjson from "superjson";
 

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { diaries, diariesToUsers, entries } from "~/server/db/schema";
@@ -29,8 +29,21 @@ export const diaryRouter = createTRPCRouter({
     },
   ),
   createEntry: protectedProcedure
-    .input(z.object({ diaryId: z.number() }))
+    .input(z.object({ diaryId: z.number(), day: z.date() }))
     .mutation(async ({ ctx, input }) => {
+      // Turn into transaction
+      const res = await ctx.db
+        .select()
+        .from(entries)
+        .innerJoin(
+          diariesToUsers,
+          and(
+            eq(diariesToUsers.diaryId, entries.diaryId),
+            eq(diariesToUsers.userId, ctx.session.user.id),
+          ),
+        )
+        .where(eq(entries.diaryId, input.diaryId))
+        .where(eq(entries.day, input.day));
       const [inserted] = await ctx.db
         .insert(entries)
         .values({ diaryId: input.diaryId });

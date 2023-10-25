@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { FormEvent, useState } from "react";
-import { api } from "@/app/_trpc/api";
+import { api } from "~/trpc/client";
 import Link from "next/link";
 import { cn } from "@/app/_utils/cx";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ export default function Diaries() {
               diaries.map(({ id, name }) => (
                 <li key={id} className="h-full">
                   <Link
-                    href={`${"/diaries"}/${id.toString()}`}
+                    href={`${"/diaries"}/${id.toString()}/entries`}
                     className={cn(
                       "grid aspect-[3/4] w-full place-items-center rounded-md border-2 border-primary p-4",
                       isOptimistic(id) && "opacity-70",

@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { TrpcProvider } from "@/app/_trpc/TrpcProvider";
+import { TrpcProvider } from "~/trpc/TrpcProvider";
 import Link from "next/link";
 import { getServerAuthSession } from "~/server/auth";
 import { headers } from "next/headers";
