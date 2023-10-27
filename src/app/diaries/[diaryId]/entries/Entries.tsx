@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import FetchResolver from "~/app/_components/FetchResolver";
 import { api } from "~/trpc/client";
@@ -19,7 +20,13 @@ export function Entries() {
         return (
           <ul>
             {data.map((entry) => {
-              return <li key={entry.id}>{entry.day}</li>;
+              return (
+                <li key={entry.id}>
+                  <Link href={`/diaries/${entry.diaryId}/entries/${entry.id}`}>
+                    {entry.day}
+                  </Link>
+                </li>
+              );
             })}
           </ul>
         );

@@ -33,7 +33,12 @@ export const diaryRouter = createTRPCRouter({
     .input(z.object({ diaryId: z.number() }))
     .query(async ({ ctx, input }) => {
       const entriesList = await ctx.db
-        .select({ id: entries.id, day: entries.day, title: entries.title })
+        .select({
+          id: entries.id,
+          day: entries.day,
+          title: entries.title,
+          diaryId: entries.diaryId,
+        })
         .from(entries)
         .orderBy(desc(entries.updatedAt))
         .where(eq(entries.diaryId, input.diaryId))
