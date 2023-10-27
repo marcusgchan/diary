@@ -1,4 +1,5 @@
-import { and, eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { diaries, diariesToUsers, entries } from "~/server/db/schema";
@@ -28,13 +29,47 @@ export const diaryRouter = createTRPCRouter({
       return diariesList;
     },
   ),
+  getEntries: protectedProcedure
+    .input(z.object({ diaryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const entriesList = await ctx.db
+        .select({ id: entries.id, day: entries.day, title: entries.title })
+        .from(entries)
+        .orderBy(desc(entries.updatedAt))
+        .where(eq(entries.diaryId, input.diaryId))
+        .innerJoin(diaries, eq(diaries.id, entries.diaryId))
+        .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
+        .where(eq(diariesToUsers.userId, ctx.session.user.id));
+      return entriesList;
+    }),
+  getEntry: protectedProcedure
+    .input(z.object({ diaryId: z.number(), entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [entry] = await ctx.db
+        .selectDistinct({
+          id: entries.id,
+          day: entries.day,
+          title: entries.title,
+        })
+        .from(entries)
+        .where(
+          and(
+            eq(entries.diaryId, input.diaryId),
+            eq(entries.id, input.entryId),
+            eq(diariesToUsers.userId, ctx.session.user.id),
+          ),
+        )
+        .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId));
+      return entry ?? null;
+    }),
   createEntry: protectedProcedure
-    .input(z.object({ diaryId: z.number(), day: z.date() }))
+    .input(z.object({ diaryId: z.number(), day: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Turn into transaction
       const res = await ctx.db
-        .select()
+        .selectDistinct({ date: entries.day })
         .from(entries)
+        .where(eq(entries.diaryId, input.diaryId))
         .innerJoin(
           diariesToUsers,
           and(
@@ -42,10 +77,17 @@ export const diaryRouter = createTRPCRouter({
             eq(diariesToUsers.userId, ctx.session.user.id),
           ),
         )
-        .where(eq(entries.diaryId, input.diaryId))
         .where(eq(entries.day, input.day));
+      // Only can have 1 entry per day
+      if (res.length) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Entry already exists",
+        });
+      }
       const [inserted] = await ctx.db
         .insert(entries)
-        .values({ diaryId: input.diaryId });
+        .values({ diaryId: input.diaryId, day: input.day });
+      return { id: inserted.insertId };
     }),
 });

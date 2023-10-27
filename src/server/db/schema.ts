@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
+  char,
   date,
   datetime,
   index,
@@ -131,9 +132,8 @@ export const entries = mysqlTable("entry", {
   diaryId: bigint("diaryId", { mode: "number" })
     .notNull()
     .references(() => diaries.id),
-  day: date("day")
-    .notNull()
-    .default(sql`(CURDATE())`),
+  day: date("day", { mode: "string" }).notNull(),
+  title: varchar("title", { length: 255 }),
   createdAt: datetime("createdAt")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
