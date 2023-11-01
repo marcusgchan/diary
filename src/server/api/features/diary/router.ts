@@ -95,4 +95,35 @@ export const diaryRouter = createTRPCRouter({
         .values({ diaryId: input.diaryId, day: input.day });
       return { id: inserted.insertId };
     }),
+  deleteDiary: protectedProcedure
+    .input(z.object({ diaryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const diariesToDelete = await ctx.db
+        .select({ id: diariesToUsers.diaryId })
+        .from(diariesToUsers)
+        .where(
+          and(
+            eq(diariesToUsers.diaryId, input.diaryId),
+            eq(diariesToUsers.userId, ctx.session.user.id),
+          ),
+        );
+      if (!diariesToDelete.length) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Diary does not exist",
+        });
+      }
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .delete(diariesToUsers)
+          .where(
+            and(
+              eq(diariesToUsers.diaryId, input.diaryId),
+              eq(diariesToUsers.userId, ctx.session.user.id),
+            ),
+          );
+        await tx.delete(entries).where(eq(entries.diaryId, input.diaryId));
+        await tx.delete(diaries).where(eq(diaries.id, input.diaryId));
+      });
+    }),
 });
