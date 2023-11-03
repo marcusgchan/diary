@@ -7,7 +7,7 @@
  * need to use are documented accordingly near the end.
  */
 
-import { initTRPC, TRPCError } from "@trpc/server";
+import { initTRPC, TRPCError, type inferRouterContext } from "@trpc/server";
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import { type Session } from "next-auth";
 import superjson from "superjson";
@@ -51,6 +51,8 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
  *
  * @see https://trpc.io/docs/context
  */
+
+export type TRPCContext = ReturnType<typeof createInnerTRPCContext>;
 export const createTRPCContext = async () => {
   // Get the session from the server using the getServerSession wrapper function
   const session = await getServerAuthSession();
