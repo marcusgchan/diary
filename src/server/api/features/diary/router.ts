@@ -29,6 +29,21 @@ export const diaryRouter = createTRPCRouter({
       return diariesList;
     },
   ),
+  getDiary: protectedProcedure
+    .input(z.object({ diaryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [diary] = await ctx.db
+        .select({ id: diaries.id, name: diaries.name })
+        .from(diaries)
+        .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
+        .where(
+          and(
+            eq(diariesToUsers.diaryId, input.diaryId),
+            eq(diariesToUsers.userId, ctx.session.user.id),
+          ),
+        );
+      return diary;
+    }),
   getEntries: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
     .query(async ({ ctx, input }) => {
