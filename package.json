@@ -23,7 +23,7 @@
     "@trpc/server": "^10.40.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
-    "drizzle-orm": "^0.28.6",
+    "drizzle-orm": "^0.29.0",
     "lucide-react": "^0.287.0",
     "mysql2": "^3.6.2",
     "next": "13.5.4",
