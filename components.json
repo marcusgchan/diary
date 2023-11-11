@@ -10,7 +10,7 @@
     "cssVariables": true
   },
   "aliases": {
-    "components": "@/app/components",
-    "utils": "@/app/utils/cx"
+    "components": "@/app/_components",
+    "utils": "@/app/_utils/cx"
   }
 }

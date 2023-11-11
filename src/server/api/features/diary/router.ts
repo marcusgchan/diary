@@ -44,6 +44,32 @@ export const diaryRouter = createTRPCRouter({
         );
       return diary;
     }),
+  editDiary: protectedProcedure
+    .input(z.object({ diaryId: z.number(), name: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        const diaryList = await tx
+          .selectDistinct({ id: diaries.id })
+          .from(diaries)
+          .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
+          .where(
+            and(
+              eq(diariesToUsers.diaryId, input.diaryId),
+              eq(diariesToUsers.userId, ctx.session.user.id),
+            ),
+          );
+        if (diaryList.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Diary does not exist",
+          });
+        }
+        await tx
+          .update(diaries)
+          .set({ name: input.name })
+          .where(eq(diaries.id, input.diaryId));
+      });
+    }),
   getEntries: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
     .query(async ({ ctx, input }) => {

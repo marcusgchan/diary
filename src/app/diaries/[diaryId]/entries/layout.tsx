@@ -7,7 +7,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <Header />
       <main className="grid flex-1 grid-cols-[200px_1fr]">
         <aside className="border-r-2 border-x-red-400">
-          <h2 className="text-2xl">Diary Entries</h2>
+          <h3 className="text-2xl">Diary Entries</h3>
           <Entries />
         </aside>
         <div className="">{children}</div>

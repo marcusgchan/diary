@@ -8,6 +8,13 @@ export function Header() {
   const params = useParams();
   const queryUtils = api.useContext();
   const router = useRouter();
+  const goToEditDiary = () => router.push("./edit");
+  const { data: diary } = api.diary.getDiary.useQuery(
+    {
+      diaryId: Number(params.diaryId),
+    },
+    { enabled: !!params.diaryId, refetchOnWindowFocus: false },
+  );
   const addEntryMutation = api.diary.createEntry.useMutation({
     async onSuccess(data) {
       router.push(`./entries/${data.id}`);
@@ -23,8 +30,14 @@ export function Header() {
     });
   };
   return (
-    <header className="ml-auto">
-      <Button onClick={addEntry}>Add Entry</Button>
+    <header className="flex justify-between gap-2">
+      <h2>{diary?.name ?? ""}</h2>
+      <div className="flex gap-2">
+        <Button variant="secondary" onClick={goToEditDiary}>
+          Edit Diary
+        </Button>
+        <Button onClick={addEntry}>Add Entry</Button>
+      </div>
     </header>
   );
 }
