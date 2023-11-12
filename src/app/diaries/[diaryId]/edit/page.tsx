@@ -32,6 +32,17 @@ export default function EditDiary() {
       staleTime: Infinity,
     },
   );
+  const router = useRouter();
+  const deleteDiaryMutation = api.diary.deleteDiary.useMutation({
+    onSuccess() {
+      router.push(`/diaries`);
+    },
+  });
+  const deleteDiary = () => {
+    if (diary?.id !== undefined) {
+      deleteDiaryMutation.mutate({ diaryId: diary.id });
+    }
+  };
 
   if (isError) {
     return <div>Error</div>;
@@ -55,7 +66,7 @@ export default function EditDiary() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction>Continue</AlertDialogAction>
+            <AlertDialogAction onClick={deleteDiary}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

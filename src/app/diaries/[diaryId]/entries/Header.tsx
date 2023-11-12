@@ -8,7 +8,7 @@ export function Header() {
   const params = useParams();
   const queryUtils = api.useContext();
   const router = useRouter();
-  const goToEditDiary = () => router.push("./edit");
+  const goToEditDiary = () => router.push(`/diaries/${params.diaryId}/edit`);
   const { data: diary } = api.diary.getDiary.useQuery(
     {
       diaryId: Number(params.diaryId),
@@ -17,7 +17,7 @@ export function Header() {
   );
   const addEntryMutation = api.diary.createEntry.useMutation({
     async onSuccess(data) {
-      router.push(`./entries/${data.id}`);
+      router.push(`/diaries/${params.diaryId}/entries/${data.id}`);
       await queryUtils.diary.getEntries.invalidate({
         diaryId: Number(params.diaryId),
       });
@@ -31,7 +31,7 @@ export function Header() {
   };
   return (
     <header className="flex justify-between gap-2">
-      <h2>{diary?.name ?? ""}</h2>
+      <h2 className="text-xl">{diary?.name ?? ""}</h2>
       <div className="flex gap-2">
         <Button variant="secondary" onClick={goToEditDiary}>
           Edit Diary

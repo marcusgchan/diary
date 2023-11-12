@@ -70,6 +70,32 @@ export const diaryRouter = createTRPCRouter({
           .where(eq(diaries.id, input.diaryId));
       });
     }),
+  deleteDiary: protectedProcedure
+    .input(z.object({ diaryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        const diaryList = await tx
+          .selectDistinct({ id: diariesToUsers.diaryId })
+          .from(diariesToUsers)
+          .where(
+            and(
+              eq(diariesToUsers.diaryId, input.diaryId),
+              eq(diariesToUsers.userId, ctx.session.user.id),
+            ),
+          );
+        if (diaryList.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Diary does not exist",
+          });
+        }
+        await tx.delete(entries).where(eq(entries.diaryId, input.diaryId));
+        await tx
+          .delete(diariesToUsers)
+          .where(eq(diariesToUsers.diaryId, input.diaryId));
+        await tx.delete(diaries).where(eq(diaries.id, input.diaryId));
+      });
+    }),
   getEntries: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -82,10 +108,14 @@ export const diaryRouter = createTRPCRouter({
         })
         .from(entries)
         .orderBy(desc(entries.updatedAt))
-        .where(eq(entries.diaryId, input.diaryId))
         .innerJoin(diaries, eq(diaries.id, entries.diaryId))
         .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
-        .where(eq(diariesToUsers.userId, ctx.session.user.id));
+        .where(
+          and(
+            eq(entries.diaryId, input.diaryId),
+            eq(diariesToUsers.userId, ctx.session.user.id),
+          ),
+        );
       return entriesList;
     }),
   getEntry: protectedProcedure
@@ -135,36 +165,5 @@ export const diaryRouter = createTRPCRouter({
         .insert(entries)
         .values({ diaryId: input.diaryId, day: input.day });
       return { id: inserted.insertId };
-    }),
-  deleteDiary: protectedProcedure
-    .input(z.object({ diaryId: z.number() }))
-    .mutation(async ({ ctx, input }) => {
-      const diariesToDelete = await ctx.db
-        .select({ id: diariesToUsers.diaryId })
-        .from(diariesToUsers)
-        .where(
-          and(
-            eq(diariesToUsers.diaryId, input.diaryId),
-            eq(diariesToUsers.userId, ctx.session.user.id),
-          ),
-        );
-      if (!diariesToDelete.length) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Diary does not exist",
-        });
-      }
-      await ctx.db.transaction(async (tx) => {
-        await tx
-          .delete(diariesToUsers)
-          .where(
-            and(
-              eq(diariesToUsers.diaryId, input.diaryId),
-              eq(diariesToUsers.userId, ctx.session.user.id),
-            ),
-          );
-        await tx.delete(entries).where(eq(entries.diaryId, input.diaryId));
-        await tx.delete(diaries).where(eq(diaries.id, input.diaryId));
-      });
     }),
 });
