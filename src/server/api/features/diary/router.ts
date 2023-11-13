@@ -42,7 +42,7 @@ export const diaryRouter = createTRPCRouter({
             eq(diariesToUsers.userId, ctx.session.user.id),
           ),
         );
-      return diary;
+      return diary ?? null;
     }),
   editDiary: protectedProcedure
     .input(z.object({ diaryId: z.number(), name: z.string().min(1) }))
@@ -125,6 +125,7 @@ export const diaryRouter = createTRPCRouter({
         .selectDistinct({
           id: entries.id,
           day: entries.day,
+          editorState: entries.editorState,
           title: entries.title,
         })
         .from(entries)
@@ -165,5 +166,26 @@ export const diaryRouter = createTRPCRouter({
         .insert(entries)
         .values({ diaryId: input.diaryId, day: input.day });
       return { id: inserted.insertId };
+    }),
+  saveEditorState: protectedProcedure
+    .input(
+      z.object({
+        diaryId: z.number(),
+        entryId: z.number(),
+        editorState: z.string(),
+        updateDate: z.date(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const query = sql`
+        UPDATE diary_entry
+        INNER JOIN diary_diary_to_user
+        ON diary_diary_to_user.diaryId = diary_entry.diaryId
+        AND diary_diary_to_user.userId = ${ctx.session.user.id}
+        SET editorState = ${input.editorState}
+        WHERE diary_entry.id = ${input.entryId}
+        AND diary_entry.updatedAt <= ${input.updateDate}
+      `;
+      await ctx.db.execute(query);
     }),
 });

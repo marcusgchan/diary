@@ -10,10 +10,15 @@ export default function Entry() {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
-  const entryQuery = api.diary.getEntry.useQuery({
-    entryId: Number(entryId),
-    diaryId: Number(diaryId),
-  });
+  const entryQuery = api.diary.getEntry.useQuery(
+    {
+      entryId: Number(entryId),
+      diaryId: Number(diaryId),
+    },
+    {
+      initialData: undefined,
+    },
+  );
   return (
     <FetchResolver
       {...entryQuery}
@@ -25,7 +30,7 @@ export default function Entry() {
         ) : (
           <main className="flex h-full flex-col gap-2">
             <h3 className="text-2xl">{data.day}</h3>
-            <Editor />
+            <Editor initialEditorState={data.editorState} />
           </main>
         )
       }

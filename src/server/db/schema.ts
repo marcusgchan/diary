@@ -1,11 +1,11 @@
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
-  char,
   date,
   datetime,
   index,
   int,
+  json,
   mysqlTableCreator,
   primaryKey,
   text,
@@ -58,7 +58,9 @@ export const accounts = mysqlTable(
     session_state: varchar("session_state", { length: 255 }),
   },
   (account) => ({
-    compoundKey: primaryKey(account.provider, account.providerAccountId),
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
     userIdIdx: index("userId_idx").on(account.userId),
   }),
 );
@@ -95,7 +97,7 @@ export const verificationTokens = mysqlTable(
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (vt) => ({
-    compoundKey: primaryKey(vt.identifier, vt.token),
+    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
   }),
 );
 
@@ -111,7 +113,7 @@ export const diariesToUsers = mysqlTable(
   },
   (table) => {
     return {
-      pk: primaryKey(table.userId, table.diaryId),
+      pk: primaryKey({ columns: [table.userId, table.diaryId] }),
     };
   },
 );
@@ -134,6 +136,7 @@ export const entries = mysqlTable("entry", {
     .references(() => diaries.id),
   day: date("day", { mode: "string" }).notNull(),
   title: varchar("title", { length: 255 }),
+  editorState: json("editorState"),
   createdAt: datetime("createdAt")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
