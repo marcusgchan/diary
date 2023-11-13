@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^0.3.3",
+    "@lexical/react": "^0.12.2",
     "@planetscale/database": "^1.11.0",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -25,6 +26,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "drizzle-orm": "^0.29.0",
+    "lexical": "^0.12.2",
     "lucide-react": "^0.287.0",
     "mysql2": "^3.6.2",
     "next": "13.5.4",

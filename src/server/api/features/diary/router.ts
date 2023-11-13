@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { diaries, diariesToUsers, entries } from "~/server/db/schema";
@@ -151,9 +151,9 @@ export const diaryRouter = createTRPCRouter({
           and(
             eq(diariesToUsers.diaryId, entries.diaryId),
             eq(diariesToUsers.userId, ctx.session.user.id),
+            eq(entries.day, input.day),
           ),
-        )
-        .where(eq(entries.day, input.day));
+        );
       // Only can have 1 entry per day
       if (res.length) {
         throw new TRPCError({
