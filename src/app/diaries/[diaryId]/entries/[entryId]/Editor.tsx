@@ -8,8 +8,15 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import { api } from "~/trpc/client";
-import { EditorState } from "lexical";
+import {
+  $createParagraphNode,
+  $createTextNode,
+  EditorState,
+  SerializedEditorState,
+  SerializedLexicalNode,
+} from "lexical";
 import { useParams } from "next/navigation";
+import { $getRoot, $getSelection } from "lexical";
 
 const theme = {
   root: "h-full p-4 border-white border-2 rounded-md",
@@ -19,12 +26,24 @@ function onError(error: Error) {
   console.error(error);
 }
 
-export function Editor({ initialEditorState }: { initialEditorState: string }) {
+function initEditorState() {
+  const EMPTY_CONTENT =
+    '{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1}],"direction":null,"format":"","indent":0,"type":"root","version":1}}';
+  return EMPTY_CONTENT;
+}
+
+export function Editor({
+  initialEditorState,
+}: {
+  initialEditorState: SerializedEditorState<SerializedLexicalNode> | null;
+}) {
   const initialConfig = {
     namespace: "MyEditor",
     theme,
     onError,
-    editorState: JSON.stringify(initialEditorState),
+    editorState: initialEditorState
+      ? JSON.stringify(initialEditorState)
+      : initEditorState(),
   };
   const params = useParams();
   const saveEditorStateMutation = api.diary.saveEditorState.useMutation({});
@@ -35,12 +54,14 @@ export function Editor({ initialEditorState }: { initialEditorState: string }) {
       console.error("diaryId or entryId is undefined");
       return;
     }
+    const editorStateJson = editorState.toJSON();
     saveEditorStateMutation.mutate({
       diaryId: Number(diaryId),
       entryId: Number(entryId),
       updateDate: new Date(),
-      editorState: JSON.stringify(editorState.toJSON()),
+      editorState: JSON.stringify(editorStateJson),
     });
+    //}
   }
 
   return (

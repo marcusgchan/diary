@@ -12,6 +12,10 @@ import {
   timestamp,
   varchar,
 } from "drizzle-orm/mysql-core";
+import {
+  type SerializedEditorState,
+  type SerializedLexicalNode,
+} from "lexical";
 import { type AdapterAccount } from "next-auth/adapters";
 
 /**
@@ -136,7 +140,8 @@ export const entries = mysqlTable("entry", {
     .references(() => diaries.id),
   day: date("day", { mode: "string" }).notNull(),
   title: varchar("title", { length: 255 }),
-  editorState: json("editorState"),
+  editorState:
+    json("editorState").$type<SerializedEditorState<SerializedLexicalNode>>(),
   createdAt: datetime("createdAt")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
