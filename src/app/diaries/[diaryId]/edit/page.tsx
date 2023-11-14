@@ -79,7 +79,7 @@ function Form({
   diary,
   isLoading,
 }: {
-  diary: RouterOutputs["diary"]["getDiary"];
+  diary: RouterOutputs["diary"]["getDiary"] | undefined;
   isLoading: boolean;
 }) {
   const [diaryName, setDiaryName] = useState(diary?.name ?? "");
