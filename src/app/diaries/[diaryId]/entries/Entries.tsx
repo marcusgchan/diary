@@ -1,14 +1,17 @@
 "use client";
 
+import { Trash } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import FetchResolver from "~/app/_components/FetchResolver";
 import { Skeleton } from "~/app/_components/ui/skeleton";
+import { cn } from "~/app/_utils/cx";
 import { api } from "~/trpc/client";
 
 export function Entries() {
   const params = useParams();
   const diaryId = params.diaryId;
+  const entryId = params.entryId;
   const entriesQuery = api.diary.getEntries.useQuery(
     { diaryId: Number(diaryId) },
     {
@@ -35,10 +38,20 @@ export function Entries() {
               return (
                 <li key={entry.id}>
                   <Link
-                    className="block rounded bg-secondary p-1"
+                    className={cn(
+                      "flex justify-between rounded bg-secondary p-1",
+                      entryId &&
+                        Number(entryId) === entry.id &&
+                        "bg-secondary/60",
+                    )}
                     href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
                   >
                     {entry.day}
+                    {entryId && Number(entryId) === entry.id && (
+                      <button>
+                        <Trash />
+                      </button>
+                    )}
                   </Link>
                 </li>
               );

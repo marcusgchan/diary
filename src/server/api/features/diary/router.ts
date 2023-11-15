@@ -1,8 +1,42 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import {
+  TRPCContext,
+  createTRPCRouter,
+  protectedProcedure,
+} from "~/server/api/trpc";
 import { diaries, diariesToUsers, entries } from "~/server/db/schema";
+
+const getEntryInput = z.object({ diaryId: z.number(), entryId: z.number() });
+type GetEntryInput = z.infer<typeof getEntryInput>;
+async function getEntry({
+  db,
+  userId,
+  input,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  input: GetEntryInput;
+}) {
+  const [entry] = await db
+    .selectDistinct({
+      id: entries.id,
+      day: entries.day,
+      editorState: entries.editorState,
+      title: entries.title,
+    })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(
+      and(
+        eq(entries.diaryId, input.diaryId),
+        eq(entries.id, input.entryId),
+        eq(diariesToUsers.userId, userId),
+      ),
+    );
+  return entry ?? null;
+}
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -121,23 +155,7 @@ export const diaryRouter = createTRPCRouter({
   getEntry: protectedProcedure
     .input(z.object({ diaryId: z.number(), entryId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const [entry] = await ctx.db
-        .selectDistinct({
-          id: entries.id,
-          day: entries.day,
-          editorState: entries.editorState,
-          title: entries.title,
-        })
-        .from(entries)
-        .where(
-          and(
-            eq(entries.diaryId, input.diaryId),
-            eq(entries.id, input.entryId),
-            eq(diariesToUsers.userId, ctx.session.user.id),
-          ),
-        )
-        .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId));
-      return entry ?? null;
+      return getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
   createEntry: protectedProcedure
     .input(z.object({ diaryId: z.number(), day: z.string() }))
@@ -187,6 +205,7 @@ export const diaryRouter = createTRPCRouter({
         AND diary_entry.updatedAt <= ${input.updateDate}
       `;
       await ctx.db.execute(query);
+      return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
   updateEntryDate: protectedProcedure
     .input(

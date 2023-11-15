@@ -21,30 +21,36 @@ export default function Entry() {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
-  const entryQuery = api.diary.getEntry.useQuery(
-    {
-      entryId: Number(entryId),
-      diaryId: Number(diaryId),
-    },
-    {
-      initialData: undefined,
-    },
-  );
+  const entryQuery = api.diary.getEntry.useQuery({
+    entryId: Number(entryId),
+    diaryId: Number(diaryId),
+  });
   return (
     <FetchResolver
       {...entryQuery}
-      loadingComponent={<Skeleton className="h-full w-full" />}
+      loadingComponent={
+        <main className="flex h-full flex-col gap-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-full w-full" />
+        </main>
+      }
     >
-      {(data) =>
-        !data ? (
+      {(data) => {
+        return !data ? (
           <main>Doesn&#39;t exist</main>
         ) : (
           <main className="flex h-full flex-col gap-2">
+            <h3 className="text-2xl">
+              {data.title ?? (
+                <span className="text-gray-400">Enter Title...</span>
+              )}
+            </h3>
             <DatePicker day={data.day} />
             <Editor initialEditorState={data.editorState} />
           </main>
-        )
-      }
+        );
+      }}
     </FetchResolver>
   );
 }

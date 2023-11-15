@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -27,9 +27,10 @@ function onError(error: Error) {
 }
 
 function initEditorState() {
-  const EMPTY_CONTENT =
+  /*const EMPTY_CONTENT =
     '{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1}],"direction":null,"format":"","indent":0,"type":"root","version":1}}';
-  return EMPTY_CONTENT;
+  return EMPTY_CONTENT;*/
+  return null;
 }
 
 export function Editor({
@@ -46,22 +47,32 @@ export function Editor({
       : initEditorState(),
   };
   const params = useParams();
-  const saveEditorStateMutation = api.diary.saveEditorState.useMutation({});
+  const diaryId = params.diaryId as string | undefined;
+  const entryId = params.entryId as string | undefined;
+  const queryUtils = api.useContext();
+  const saveEditorStateMutation = api.diary.saveEditorState.useMutation({
+    onSuccess(data) {
+      queryUtils.diary.getEntry.setData(
+        { diaryId: Number(diaryId), entryId: Number(entryId) },
+        data,
+      );
+    },
+  });
   function handleSave(editorState: EditorState) {
-    const diaryId = params.diaryId as string | undefined;
-    const entryId = params.entryId as string | undefined;
     if (diaryId === undefined || entryId === undefined) {
       console.error("diaryId or entryId is undefined");
       return;
     }
     const editorStateJson = editorState.toJSON();
+    if (editorStateJson.root.children.length === 0) {
+      return;
+    }
     saveEditorStateMutation.mutate({
       diaryId: Number(diaryId),
       entryId: Number(entryId),
       updateDate: new Date(),
       editorState: JSON.stringify(editorStateJson),
     });
-    //}
   }
 
   return (
