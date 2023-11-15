@@ -2,7 +2,7 @@
 
 import { Trash } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import FetchResolver from "~/app/_components/FetchResolver";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { cn } from "~/app/_utils/cx";
@@ -12,12 +12,35 @@ export function Entries() {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
+  const router = useRouter();
   const entriesQuery = api.diary.getEntries.useQuery(
     { diaryId: Number(diaryId) },
     {
       enabled: !!diaryId,
     },
   );
+  const queryUtils = api.useContext();
+  const deleteEntryMutation = api.diary.deleteEntry.useMutation({
+    onSuccess(deletedId) {
+      if (deletedId) {
+        queryUtils.diary.getEntries.setData(
+          { diaryId: Number(diaryId) },
+          (entries) => {
+            if (entries === undefined) {
+              return [];
+            }
+            return entries.filter((entry) => entry.id !== deletedId);
+          },
+        );
+        router.push(`/diaries/${diaryId}/entries`);
+      }
+    },
+  });
+  const handleDelete = () =>
+    deleteEntryMutation.mutate({
+      diaryId: Number(diaryId),
+      entryId: Number(entryId),
+    });
   return (
     <FetchResolver
       {...entriesQuery}
@@ -48,7 +71,7 @@ export function Entries() {
                   >
                     {entry.day}
                     {entryId && Number(entryId) === entry.id && (
-                      <button>
+                      <button onClick={handleDelete}>
                         <Trash />
                       </button>
                     )}

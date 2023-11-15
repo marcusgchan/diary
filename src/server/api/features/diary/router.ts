@@ -1,42 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import {
-  TRPCContext,
-  createTRPCRouter,
-  protectedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { diaries, diariesToUsers, entries } from "~/server/db/schema";
-
-const getEntryInput = z.object({ diaryId: z.number(), entryId: z.number() });
-type GetEntryInput = z.infer<typeof getEntryInput>;
-async function getEntry({
-  db,
-  userId,
-  input,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  input: GetEntryInput;
-}) {
-  const [entry] = await db
-    .selectDistinct({
-      id: entries.id,
-      day: entries.day,
-      editorState: entries.editorState,
-      title: entries.title,
-    })
-    .from(entries)
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(
-      and(
-        eq(entries.diaryId, input.diaryId),
-        eq(entries.id, input.entryId),
-        eq(diariesToUsers.userId, userId),
-      ),
-    );
-  return entry ?? null;
-}
+import { deleteEntry, getEntries, getEntry } from "./service";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -133,29 +100,16 @@ export const diaryRouter = createTRPCRouter({
   getEntries: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const entriesList = await ctx.db
-        .select({
-          id: entries.id,
-          day: entries.day,
-          title: entries.title,
-          diaryId: entries.diaryId,
-        })
-        .from(entries)
-        .orderBy(desc(entries.day))
-        .innerJoin(diaries, eq(diaries.id, entries.diaryId))
-        .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
-        .where(
-          and(
-            eq(entries.diaryId, input.diaryId),
-            eq(diariesToUsers.userId, ctx.session.user.id),
-          ),
-        );
-      return entriesList;
+      return await getEntries({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        diaryId: input.diaryId,
+      });
     }),
   getEntry: protectedProcedure
     .input(z.object({ diaryId: z.number(), entryId: z.number() }))
     .query(async ({ ctx, input }) => {
-      return getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+      return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
   createEntry: protectedProcedure
     .input(z.object({ diaryId: z.number(), day: z.string() }))
@@ -184,6 +138,12 @@ export const diaryRouter = createTRPCRouter({
         .insert(entries)
         .values({ diaryId: input.diaryId, day: input.day });
       return { id: inserted.insertId };
+    }),
+  deleteEntry: protectedProcedure
+    .input(z.object({ diaryId: z.number(), entryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await deleteEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+      return input.entryId;
     }),
   saveEditorState: protectedProcedure
     .input(
@@ -225,5 +185,6 @@ export const diaryRouter = createTRPCRouter({
           WHERE diary_entry.id = ${input.entryId}
         `;
       await ctx.db.execute(query);
+      return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
 });
