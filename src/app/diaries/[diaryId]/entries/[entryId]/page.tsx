@@ -16,6 +16,9 @@ import { cn } from "~/app/_utils/cx";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
+import { RouterOutputs } from "~/server/api/trpc";
+
+type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 
 export default function Entry() {
   const params = useParams();
@@ -41,17 +44,37 @@ export default function Entry() {
           <main>Doesn&#39;t exist</main>
         ) : (
           <main className="flex h-full flex-col gap-2">
-            <h3 className="text-2xl">
-              {data.title ?? (
-                <span className="text-gray-400">Enter Title...</span>
-              )}
-            </h3>
+            <TitleInput title={data.title} />
             <DatePicker day={data.day} />
             <Editor initialEditorState={data.editorState} />
           </main>
         );
       }}
     </FetchResolver>
+  );
+}
+
+function TitleInput(props: { title: Entry["title"] }) {
+  const { diaryId, entryId } = useParams();
+  const [title, setTitle] = useState(props.title ?? "");
+  const saveTitleMutation = api.diary.updateTitle.useMutation();
+  function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const title = e.target.value;
+    setTitle(title);
+    saveTitleMutation.mutate({
+      diaryId: Number(diaryId),
+      entryId: Number(entryId),
+      title: title,
+    });
+  }
+  return (
+    <input
+      key={props.title}
+      className="bg-transparent text-2xl"
+      value={title}
+      onChange={handleTitleChange}
+      placeholder="Enter a title..."
+    />
   );
 }
 

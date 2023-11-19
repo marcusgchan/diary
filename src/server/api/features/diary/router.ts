@@ -3,7 +3,8 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { diaries, diariesToUsers, entries } from "~/server/db/schema";
-import { deleteEntry, getEntries, getEntry } from "./service";
+import { deleteEntry, getEntries, getEntry, updateTitle } from "./service";
+import { updateEntryTitleSchema } from "./schema";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -166,6 +167,11 @@ export const diaryRouter = createTRPCRouter({
       `;
       await ctx.db.execute(query);
       return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+    }),
+  updateTitle: protectedProcedure
+    .input(updateEntryTitleSchema)
+    .mutation(async ({ ctx, input }) => {
+      await updateTitle({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
   updateEntryDate: protectedProcedure
     .input(
