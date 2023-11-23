@@ -44,12 +44,12 @@ export default function Entry() {
           <main>Doesn&#39;t exist</main>
         ) : (
           <main className="flex h-full flex-col gap-2">
-            <TitleInput
-              key={`${data.id}-${data.title ?? ""}`}
-              title={data.title}
+            <TitleInput key={`title-${data.title ?? ""}`} title={data.title} />
+            <DatePicker key={`date-${data.day}`} day={data.day} />
+            <Editor
+              key={`editor-${data.editorState}`}
+              initialEditorState={data.editorState}
             />
-            <DatePicker day={data.day} />
-            <Editor initialEditorState={data.editorState} />
           </main>
         );
       }}
