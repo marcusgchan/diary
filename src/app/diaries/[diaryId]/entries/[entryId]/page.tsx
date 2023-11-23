@@ -44,7 +44,10 @@ export default function Entry() {
           <main>Doesn&#39;t exist</main>
         ) : (
           <main className="flex h-full flex-col gap-2">
-            <TitleInput title={data.title} />
+            <TitleInput
+              key={`${data.id}-${data.title ?? ""}`}
+              title={data.title}
+            />
             <DatePicker day={data.day} />
             <Editor initialEditorState={data.editorState} />
           </main>
@@ -57,7 +60,20 @@ export default function Entry() {
 function TitleInput(props: { title: Entry["title"] }) {
   const { diaryId, entryId } = useParams();
   const [title, setTitle] = useState(props.title ?? "");
-  const saveTitleMutation = api.diary.updateTitle.useMutation();
+  const queryUtils = api.useContext();
+  const saveTitleMutation = api.diary.updateTitle.useMutation({
+    onSuccess(data) {
+      queryUtils.diary.getEntry.setData(
+        { diaryId: Number(diaryId), entryId: Number(entryId) },
+        (old) => {
+          if (old) {
+            return { ...old, title: data };
+          }
+          return old;
+        },
+      );
+    },
+  });
   function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const title = e.target.value;
     setTitle(title);
@@ -69,7 +85,6 @@ function TitleInput(props: { title: Entry["title"] }) {
   }
   return (
     <input
-      key={props.title}
       className="bg-transparent text-2xl"
       value={title}
       onChange={handleTitleChange}

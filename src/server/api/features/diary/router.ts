@@ -172,6 +172,7 @@ export const diaryRouter = createTRPCRouter({
     .input(updateEntryTitleSchema)
     .mutation(async ({ ctx, input }) => {
       await updateTitle({ db: ctx.db, userId: ctx.session.user.id, input });
+      return input.title;
     }),
   updateEntryDate: protectedProcedure
     .input(
