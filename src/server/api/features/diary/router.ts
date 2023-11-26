@@ -3,8 +3,14 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { diaries, diariesToUsers, entries } from "~/server/db/schema";
-import { deleteEntry, getEntries, getEntry, updateTitle } from "./service";
-import { updateEntryTitleSchema } from "./schema";
+import {
+  deleteEntry,
+  editEntryDate,
+  getEntries,
+  getEntry,
+  updateTitle,
+} from "./service";
+import { editEntryDateSchema, updateEntryTitleSchema } from "./schema";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -175,23 +181,9 @@ export const diaryRouter = createTRPCRouter({
       return input.title;
     }),
   updateEntryDate: protectedProcedure
-    .input(
-      z.object({
-        diaryId: z.number(),
-        entryId: z.number(),
-        day: z.string(),
-      }),
-    )
+    .input(editEntryDateSchema)
     .mutation(async ({ ctx, input }) => {
-      const query = sql`
-          UPDATE diary_entry
-          INNER JOIN diary_diary_to_user
-          ON diary_diary_to_user.diaryId = diary_entry.diaryId
-          AND diary_diary_to_user.userId = ${ctx.session.user.id}
-          SET day = ${input.day}
-          WHERE diary_entry.id = ${input.entryId}
-        `;
-      await ctx.db.execute(query);
+      await editEntryDate({ db: ctx.db, userId: ctx.session.user.id, input });
       return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
 });

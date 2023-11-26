@@ -1,7 +1,12 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, exists, sql } from "drizzle-orm";
 import { diaries, diariesToUsers, entries } from "~/server/db/schema";
 import { type TRPCContext } from "../../trpc";
-import { DeleteEntryInput, GetEntryInput, UpdateEntryTitle } from "./schema";
+import {
+  DeleteEntryInput,
+  EditEntryDate,
+  GetEntryInput,
+  UpdateEntryTitle,
+} from "./schema";
 
 export async function deleteEntry({
   db,
@@ -91,6 +96,37 @@ export async function updateTitle({
     .where(
       and(
         eq(entries.diaryId, input.diaryId),
+        eq(entries.id, input.entryId),
+        eq(
+          entries.diaryId,
+          db
+            .selectDistinct({ diaryId: diariesToUsers.diaryId })
+            .from(diariesToUsers)
+            .where(
+              and(
+                eq(diariesToUsers.diaryId, entries.diaryId),
+                eq(diariesToUsers.userId, userId),
+              ),
+            ),
+        ),
+      ),
+    );
+}
+
+export async function editEntryDate({
+  db,
+  userId,
+  input,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  input: EditEntryDate;
+}) {
+  await db
+    .update(entries)
+    .set({ day: input.day })
+    .where(
+      and(
         eq(entries.id, input.entryId),
         eq(
           entries.diaryId,

@@ -13,3 +13,10 @@ export const updateEntryTitleSchema = z.object({
   title: z.string(),
 });
 export type UpdateEntryTitle = z.infer<typeof updateEntryTitleSchema>;
+
+export const editEntryDateSchema = z.object({
+  diaryId: z.number(),
+  entryId: z.number(),
+  day: z.string(),
+});
+export type EditEntryDate = z.infer<typeof editEntryDateSchema>;
