@@ -8,9 +8,14 @@ import {
   editEntryDate,
   getEntries,
   getEntry,
+  saveEditorState,
   updateTitle,
 } from "./service";
-import { editEntryDateSchema, updateEntryTitleSchema } from "./schema";
+import {
+  editEntryDateSchema,
+  saveEditorStateSchema,
+  updateEntryTitleSchema,
+} from "./schema";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -153,25 +158,9 @@ export const diaryRouter = createTRPCRouter({
       return input.entryId;
     }),
   saveEditorState: protectedProcedure
-    .input(
-      z.object({
-        diaryId: z.number(),
-        entryId: z.number(),
-        editorState: z.string(),
-        updateDate: z.date(),
-      }),
-    )
+    .input(saveEditorStateSchema)
     .mutation(async ({ ctx, input }) => {
-      const query = sql`
-        UPDATE diary_entry
-        INNER JOIN diary_diary_to_user
-        ON diary_diary_to_user.diaryId = diary_entry.diaryId
-        AND diary_diary_to_user.userId = ${ctx.session.user.id}
-        SET editorState = ${input.editorState}
-        WHERE diary_entry.id = ${input.entryId}
-        AND diary_entry.updatedAt <= ${input.updateDate}
-      `;
-      await ctx.db.execute(query);
+      await saveEditorState({ db: ctx.db, userId: ctx.session.user.id, input });
       return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
   updateTitle: protectedProcedure

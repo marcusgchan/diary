@@ -5,8 +5,10 @@ import {
   DeleteEntryInput,
   EditEntryDate,
   GetEntryInput,
+  SaveEditorState,
   UpdateEntryTitle,
 } from "./schema";
+import { SerializedEditorState, SerializedLexicalNode } from "lexical";
 
 export async function deleteEntry({
   db,
@@ -127,6 +129,40 @@ export async function editEntryDate({
     .set({ day: input.day })
     .where(
       and(
+        eq(entries.id, input.entryId),
+        eq(
+          entries.diaryId,
+          db
+            .selectDistinct({ diaryId: diariesToUsers.diaryId })
+            .from(diariesToUsers)
+            .where(
+              and(
+                eq(diariesToUsers.diaryId, entries.diaryId),
+                eq(diariesToUsers.userId, userId),
+              ),
+            ),
+        ),
+      ),
+    );
+}
+
+export async function saveEditorState({
+  db,
+  userId,
+  input,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  input: SaveEditorState;
+}) {
+  await db
+    .update(entries)
+    .set({
+      editorState: JSON.parse(input.editorState),
+    })
+    .where(
+      and(
+        eq(entries.diaryId, input.diaryId),
         eq(entries.id, input.entryId),
         eq(
           entries.diaryId,

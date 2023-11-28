@@ -20,3 +20,11 @@ export const editEntryDateSchema = z.object({
   day: z.string(),
 });
 export type EditEntryDate = z.infer<typeof editEntryDateSchema>;
+
+export const saveEditorStateSchema = z.object({
+  diaryId: z.number(),
+  entryId: z.number(),
+  editorState: z.string(),
+  updateDate: z.date(),
+});
+export type SaveEditorState = z.infer<typeof saveEditorStateSchema>;

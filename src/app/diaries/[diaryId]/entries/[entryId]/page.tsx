@@ -40,6 +40,7 @@ export default function Entry() {
       }
     >
       {(data) => {
+        console.log(data?.editorState);
         return !data ? (
           <main>Doesn&#39;t exist</main>
         ) : (
