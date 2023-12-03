@@ -1,14 +1,20 @@
 import { and, desc, eq, exists, sql } from "drizzle-orm";
-import { diaries, diariesToUsers, entries } from "~/server/db/schema";
+import {
+  diaries,
+  diariesToUsers,
+  editorStates,
+  entries,
+} from "~/server/db/schema";
 import { type TRPCContext } from "../../trpc";
 import {
+  CreateDiaryEntry,
   DeleteEntryInput,
   EditEntryDate,
   GetEntryInput,
   SaveEditorState,
   UpdateEntryTitle,
 } from "./schema";
-import { SerializedEditorState, SerializedLexicalNode } from "lexical";
+import { TRPCError } from "@trpc/server";
 
 export async function deleteEntry({
   db,
@@ -42,10 +48,12 @@ export async function getEntry({
     .selectDistinct({
       id: entries.id,
       day: entries.day,
-      editorState: entries.editorState,
+      editorState: editorStates.data,
+      lastUpdatedEditorState: editorStates.updatedAt,
       title: entries.title,
     })
     .from(entries)
+    .leftJoin(editorStates, eq(editorStates.entryId, entries.id))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
     .where(
       and(
@@ -156,26 +164,66 @@ export async function saveEditorState({
   input: SaveEditorState;
 }) {
   await db
-    .update(entries)
+    .update(editorStates)
     .set({
-      editorState: JSON.parse(input.editorState),
+      data: JSON.parse(input.editorState),
+      updatedAt: new Date(),
     })
     .where(
       and(
-        eq(entries.diaryId, input.diaryId),
-        eq(entries.id, input.entryId),
-        eq(
-          entries.diaryId,
+        eq(editorStates.entryId, input.entryId),
+        exists(
           db
             .selectDistinct({ diaryId: diariesToUsers.diaryId })
             .from(diariesToUsers)
             .where(
               and(
-                eq(diariesToUsers.diaryId, entries.diaryId),
+                eq(diariesToUsers.diaryId, input.diaryId),
                 eq(diariesToUsers.userId, userId),
               ),
             ),
         ),
       ),
     );
+}
+
+export async function createDiaryEntry({
+  db,
+  userId,
+  input,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  input: CreateDiaryEntry;
+}) {
+  // Turn into transaction
+  return await db.transaction(async (tx) => {
+    const res = await tx
+      .selectDistinct({ date: entries.day })
+      .from(entries)
+      .where(eq(entries.diaryId, input.diaryId))
+      .innerJoin(
+        diariesToUsers,
+        and(
+          eq(diariesToUsers.diaryId, entries.diaryId),
+          eq(diariesToUsers.userId, userId),
+          eq(entries.day, input.day),
+        ),
+      );
+    // Only can have 1 entry per day
+    if (res.length) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Entry already exists",
+      });
+    }
+    const [insertedEntry] = await tx
+      .insert(entries)
+      .values({ diaryId: input.diaryId, day: input.day });
+
+    // Create editor state
+    await tx.insert(editorStates).values({ entryId: insertedEntry.insertId });
+
+    return { id: insertedEntry.insertId };
+  });
 }

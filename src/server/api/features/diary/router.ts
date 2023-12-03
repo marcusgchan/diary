@@ -1,9 +1,15 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { diaries, diariesToUsers, entries } from "~/server/db/schema";
 import {
+  diaries,
+  diariesToUsers,
+  editorStates,
+  entries,
+} from "~/server/db/schema";
+import {
+  createDiaryEntry,
   deleteEntry,
   editEntryDate,
   getEntries,
@@ -12,6 +18,7 @@ import {
   updateTitle,
 } from "./service";
 import {
+  createDiarySchema,
   editEntryDateSchema,
   saveEditorStateSchema,
   updateEntryTitleSchema,
@@ -28,6 +35,9 @@ export const diaryRouter = createTRPCRouter({
         await tx.insert(diariesToUsers).values({
           userId: ctx.session.user.id,
           diaryId: inserted.insertId,
+        });
+        await tx.insert(editorStates).values({
+          entryId: inserted.insertId,
         });
       });
     }),
@@ -124,32 +134,13 @@ export const diaryRouter = createTRPCRouter({
       return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
   createEntry: protectedProcedure
-    .input(z.object({ diaryId: z.number(), day: z.string() }))
+    .input(createDiarySchema)
     .mutation(async ({ ctx, input }) => {
-      // Turn into transaction
-      const res = await ctx.db
-        .selectDistinct({ date: entries.day })
-        .from(entries)
-        .where(eq(entries.diaryId, input.diaryId))
-        .innerJoin(
-          diariesToUsers,
-          and(
-            eq(diariesToUsers.diaryId, entries.diaryId),
-            eq(diariesToUsers.userId, ctx.session.user.id),
-            eq(entries.day, input.day),
-          ),
-        );
-      // Only can have 1 entry per day
-      if (res.length) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Entry already exists",
-        });
-      }
-      const [inserted] = await ctx.db
-        .insert(entries)
-        .values({ diaryId: input.diaryId, day: input.day });
-      return { id: inserted.insertId };
+      return await createDiaryEntry({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        input,
+      });
     }),
   deleteEntry: protectedProcedure
     .input(z.object({ diaryId: z.number(), entryId: z.number() }))

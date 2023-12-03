@@ -24,10 +24,17 @@ export default function Entry() {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
-  const entryQuery = api.diary.getEntry.useQuery({
-    entryId: Number(entryId),
-    diaryId: Number(diaryId),
-  });
+  const entryQuery = api.diary.getEntry.useQuery(
+    {
+      entryId: Number(entryId),
+      diaryId: Number(diaryId),
+    },
+    {
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      refetchOnWindowFocus: false,
+    },
+  );
   return (
     <FetchResolver
       {...entryQuery}
@@ -40,17 +47,13 @@ export default function Entry() {
       }
     >
       {(data) => {
-        console.log(data?.editorState);
         return !data ? (
           <main>Doesn&#39;t exist</main>
         ) : (
           <main className="flex h-full flex-col gap-2">
-            <TitleInput key={`title-${data.title ?? ""}`} title={data.title} />
-            <DatePicker key={`date-${data.day}`} day={data.day} />
-            <Editor
-              key={`editor-${data.editorState}`}
-              initialEditorState={data.editorState}
-            />
+            <TitleInput title={data.title} />
+            <DatePicker day={data.day} />
+            <Editor initialEditorState={data.editorState} />
           </main>
         );
       }}

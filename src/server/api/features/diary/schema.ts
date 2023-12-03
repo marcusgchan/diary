@@ -28,3 +28,9 @@ export const saveEditorStateSchema = z.object({
   updateDate: z.date(),
 });
 export type SaveEditorState = z.infer<typeof saveEditorStateSchema>;
+
+export const createDiaryEntrySchema = z.object({
+  diaryId: z.number(),
+  day: z.string(),
+});
+export type CreateDiaryEntry = z.infer<typeof createDiaryEntrySchema>;

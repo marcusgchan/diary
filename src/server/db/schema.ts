@@ -140,8 +140,21 @@ export const entries = mysqlTable("entry", {
     .references(() => diaries.id),
   day: date("day", { mode: "string" }).notNull(),
   title: varchar("title", { length: 255 }),
-  editorState:
-    json("editorState").$type<SerializedEditorState<SerializedLexicalNode>>(),
+  createdAt: datetime("createdAt")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime("updatedAt")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const editorStates = mysqlTable("editor_state", {
+  data: json("editorState").$type<
+    SerializedEditorState<SerializedLexicalNode>
+  >(),
+  entryId: bigint("entryId", { mode: "number" })
+    .primaryKey()
+    .references(() => entries.id),
   createdAt: datetime("createdAt")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
