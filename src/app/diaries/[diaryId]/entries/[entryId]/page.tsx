@@ -17,6 +17,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { RouterOutputs } from "~/server/api/trpc";
+import { useToast } from "~/app/_components/ui/use-toast";
 
 type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 
@@ -102,9 +103,10 @@ function DatePicker({ day }: { day: string }) {
   const diaryId = params.diaryId;
   const entryId = params.entryId;
   const [date, setDate] = useState<Date>(new Date(day.replaceAll("-", ",")));
+  const { toast } = useToast();
   const queryUtils = api.useContext();
   const updateEntryDateMutation = api.diary.updateEntryDate.useMutation({
-    async onSuccess() {
+    async onSuccess(data) {
       await queryUtils.diary.getEntry.invalidate({
         entryId: Number(entryId),
         diaryId: Number(diaryId),
@@ -112,11 +114,14 @@ function DatePicker({ day }: { day: string }) {
       await queryUtils.diary.getEntries.invalidate({
         diaryId: Number(diaryId),
       });
+      setDate(new Date(data.day.replaceAll("-", ",")));
+    },
+    onError(e) {
+      toast({ variant: "destructive", title: e.message });
     },
   });
   function handleChangeDate(date: Date | undefined) {
     const updatedDate = date ?? new Date(day.replaceAll("-", ","));
-    setDate(updatedDate);
     updateEntryDateMutation.mutate({
       diaryId: Number(diaryId),
       entryId: Number(entryId),
@@ -129,6 +134,7 @@ function DatePicker({ day }: { day: string }) {
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
+          disabled={updateEntryDateMutation.isLoading}
           variant={"outline"}
           onClick={() => setIsOpen((prev) => !prev)}
           className={cn(

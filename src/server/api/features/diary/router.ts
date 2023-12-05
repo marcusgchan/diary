@@ -9,16 +9,17 @@ import {
   entries,
 } from "~/server/db/schema";
 import {
-  createDiaryEntry,
+  createEntry,
   deleteEntry,
-  editEntryDate,
+  updateEntryDate,
   getEntries,
   getEntry,
   saveEditorState,
   updateTitle,
+  getEntryIdsByDate as getEntryIdByDate,
 } from "./service";
 import {
-  createDiarySchema,
+  createEntrySchema,
   editEntryDateSchema,
   saveEditorStateSchema,
   updateEntryTitleSchema,
@@ -134,9 +135,9 @@ export const diaryRouter = createTRPCRouter({
       return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
     }),
   createEntry: protectedProcedure
-    .input(createDiarySchema)
+    .input(createEntrySchema)
     .mutation(async ({ ctx, input }) => {
-      return await createDiaryEntry({
+      return await createEntry({
         db: ctx.db,
         userId: ctx.session.user.id,
         input,
@@ -163,7 +164,22 @@ export const diaryRouter = createTRPCRouter({
   updateEntryDate: protectedProcedure
     .input(editEntryDateSchema)
     .mutation(async ({ ctx, input }) => {
-      await editEntryDate({ db: ctx.db, userId: ctx.session.user.id, input });
-      return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+      const id = await getEntryIdByDate({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        input,
+      });
+      if (id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Entry with this date already exists",
+        });
+      }
+      await updateEntryDate({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        input,
+      });
+      return { diaryId: input.diaryId, entryId: input.entryId, day: input.day };
     }),
 });

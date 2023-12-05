@@ -7,7 +7,7 @@ import {
 } from "~/server/db/schema";
 import { type TRPCContext } from "../../trpc";
 import {
-  CreateDiaryEntry,
+  CreateEntry,
   DeleteEntryInput,
   EditEntryDate,
   GetEntryInput,
@@ -123,7 +123,32 @@ export async function updateTitle({
     );
 }
 
-export async function editEntryDate({
+export async function getEntryIdsByDate({
+  db,
+  userId,
+  input,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  input: { diaryId: number; entryId: number; day: string };
+}) {
+  const [entriesWithSameDateAsInput] = await db
+    .selectDistinct({
+      id: entries.id,
+    })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(
+      and(
+        eq(entries.diaryId, input.diaryId),
+        eq(entries.day, input.day),
+        eq(diariesToUsers.userId, userId),
+      ),
+    );
+  return entriesWithSameDateAsInput;
+}
+
+export async function updateEntryDate({
   db,
   userId,
   input,
@@ -187,14 +212,14 @@ export async function saveEditorState({
     );
 }
 
-export async function createDiaryEntry({
+export async function createEntry({
   db,
   userId,
   input,
 }: {
   db: TRPCContext["db"];
   userId: string;
-  input: CreateDiaryEntry;
+  input: CreateEntry;
 }) {
   // Turn into transaction
   return await db.transaction(async (tx) => {
