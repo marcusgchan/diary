@@ -111,7 +111,12 @@ export const diaryRouter = createTRPCRouter({
   getEntry: protectedProcedure
     .input(z.object({ diaryId: z.number(), entryId: z.number() }))
     .query(async ({ ctx, input }) => {
-      return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+      const entry = await getEntry({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        input,
+      });
+      return entry ?? null;
     }),
   createEntry: protectedProcedure
     .input(createEntrySchema)
