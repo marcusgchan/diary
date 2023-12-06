@@ -31,8 +31,6 @@ export default function Entry() {
       diaryId: Number(diaryId),
     },
     {
-      refetchOnMount: false,
-      refetchOnReconnect: false,
       refetchOnWindowFocus: false,
     },
   );

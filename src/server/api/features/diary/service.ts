@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, sql } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, sql } from "drizzle-orm";
 import {
   diaries,
   diariesToUsers,
@@ -250,5 +250,85 @@ export async function createEntry({
     await tx.insert(editorStates).values({ entryId: insertedEntry.insertId });
 
     return { id: insertedEntry.insertId };
+  });
+}
+
+export async function getDiaryById({
+  db,
+  userId,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  diaryId: number;
+}) {
+  const [diary] = await db
+    .select({ id: diaries.id, name: diaries.name })
+    .from(diaries)
+    .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
+    .where(
+      and(
+        eq(diariesToUsers.diaryId, diaryId),
+        eq(diariesToUsers.userId, userId),
+      ),
+    );
+  return diary;
+}
+
+export async function getDiaryIdById({
+  db,
+  userId,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  diaryId: number;
+}) {
+  const [diary] = await db
+    .select({ id: diaries.id })
+    .from(diaries)
+    .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
+    .where(
+      and(
+        eq(diariesToUsers.diaryId, diaryId),
+        eq(diariesToUsers.userId, userId),
+      ),
+    );
+  return diary;
+}
+
+export async function deleteDiaryById({
+  db,
+  userId,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  diaryId: number;
+}) {
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(editorStates)
+      .where(
+        inArray(
+          editorStates.entryId,
+          tx
+            .select({ entryId: entries.id })
+            .from(entries)
+            .where(eq(entries.diaryId, diaryId)),
+        ),
+      );
+    await tx
+      .delete(diariesToUsers)
+      .where(
+        and(
+          eq(diariesToUsers.diaryId, diaryId),
+          eq(diariesToUsers.userId, userId),
+        ),
+      );
+
+    await tx.delete(entries).where(eq(entries.diaryId, diaryId));
+
+    await tx.delete(diaries).where(eq(diaries.id, diaryId));
   });
 }

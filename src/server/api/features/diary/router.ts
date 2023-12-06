@@ -2,12 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import {
-  diaries,
-  diariesToUsers,
-  editorStates,
-  entries,
-} from "~/server/db/schema";
+import { diaries, diariesToUsers, editorStates } from "~/server/db/schema";
 import {
   createEntry,
   deleteEntry,
@@ -17,6 +12,9 @@ import {
   saveEditorState,
   updateTitle,
   getEntryIdsByDate as getEntryIdByDate,
+  deleteDiaryById,
+  getDiaryById,
+  getDiaryIdById,
 } from "./service";
 import {
   createEntrySchema,
@@ -37,9 +35,6 @@ export const diaryRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           diaryId: inserted.insertId,
         });
-        await tx.insert(editorStates).values({
-          entryId: inserted.insertId,
-        });
       });
     }),
   getDiaries: protectedProcedure.query(
@@ -56,16 +51,11 @@ export const diaryRouter = createTRPCRouter({
   getDiary: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const [diary] = await ctx.db
-        .select({ id: diaries.id, name: diaries.name })
-        .from(diaries)
-        .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
-        .where(
-          and(
-            eq(diariesToUsers.diaryId, input.diaryId),
-            eq(diariesToUsers.userId, ctx.session.user.id),
-          ),
-        );
+      const diary = await getDiaryById({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        diaryId: input.diaryId,
+      });
       return diary ?? null;
     }),
   editDiary: protectedProcedure
@@ -97,27 +87,21 @@ export const diaryRouter = createTRPCRouter({
   deleteDiary: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.transaction(async (tx) => {
-        const diaryList = await tx
-          .selectDistinct({ id: diariesToUsers.diaryId })
-          .from(diariesToUsers)
-          .where(
-            and(
-              eq(diariesToUsers.diaryId, input.diaryId),
-              eq(diariesToUsers.userId, ctx.session.user.id),
-            ),
-          );
-        if (diaryList.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Diary does not exist",
-          });
-        }
-        await tx.delete(entries).where(eq(entries.diaryId, input.diaryId));
-        await tx
-          .delete(diariesToUsers)
-          .where(eq(diariesToUsers.diaryId, input.diaryId));
-        await tx.delete(diaries).where(eq(diaries.id, input.diaryId));
+      const diaryId = await getDiaryIdById({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        diaryId: input.diaryId,
+      });
+      if (!diaryId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Diary does not exist",
+        });
+      }
+      await deleteDiaryById({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        diaryId: input.diaryId,
       });
     }),
   getEntries: protectedProcedure

@@ -17,6 +17,7 @@ export function Entries() {
     { diaryId: Number(diaryId) },
     {
       enabled: !!diaryId,
+      refetchOnWindowFocus: false,
     },
   );
   const queryUtils = api.useContext();
