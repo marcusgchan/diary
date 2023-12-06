@@ -34,3 +34,9 @@ export const createEntrySchema = z.object({
   day: z.string(),
 });
 export type CreateEntry = z.infer<typeof createEntrySchema>;
+
+export const editDiaryNameSchema = z.object({
+  diaryId: z.number(),
+  name: z.string().min(1),
+});
+export type EditDiaryName = z.infer<typeof editDiaryNameSchema>;

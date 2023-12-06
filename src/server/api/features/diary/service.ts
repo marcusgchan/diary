@@ -9,12 +9,26 @@ import { type TRPCContext } from "../../trpc";
 import {
   CreateEntry,
   DeleteEntryInput,
+  EditDiaryName,
   EditEntryDate,
   GetEntryInput,
   SaveEditorState,
   UpdateEntryTitle,
 } from "./schema";
 import { TRPCError } from "@trpc/server";
+
+export async function editDiaryName({
+  db,
+  input,
+}: {
+  db: TRPCContext["db"];
+  input: EditDiaryName;
+}) {
+  await db
+    .update(diaries)
+    .set({ name: input.name })
+    .where(eq(diaries.id, input.diaryId));
+}
 
 export async function deleteEntry({
   db,

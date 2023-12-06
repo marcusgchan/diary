@@ -15,9 +15,11 @@ import {
   deleteDiaryById,
   getDiaryById,
   getDiaryIdById,
+  editDiaryName,
 } from "./service";
 import {
   createEntrySchema,
+  editDiaryNameSchema,
   editEntryDateSchema,
   saveEditorStateSchema,
   updateEntryTitleSchema,
@@ -59,29 +61,22 @@ export const diaryRouter = createTRPCRouter({
       return diary ?? null;
     }),
   editDiary: protectedProcedure
-    .input(z.object({ diaryId: z.number(), name: z.string().min(1) }))
+    .input(editDiaryNameSchema)
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.transaction(async (tx) => {
-        const diaryList = await tx
-          .selectDistinct({ id: diaries.id })
-          .from(diaries)
-          .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
-          .where(
-            and(
-              eq(diariesToUsers.diaryId, input.diaryId),
-              eq(diariesToUsers.userId, ctx.session.user.id),
-            ),
-          );
-        if (diaryList.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Diary does not exist",
-          });
-        }
-        await tx
-          .update(diaries)
-          .set({ name: input.name })
-          .where(eq(diaries.id, input.diaryId));
+      const diary = await getDiaryIdById({
+        diaryId: input.diaryId,
+        userId: ctx.session.user.id,
+        db: ctx.db,
+      });
+      if (!diary) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Diary does not exist",
+        });
+      }
+      await editDiaryName({
+        db: ctx.db,
+        input: { diaryId: input.diaryId, name: input.name },
       });
     }),
   deleteDiary: protectedProcedure
