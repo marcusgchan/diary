@@ -1,8 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { diaries, diariesToUsers, editorStates } from "~/server/db/schema";
 import {
   createEntry,
   deleteEntry,
@@ -16,6 +14,8 @@ import {
   getDiaryById,
   getDiaryIdById,
   editDiaryName,
+  getDiaries,
+  createDiary,
 } from "./service";
 import {
   createEntrySchema,
@@ -26,28 +26,17 @@ import {
 } from "./schema";
 
 export const diaryRouter = createTRPCRouter({
-  createDiary: protectedProcedure
-    .input(z.object({ id: z.string().or(z.number()), name: z.string().min(1) }))
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db.transaction(async (tx) => {
-        const [inserted] = await tx
-          .insert(diaries)
-          .values({ name: input.name });
-        await tx.insert(diariesToUsers).values({
-          userId: ctx.session.user.id,
-          diaryId: inserted.insertId,
-        });
-      });
-    }),
+  createDiary: protectedProcedure.input().mutation(async ({ ctx, input }) => {
+    await createDiary({
+      db: ctx.db,
+      userId: ctx.session.user.id,
+      name: input.name,
+    });
+  }),
   getDiaries: protectedProcedure.query(
     // Specify return type for optimistic updates since tempId is uuid and db id is a number
     async ({ ctx }): Promise<{ id: string | number; name: string }[]> => {
-      const diariesList = await ctx.db
-        .select({ id: diaries.id, name: diaries.name })
-        .from(diariesToUsers)
-        .innerJoin(diaries, eq(diaries.id, diariesToUsers.diaryId))
-        .where(eq(diariesToUsers.userId, ctx.session.user.id));
-      return diariesList;
+      return await getDiaries({ db: ctx.db, userId: ctx.session.user.id });
     },
   ),
   getDiary: protectedProcedure

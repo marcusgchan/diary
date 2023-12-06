@@ -17,6 +17,39 @@ import {
 } from "./schema";
 import { TRPCError } from "@trpc/server";
 
+export async function getDiaries({
+  db,
+  userId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+}) {
+  const diariesList = await db
+    .select({ id: diaries.id, name: diaries.name })
+    .from(diariesToUsers)
+    .innerJoin(diaries, eq(diaries.id, diariesToUsers.diaryId))
+    .where(eq(diariesToUsers.userId, userId));
+  return diariesList;
+}
+
+export async function createDiary({
+  db,
+  userId,
+  name,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  name: string;
+}) {
+  await db.transaction(async (tx) => {
+    const [inserted] = await tx.insert(diaries).values({ name: name });
+    await tx.insert(diariesToUsers).values({
+      userId: userId,
+      diaryId: inserted.insertId,
+    });
+  });
+}
+
 export async function editDiaryName({
   db,
   input,
