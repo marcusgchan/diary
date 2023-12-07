@@ -1,22 +1,16 @@
-import { useEffect, useRef } from "react";
-
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import { api } from "~/trpc/client";
 import {
-  $createParagraphNode,
-  $createTextNode,
   EditorState,
   SerializedEditorState,
   SerializedLexicalNode,
 } from "lexical";
 import { useParams } from "next/navigation";
-import { $getRoot, $getSelection } from "lexical";
 
 const theme = {
   root: "h-full p-4 border-white border-2 rounded-md",
@@ -27,9 +21,6 @@ function onError(error: Error) {
 }
 
 function initEditorState() {
-  /*const EMPTY_CONTENT =
-    '{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1}],"direction":null,"format":"","indent":0,"type":"root","version":1}}';
-  return EMPTY_CONTENT;*/
   return null;
 }
 
@@ -88,7 +79,7 @@ export function Editor({
           ErrorBoundary={LexicalErrorBoundary}
         />
         <HistoryPlugin />
-        <OnChangePlugin onChange={handleSave} />
+        <OnChangePlugin ignoreSelectionChange={true} onChange={handleSave} />
       </div>
     </LexicalComposer>
   );
