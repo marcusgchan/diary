@@ -63,6 +63,29 @@ export async function editDiaryName({
     .where(eq(diaries.id, input.diaryId));
 }
 
+export async function getEntryIdById({
+  db,
+  userId,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+}) {
+  const [entry] = await db
+    .select({ id: entries.id })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(
+      and(
+        eq(entries.id, entryId),
+        eq(diariesToUsers.userId, userId),
+        eq(diariesToUsers.diaryId, entries.diaryId),
+      ),
+    );
+  return entry;
+}
+
 export async function deleteEntry({
   db,
   userId,
@@ -72,14 +95,13 @@ export async function deleteEntry({
   userId: string;
   input: DeleteEntryInput;
 }) {
-  const query = sql`
-    DELETE E FROM diary_entry as E
-    INNER JOIN diary_diary_to_user as DU
-    ON DU.diaryId = E.diaryId
-    AND DU.userId = ${userId}
-    WHERE E.id = ${input.entryId}
-  `;
-  await db.execute(query);
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(editorStates)
+      .where(eq(editorStates.entryId, input.entryId));
+
+    await tx.delete(entries).where(eq(entries.id, input.entryId));
+  });
 }
 
 export async function getEntry({

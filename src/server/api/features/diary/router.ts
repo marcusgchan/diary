@@ -16,8 +16,10 @@ import {
   editDiaryName,
   getDiaries,
   createDiary,
+  getEntryIdById,
 } from "./service";
 import {
+  createDiarySchema,
   createEntrySchema,
   editDiaryNameSchema,
   editEntryDateSchema,
@@ -26,13 +28,15 @@ import {
 } from "./schema";
 
 export const diaryRouter = createTRPCRouter({
-  createDiary: protectedProcedure.input().mutation(async ({ ctx, input }) => {
-    await createDiary({
-      db: ctx.db,
-      userId: ctx.session.user.id,
-      name: input.name,
-    });
-  }),
+  createDiary: protectedProcedure
+    .input(createDiarySchema)
+    .mutation(async ({ ctx, input }) => {
+      await createDiary({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        name: input.name,
+      });
+    }),
   getDiaries: protectedProcedure.query(
     // Specify return type for optimistic updates since tempId is uuid and db id is a number
     async ({ ctx }): Promise<{ id: string | number; name: string }[]> => {
@@ -119,6 +123,17 @@ export const diaryRouter = createTRPCRouter({
   deleteEntry: protectedProcedure
     .input(z.object({ diaryId: z.number(), entryId: z.number() }))
     .mutation(async ({ ctx, input }) => {
+      const entry = await getEntryIdById({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+      if (!entry) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Entry does not exist",
+        });
+      }
       await deleteEntry({ db: ctx.db, userId: ctx.session.user.id, input });
       return input.entryId;
     }),
