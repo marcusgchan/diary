@@ -74,3 +74,15 @@
     @apply bg-background text-foreground;
   }
 }
+/*
+#editor-container ul :where(li[dir], li:has(> br)) {
+  list-style: disc;
+}
+
+#editor-container ul ul :where(li[dir], li:has(> br)) {
+  list-style: circle;
+}
+
+#editor-container ul ul ul :where(li[dir], li:has(> br)) {
+  list-style: square;
+}*/
