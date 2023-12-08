@@ -24,7 +24,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 
 const theme = {
-  root: "h-full p-4 border-white border-2 rounded-md",
+  root: "h-full p-4 border-white border-2 rounded-md overflow-y-auto",
   heading: {
     h1: "text-2xl font-bold",
     h2: "text-xl font-semibold",
@@ -106,23 +106,35 @@ export function Editor({
   }
 
   return (
-    <div id="editor-container" className="relative h-full">
+    <div id="editor-container" className="flex h-full min-h-0 flex-col">
       <LexicalComposer initialConfig={initialConfig}>
-        <RichTextPlugin
-          contentEditable={<ContentEditable />}
-          placeholder={
-            <div className="pointer-events-none absolute left-5 top-4">
-              Enter some text...
-            </div>
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <HistoryPlugin />
-        <OnChangePlugin ignoreSelectionChange={true} onChange={handleSave} />
-        <ListPlugin />
-        <MarkdownShortcutPlugin transformers={DEFAULT_TRANSFORMERS} />
-        <TabIndentationPlugin />
+        <Toolbar />
+        <div className="relative h-full min-h-0">
+          <RichTextPlugin
+            contentEditable={<ContentEditable />}
+            placeholder={
+              <div className="pointer-events-none absolute left-5 top-4">
+                Enter some text...
+              </div>
+            }
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+          <HistoryPlugin />
+          <OnChangePlugin ignoreSelectionChange={true} onChange={handleSave} />
+          <ListPlugin />
+          <MarkdownShortcutPlugin transformers={DEFAULT_TRANSFORMERS} />
+          <TabIndentationPlugin />
+        </div>
       </LexicalComposer>
+    </div>
+  );
+}
+
+function Toolbar() {
+  return (
+    <div>
+      <button>Undo</button>
+      <button>Back</button>
     </div>
   );
 }
