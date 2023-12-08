@@ -1,19 +1,49 @@
+import { api } from "~/trpc/client";
+import { useParams } from "next/navigation";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { api } from "~/trpc/client";
 import {
   EditorState,
   SerializedEditorState,
   SerializedLexicalNode,
 } from "lexical";
-import { useParams } from "next/navigation";
+import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+import {
+  DEFAULT_TRANSFORMERS,
+  MarkdownShortcutPlugin,
+} from "@lexical/react/LexicalMarkdownShortcutPlugin";
+import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
+import { ListNode, ListItemNode } from "@lexical/list";
+import { CodeNode } from "@lexical/code";
+import { LinkNode } from "@lexical/link";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 
 const theme = {
   root: "h-full p-4 border-white border-2 rounded-md",
+  heading: {
+    h1: "text-2xl font-bold",
+    h2: "text-xl font-semibold",
+    h3: "text-lg font-medium",
+    h4: "text-lg font-normal",
+    h5: "text-lg",
+    h6: "text-lg",
+  },
+  list: {
+    nested: {
+      listitem: "list-none",
+    },
+    ol: "[list-style-type:revert] pl-[0.9rem]",
+    ul: "[list-style-type:revert] pl-[0.9rem]",
+    listitem: "editor-listItem",
+    listitemChecked: "editor-listItemChecked",
+    listitemUnchecked: "editor-listItemUnchecked",
+  },
+  quote: "border-l-4 border-gray-400 pl-2 text-gray-400",
 };
 
 function onError(error: Error) {
@@ -32,6 +62,15 @@ export function Editor({
   const initialConfig = {
     namespace: "MyEditor",
     theme,
+    nodes: [
+      ListNode,
+      ListItemNode,
+      CodeNode,
+      LinkNode,
+      HeadingNode,
+      QuoteNode,
+      HorizontalRuleNode,
+    ],
     onError,
     editorState: initialEditorState
       ? JSON.stringify(initialEditorState)
@@ -67,8 +106,8 @@ export function Editor({
   }
 
   return (
-    <LexicalComposer initialConfig={initialConfig}>
-      <div className="relative h-full">
+    <div id="editor-container" className="relative h-full">
+      <LexicalComposer initialConfig={initialConfig}>
         <RichTextPlugin
           contentEditable={<ContentEditable />}
           placeholder={
@@ -80,7 +119,10 @@ export function Editor({
         />
         <HistoryPlugin />
         <OnChangePlugin ignoreSelectionChange={true} onChange={handleSave} />
-      </div>
-    </LexicalComposer>
+        <ListPlugin />
+        <MarkdownShortcutPlugin transformers={DEFAULT_TRANSFORMERS} />
+        <TabIndentationPlugin />
+      </LexicalComposer>
+    </div>
   );
 }
