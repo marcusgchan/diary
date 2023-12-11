@@ -1,0 +1,110 @@
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { REDO_COMMAND, UNDO_COMMAND } from "lexical";
+import { ChevronDown, Image as ImageIcon, Redo, Undo } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "~/app/_components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Dispatch, SetStateAction, useState } from "react";
+
+export function Toolbar() {
+  const [editor] = useLexicalComposerContext();
+  function undo() {
+    editor.dispatchCommand(UNDO_COMMAND, undefined);
+  }
+  function redo() {
+    editor.dispatchCommand(REDO_COMMAND, undefined);
+  }
+  return (
+    <ul className="flex gap-1">
+      <li>
+        <button onClick={undo}>
+          <Undo />
+        </button>
+      </li>
+      <li>
+        <button onClick={redo}>
+          <Redo />
+        </button>
+      </li>
+      <li aria-hidden="true">
+        <Separator orientation="vertical" />
+      </li>
+      <li>
+        <InsertDropdownMenu />
+      </li>
+    </ul>
+  );
+}
+
+function InsertDropdownMenu() {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const openDropdown = () => setIsDropdownOpen(true);
+  const closeDropdown = () => setIsDropdownOpen(false);
+  return (
+    <DropdownMenu
+      modal={isDropdownOpen}
+      onOpenChange={(e) => setIsDropdownOpen(e)}
+    >
+      <DropdownMenuTrigger className="flex gap-1" onClick={openDropdown}>
+        Insert
+        <ChevronDown />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <UploadImageDialog closeDropdown={closeDropdown} />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
+  return (
+    <AlertDialog
+      onOpenChange={(e) => {
+        if (!e) {
+          closeDropdown();
+        }
+      }}
+    >
+      <AlertDialogTrigger asChild>
+        <DropdownMenuItem
+          className="flex w-full items-center gap-1"
+          onSelect={(e) => {
+            e.preventDefault();
+          }}
+        >
+          <ImageIcon />
+          Image
+        </DropdownMenuItem>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete your
+            account and remove your data from our servers.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

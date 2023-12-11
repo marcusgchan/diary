@@ -5,6 +5,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import {
   EditorState,
@@ -22,6 +23,8 @@ import { CodeNode } from "@lexical/code";
 import { LinkNode } from "@lexical/link";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
+import { Toolbar } from "./Toolbar";
+import { useSharedHistoryContext } from "./SharedHistoryContext";
 
 const theme = {
   root: "h-full p-4 border-white border-2 rounded-md overflow-y-auto",
@@ -105,6 +108,8 @@ export function Editor({
     });
   }
 
+  const { historyState } = useSharedHistoryContext();
+
   return (
     <div id="editor-container" className="flex h-full min-h-0 flex-col">
       <LexicalComposer initialConfig={initialConfig}>
@@ -119,22 +124,14 @@ export function Editor({
             }
             ErrorBoundary={LexicalErrorBoundary}
           />
-          <HistoryPlugin />
+          <HistoryPlugin externalHistoryState={historyState} />
           <OnChangePlugin ignoreSelectionChange={true} onChange={handleSave} />
           <ListPlugin />
           <MarkdownShortcutPlugin transformers={DEFAULT_TRANSFORMERS} />
           <TabIndentationPlugin />
+          <AutoFocusPlugin />
         </div>
       </LexicalComposer>
-    </div>
-  );
-}
-
-function Toolbar() {
-  return (
-    <div>
-      <button>Undo</button>
-      <button>Back</button>
     </div>
   );
 }
