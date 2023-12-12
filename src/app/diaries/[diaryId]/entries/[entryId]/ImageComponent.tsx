@@ -5,10 +5,7 @@ import type {
   NodeKey,
 } from "lexical";
 
-import "./ImageNode.css";
-
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
-import { useCollaborationContext } from "@lexical/react/LexicalCollaborationContext";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
@@ -38,13 +35,6 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { $isImageNode } from "./image-node";
 import { useSharedHistoryContext } from "./SharedHistoryContext";
 import ImageResizer from "./ImageResizer";
-/*
-import { useSettings } from '../context/SettingsContext';
-import { useSharedHistoryContext } from '../context/SharedHistoryContext';
-import LinkPlugin from '../plugins/LinkPlugin';
-import TreeViewPlugin from '../plugins/TreeViewPlugin';
-import ImageResizer from '../ui/ImageResizer';
-*/
 
 const imageCache = new Set();
 
@@ -126,7 +116,6 @@ export default function ImageComponent({
   const [isSelected, setSelected, clearSelection] =
     useLexicalNodeSelection(nodeKey);
   const [isResizing, setIsResizing] = useState<boolean>(false);
-  const { isCollabActive } = useCollaborationContext();
   const [editor] = useLexicalComposerContext();
   const [selection, setSelection] = useState<BaseSelection | null>(null);
   const activeEditorRef = useRef<LexicalEditor | null>(null);

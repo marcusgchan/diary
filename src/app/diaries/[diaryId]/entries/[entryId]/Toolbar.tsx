@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dispatch, SetStateAction, useState } from "react";
+import { Input } from "~/app/_components/ui/input";
+import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();
@@ -73,6 +75,29 @@ function InsertDropdownMenu() {
 }
 
 function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
+  const [uploadedFile, setUploadedFile] = useState<File>();
+  const [src, setSrc] = useState<string>();
+  const [editor] = useLexicalComposerContext();
+  const handleConfirm = () => {
+    if (!uploadedFile) return;
+    if (!src) return;
+    editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src, altText: "test" });
+  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const file = files.item(0);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result;
+      if (!src) return;
+      if (typeof src !== "string") return;
+      setUploadedFile(file);
+      setSrc(src);
+    };
+    reader.readAsDataURL(file);
+  };
   return (
     <AlertDialog
       onOpenChange={(e) => {
@@ -94,15 +119,18 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>Upload an Image</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your
-            account and remove your data from our servers.
+            <label className="flex items-center">
+              <Input type="file" onChange={handleFileChange} />
+            </label>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction>Continue</AlertDialogAction>
+          <AlertDialogAction onClick={handleConfirm}>
+            Continue
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

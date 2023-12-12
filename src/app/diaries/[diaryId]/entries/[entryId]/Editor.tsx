@@ -25,6 +25,8 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 import { Toolbar } from "./Toolbar";
 import { useSharedHistoryContext } from "./SharedHistoryContext";
+import ImagesPlugin from "./ImagePlugin";
+import { ImageNode } from "./image-node";
 
 const theme = {
   root: "h-full p-4 border-white border-2 rounded-md overflow-y-auto",
@@ -73,6 +75,7 @@ export function Editor({
       HeadingNode,
       QuoteNode,
       HorizontalRuleNode,
+      ImageNode,
     ],
     onError,
     editorState: initialEditorState
@@ -130,6 +133,7 @@ export function Editor({
           <MarkdownShortcutPlugin transformers={DEFAULT_TRANSFORMERS} />
           <TabIndentationPlugin />
           <AutoFocusPlugin />
+          <ImagesPlugin captionsEnabled={false} />
         </div>
       </LexicalComposer>
     </div>
