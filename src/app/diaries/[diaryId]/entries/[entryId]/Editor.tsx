@@ -49,6 +49,7 @@ const theme = {
     listitemUnchecked: "editor-listItemUnchecked",
   },
   quote: "border-l-4 border-gray-400 pl-2 text-gray-400",
+  image: "editor-image",
 };
 
 function onError(error: Error) {
@@ -114,7 +115,10 @@ export function Editor({
   const { historyState } = useSharedHistoryContext();
 
   return (
-    <div id="editor-container" className="flex h-full min-h-0 flex-col">
+    <div
+      id="editor-container"
+      className="editor-shell flex h-full min-h-0 flex-col"
+    >
       <LexicalComposer initialConfig={initialConfig}>
         <Toolbar />
         <div className="relative h-full min-h-0">
