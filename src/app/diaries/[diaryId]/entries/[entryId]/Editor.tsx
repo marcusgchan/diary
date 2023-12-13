@@ -27,6 +27,7 @@ import { Toolbar } from "./Toolbar";
 import { useSharedHistoryContext } from "./SharedHistoryContext";
 import ImagesPlugin from "./ImagePlugin";
 import { ImageNode } from "./image-node";
+import { DragDropPastePlugin } from "./DragDropPastePlugin";
 
 const theme = {
   root: "h-full p-4 border-white border-2 rounded-md overflow-y-auto",
@@ -115,15 +116,14 @@ export function Editor({
   const { historyState } = useSharedHistoryContext();
 
   return (
-    <div
-      id="editor-container"
-      className="editor-shell flex h-full min-h-0 flex-col"
-    >
+    <div className="editor-shell flex h-full min-h-0 flex-col">
       <LexicalComposer initialConfig={initialConfig}>
         <Toolbar />
         <div className="relative h-full min-h-0">
           <RichTextPlugin
-            contentEditable={<ContentEditable />}
+            contentEditable={
+              <ContentEditable className="ContentEditable__root" />
+            }
             placeholder={
               <div className="pointer-events-none absolute left-5 top-4">
                 Enter some text...
@@ -137,7 +137,8 @@ export function Editor({
           <MarkdownShortcutPlugin transformers={DEFAULT_TRANSFORMERS} />
           <TabIndentationPlugin />
           <AutoFocusPlugin />
-          <ImagesPlugin captionsEnabled={false} />
+          <ImagesPlugin />
+          <DragDropPastePlugin />
         </div>
       </LexicalComposer>
     </div>
