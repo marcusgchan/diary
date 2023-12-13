@@ -3,7 +3,6 @@
 import { useParams } from "next/navigation";
 import FetchResolver from "~/app/_components/FetchResolver";
 import { api } from "~/trpc/client";
-import { Editor } from "./Editor";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -14,10 +13,14 @@ import {
 import { Button } from "~/app/_components/ui/button";
 import { cn } from "~/app/_utils/cx";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { lazy, useState } from "react";
 import { format } from "date-fns";
 import { RouterOutputs } from "~/server/api/trpc";
 import { useToast } from "~/app/_components/ui/use-toast";
+
+const Editor = lazy(() =>
+  import("./Editor").then((c) => ({ default: c.Editor })),
+);
 
 type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 
@@ -52,19 +55,6 @@ export default function Entry() {
           <main className="flex h-full flex-col gap-2">
             <TitleInput title={data.title} />
             <DatePicker day={data.day} />
-            {/*
-            <div className="h-full min-h-0 overflow-y-auto">
-              ksadjf;lkasdjf;lkasdjfklasdjfk ksadjf;lkasdjf;lkasdjfklasdjfk
-              ksadjf;lkasdjf;lkasdjfklasdjfk
-              l;asdjf;lkasdjf;lkasdfj;lkasdjf;lkas dasklfj;asldkfj
-              dsafk;jasd;lkj l;asdjf;lkasdjf;lkasdfj;lkasdjf;lkas
-              dasklfj;asldkfj dsafk;jasd;lkj
-              l;asdjf;lkasdjf;lkasdfj;lkasdjf;lkas dasklfj;asldkfj
-              dsafk;jasd;lkj l;asdjf;lkasdjf;lkasdfj;lkasdjf;lkas
-              dasklfj;asldkfj l;asdjf;lkasdjf;lkasdfj;lkasdjf;lkas
-              dasklfj;asldkfj l;asdjf;lkasdjf;lkasdfj;lkasdjf;lkas
-              dasklfj;asldkfj
-            </div>*/}
             <Editor initialEditorState={data.editorState} />
           </main>
         );
