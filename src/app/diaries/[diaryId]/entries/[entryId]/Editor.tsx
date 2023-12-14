@@ -5,6 +5,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import {
   EditorState,
@@ -22,9 +23,14 @@ import { CodeNode } from "@lexical/code";
 import { LinkNode } from "@lexical/link";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
+import { Toolbar } from "./Toolbar";
+import { useSharedHistoryContext } from "./SharedHistoryContext";
+import ImagesPlugin from "./ImagePlugin";
+import { ImageNode } from "./image-node";
+import { DragDropPastePlugin } from "./DragDropPastePlugin";
 
 const theme = {
-  root: "h-full p-4 border-white border-2 rounded-md",
+  root: "h-full p-4 border-white border-2 rounded-md overflow-y-auto",
   heading: {
     h1: "text-2xl font-bold",
     h2: "text-xl font-semibold",
@@ -44,6 +50,7 @@ const theme = {
     listitemUnchecked: "editor-listItemUnchecked",
   },
   quote: "border-l-4 border-gray-400 pl-2 text-gray-400",
+  image: "editor-image",
 };
 
 function onError(error: Error) {
@@ -70,6 +77,7 @@ export function Editor({
       HeadingNode,
       QuoteNode,
       HorizontalRuleNode,
+      ImageNode,
     ],
     onError,
     editorState: initialEditorState
@@ -105,23 +113,33 @@ export function Editor({
     });
   }
 
+  const { historyState } = useSharedHistoryContext();
+
   return (
-    <div id="editor-container" className="relative h-full">
+    <div className="editor-shell flex h-full min-h-0 flex-col">
       <LexicalComposer initialConfig={initialConfig}>
-        <RichTextPlugin
-          contentEditable={<ContentEditable />}
-          placeholder={
-            <div className="pointer-events-none absolute left-5 top-4">
-              Enter some text...
-            </div>
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <HistoryPlugin />
-        <OnChangePlugin ignoreSelectionChange={true} onChange={handleSave} />
-        <ListPlugin />
-        <MarkdownShortcutPlugin transformers={DEFAULT_TRANSFORMERS} />
-        <TabIndentationPlugin />
+        <Toolbar />
+        <div className="relative h-full min-h-0">
+          <RichTextPlugin
+            contentEditable={
+              <ContentEditable className="ContentEditable__root" />
+            }
+            placeholder={
+              <div className="pointer-events-none absolute left-5 top-4">
+                Enter some text...
+              </div>
+            }
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+          <HistoryPlugin externalHistoryState={historyState} />
+          <OnChangePlugin ignoreSelectionChange={true} onChange={handleSave} />
+          <ListPlugin />
+          <MarkdownShortcutPlugin transformers={DEFAULT_TRANSFORMERS} />
+          <TabIndentationPlugin />
+          <AutoFocusPlugin />
+          <ImagesPlugin />
+          <DragDropPastePlugin />
+        </div>
       </LexicalComposer>
     </div>
   );

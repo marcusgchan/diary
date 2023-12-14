@@ -3,7 +3,6 @@
 import { useParams } from "next/navigation";
 import FetchResolver from "~/app/_components/FetchResolver";
 import { api } from "~/trpc/client";
-import { Editor } from "./Editor";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -14,10 +13,14 @@ import {
 import { Button } from "~/app/_components/ui/button";
 import { cn } from "~/app/_utils/cx";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { lazy, useState } from "react";
 import { format } from "date-fns";
 import { RouterOutputs } from "~/server/api/trpc";
 import { useToast } from "~/app/_components/ui/use-toast";
+
+const Editor = lazy(() =>
+  import("./Editor").then((c) => ({ default: c.Editor })),
+);
 
 type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 

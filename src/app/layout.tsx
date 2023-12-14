@@ -51,7 +51,7 @@ export default async function RootLayout({
             </ul>
           </nav>
         </header>
-        <div className="flex-1">
+        <div className="h-full min-h-0 flex-1">
           <TrpcProvider headers={headers()}>{children}</TrpcProvider>
         </div>
       </div>
