@@ -38,7 +38,7 @@
     "drizzle-orm": "^0.29.1",
     "lexical": "^0.12.5",
     "lucide-react": "^0.299.0",
-    "mysql2": "^3.6.2",
+    "mysql2": "^3.6.5",
     "next": "14.0.4",
     "next-auth": "^4.24.5",
     "react": "^18",
