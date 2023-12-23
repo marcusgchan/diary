@@ -19,8 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 
