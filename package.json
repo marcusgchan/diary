@@ -42,7 +42,7 @@
     "next": "14.0.4",
     "next-auth": "^4.24.5",
     "react": "^18",
-    "react-day-picker": "^8.9.1",
+    "react-day-picker": "^8.10.0",
     "react-dom": "^18",
     "superjson": "^2.2.1",
     "tailwind-merge": "^2.2.0",
