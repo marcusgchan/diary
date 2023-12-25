@@ -22,6 +22,8 @@ import {
 import { useState } from "react";
 import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
+import { api } from "~/trpc/client";
+import { useParams } from "next/navigation";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();
@@ -77,10 +79,24 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [uploadedFile, setUploadedFile] = useState<File>();
   const [src, setSrc] = useState<string>();
   const [editor] = useLexicalComposerContext();
+  const uploadImageMutation = api.diary.uploadEntryImage.useMutation({
+    onSuccess(data) {
+      console.log(data);
+    },
+  });
+  const params = useParams();
   const handleConfirm = () => {
-    if (!uploadedFile) return;
-    if (!src) return;
-    editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src, altText: "test" });
+    if (!uploadedFile || !src) return;
+    uploadImageMutation.mutate({
+      diaryId: Number(params.diaryId),
+      entryId: Number(params.entryId),
+      imageMetadata: {
+        name: uploadedFile.name,
+        type: uploadedFile.type,
+        size: uploadedFile.size,
+      },
+    });
+    //editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src, altText: "test" });
   };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -90,8 +106,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const src = e.target?.result;
-      if (!src) return;
-      if (typeof src !== "string") return;
+      if (!src || typeof src !== "string") return;
       setUploadedFile(file);
       setSrc(src);
     };

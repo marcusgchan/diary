@@ -26,6 +26,7 @@ import {
   saveEditorStateSchema,
   updateEntryTitleSchema,
 } from "./schema";
+import { getPresignedPost } from "../shared/s3ImagesService";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -169,5 +170,26 @@ export const diaryRouter = createTRPCRouter({
         input,
       });
       return { diaryId: input.diaryId, entryId: input.entryId, day: input.day };
+    }),
+  uploadEntryImage: protectedProcedure
+    .input(
+      z.object({
+        diaryId: z.number(),
+        entryId: z.number(),
+        imageMetadata: z.object({
+          name: z.string(),
+          type: z.string(),
+          size: z.number(),
+        }),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await getPresignedPost(
+        ctx.session.user.id,
+        input.diaryId,
+        input.entryId,
+        input.imageMetadata.name,
+        input.imageMetadata,
+      );
     }),
 });
