@@ -12,6 +12,9 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^0.3.11",
+    "@aws-sdk/client-s3": "^3.478.0",
+    "@aws-sdk/s3-presigned-post": "^3.478.0",
+    "@aws-sdk/s3-request-presigner": "^3.478.0",
     "@lexical/code": "^0.12.5",
     "@lexical/link": "^0.12.5",
     "@lexical/list": "^0.12.5",
