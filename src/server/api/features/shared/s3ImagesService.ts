@@ -4,7 +4,7 @@ import { config } from "~/server/config";
 import { s3Client } from "~/server/s3Client";
 
 export async function getPresignedPost(
-  userId: number,
+  userId: string,
   diaryId: number,
   entryId: number,
   uuid: string,
