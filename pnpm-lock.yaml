@@ -27,8 +27,8 @@ dependencies:
     specifier: ^0.12.5
     version: 0.12.5(lexical@0.12.5)
   '@planetscale/database':
-    specifier: ^1.11.0
-    version: 1.11.0
+    specifier: ^1.16.0
+    version: 1.16.0
   '@radix-ui/react-alert-dialog':
     specifier: ^1.0.5
     version: 1.0.5(@types/react-dom@18.2.18)(@types/react@18.2.45)(react-dom@18.2.0)(react@18.2.0)
@@ -79,7 +79,7 @@ dependencies:
     version: 2.30.0
   drizzle-orm:
     specifier: ^0.29.1
-    version: 0.29.1(@planetscale/database@1.11.0)(mysql2@3.6.5)
+    version: 0.29.1(@planetscale/database@1.16.0)(mysql2@3.6.5)
   lexical:
     specifier: ^0.12.5
     version: 0.12.5
@@ -1343,8 +1343,8 @@ packages:
     resolution: {integrity: sha512-dhPeilub1NuIG0X5Kvhh9lH4iW3ZsHlnzwgwbOlgwQ2wG1IqFzsgHqmKPk3WzsdWAeaxKJxgM0+W433RmN45GA==}
     dev: false
 
-  /@planetscale/database@1.11.0:
-    resolution: {integrity: sha512-aWbU+D/IRHoDE9975y+Q4c+EwwAWxCPwFId+N1AhQVFXzbeJMkj6KN2iQtoi03elcLMRdfT+V3i9Z4WRw+/oIA==}
+  /@planetscale/database@1.16.0:
+    resolution: {integrity: sha512-HNUrTqrd8aTRZYMDcsoZ62s36sIWkMMmKZBOehoCWR2WrfNPKq+Q1yQef5okl3pSVlldFnu2h/dbHjOsDTHXug==}
     engines: {node: '>=16'}
     dev: false
 
@@ -2736,7 +2736,7 @@ packages:
       - utf-8-validate
     dev: true
 
-  /drizzle-orm@0.29.1(@planetscale/database@1.11.0)(mysql2@3.6.5):
+  /drizzle-orm@0.29.1(@planetscale/database@1.16.0)(mysql2@3.6.5):
     resolution: {integrity: sha512-yItc4unfHnk8XkDD3/bdC63vdboTY7e7I03lCF1OJYABXSIfQYU9BFTQJXMMovVeb3T1/OJWwfW/70T1XPnuUA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -2798,7 +2798,7 @@ packages:
       sqlite3:
         optional: true
     dependencies:
-      '@planetscale/database': 1.11.0
+      '@planetscale/database': 1.16.0
       mysql2: 3.6.5
     dev: false
 
