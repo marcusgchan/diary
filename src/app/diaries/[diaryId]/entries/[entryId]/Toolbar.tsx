@@ -60,7 +60,8 @@ function InsertDropdownMenu() {
   const closeDropdown = () => setIsDropdownOpen(false);
   return (
     <DropdownMenu
-      modal={isDropdownOpen}
+      open={isDropdownOpen}
+      modal={false}
       onOpenChange={(e) => setIsDropdownOpen(e)}
     >
       <DropdownMenuTrigger className="flex gap-1" onClick={openDropdown}>

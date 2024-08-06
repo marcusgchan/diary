@@ -2,8 +2,7 @@ version: "3.3"
 
 services:
   db:
-    image: mysql:8.0.30
-    restart: always
+    image: mysql:latest
     environment:
       - MYSQL_DATABASE=diary
       - MYSQL_ROOT_PASSWORD=test123
