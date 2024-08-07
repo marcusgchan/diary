@@ -27,6 +27,7 @@ import {
   updateEntryTitleSchema,
 } from "./schema";
 import { getPresignedPost } from "../shared/s3ImagesService";
+import {randomUUID} from "crypto";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -184,11 +185,11 @@ export const diaryRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await getPresignedPost(
+      return await getPresignedPost(
         ctx.session.user.id,
         input.diaryId,
         input.entryId,
-        input.imageMetadata.name,
+        randomUUID(),
         input.imageMetadata,
       );
     }),

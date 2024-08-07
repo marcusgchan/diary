@@ -24,6 +24,7 @@ import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 import { api } from "~/trpc/client";
 import { useParams } from "next/navigation";
+import { useToast } from "~/app/_components/ui/use-toast";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();
@@ -80,9 +81,30 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [uploadedFile, setUploadedFile] = useState<File>();
   const [src, setSrc] = useState<string>();
   const [editor] = useLexicalComposerContext();
+  const { toast } = useToast();
   const uploadImageMutation = api.diary.uploadEntryImage.useMutation({
     onSuccess(data) {
-      console.log(data);
+      if (!uploadedFile) {
+        return;
+      }
+      const formData = new FormData();
+      Object.entries(data.fields).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+      formData.append("file", uploadedFile);
+      fetch(data.url, {
+        method: "POST",
+        body: formData,
+      })
+        .then((res) => {
+          if (!res.ok) {
+            throw Error("unable to upload file");
+          }
+          toast({ title: "Successfully uploaded image" });
+        })
+        .catch((err) => {
+          toast({ title: "Unable to upload image" });
+        });
     },
   });
   const params = useParams();
@@ -97,7 +119,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         size: uploadedFile.size,
       },
     });
-    //editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src, altText: "test" });
+    editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src, altText: "test" });
   };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

@@ -12,7 +12,7 @@ export async function getPresignedPost(
 ) {
   const presignedPost = await createPresignedPost(s3Client, {
     Bucket: env.BUCKET_NAME,
-    Key: `${userId}/${diaryId}/${diaryId}/${imageMetadata.name}-${uuid}`,
+    Key: `${userId}/${diaryId}/${entryId}/${uuid}-${imageMetadata.name}`,
     Expires: config.s3.presignedUrlDuration,
     Fields: {
       acl: "private",
@@ -26,6 +26,5 @@ export async function getPresignedPost(
       ["content-length-range", config.s3.minFileSize, config.s3.maxFileSize],
     ],
   });
-  console.log(presignedPost);
   return { url: presignedPost.url, fields: presignedPost.fields };
 }

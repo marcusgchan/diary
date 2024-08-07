@@ -15,7 +15,7 @@ import * as schema from "./schema";
 
 export const db = drizzle(
   await mysql.createConnection({
-    host: "localhost",
+    host: "db",
     port: 3306,
     user: "root",
     password: "test123",
