@@ -83,7 +83,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
   const params = useParams();
-  const uploadImageMetadata = api.diary.saveImageMetadata.useMutation();
+  const saveImageMetadata = api.diary.saveImageMetadata.useMutation();
   const queryutils = api.useContext();
 
   async function handleConfirm() {
@@ -121,7 +121,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         if (!key) {
           throw Error("unable to upload file");
         }
-        const url = await uploadImageMetadata.mutateAsync({
+        await saveImageMetadata.mutateAsync({
           key,
           entryId: Number(params.entryId),
         });

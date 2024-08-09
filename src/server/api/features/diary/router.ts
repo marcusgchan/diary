@@ -203,8 +203,7 @@ export const diaryRouter = createTRPCRouter({
         entryId: input.entryId,
         key: input.key,
       });
-
-      return await getImageSignedUrl(input.key);
+      return null;
     }),
   getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {
     return await getImageSignedUrl(input);
