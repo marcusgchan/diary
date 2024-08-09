@@ -2,7 +2,7 @@ import { getImageSignedUrl } from "~/server/api/features/shared/s3ImagesService"
 import { getServerAuthSession } from "~/server/auth";
 
 export async function GET(
-  req: Request,
+  _: Request,
   {
     params,
   }: {
@@ -23,6 +23,5 @@ export async function GET(
     `${params.userId}/${params.diaryId}/${params.entryId}/${params.imageName}`,
   );
 
-  console.log(url);
   return Response.redirect(url);
 }
