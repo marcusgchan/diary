@@ -197,16 +197,12 @@ export const diaryRouter = createTRPCRouter({
   saveImageMetadata: protectedProcedure
     .input(z.object({ key: z.string(), entryId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      try {
-        await insertImageMetadata({
-          db: ctx.db,
-          userId: ctx.session.user.id,
-          entryId: input.entryId,
-          key: input.key,
-        });
-      } catch (e) {
-        console.log(e);
-      }
+      await insertImageMetadata({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+        key: input.key,
+      });
       return await getImageSignedUrl(input.key);
     }),
   getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {

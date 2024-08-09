@@ -424,5 +424,15 @@ export async function insertImageMetadata({
     throw new TRPCError({ code: "BAD_REQUEST" });
   }
 
-  await db.insert(imageKeys).values({ key, entryId });
+  // drizzle for mysql doesn't support on conflict do nothing so this is a workaround
+  db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ key: imageKeys.key })
+      .from(imageKeys)
+      .where(eq(imageKeys.key, key));
+
+    if (rows.length === 0) {
+      await tx.insert(imageKeys).values({ key, entryId });
+    }
+  });
 }
