@@ -127,7 +127,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         });
         toast({ title: "Successfully uploaded image" });
         editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-          src: url,
+          src: `/api/image/${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`,
           altText: "test",
         });
       })

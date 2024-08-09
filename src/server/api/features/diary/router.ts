@@ -137,7 +137,7 @@ export const diaryRouter = createTRPCRouter({
           message: "Entry does not exist",
         });
       }
-      await deleteEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+      await deleteEntry({ db: ctx.db, input });
       return input.entryId;
     }),
   saveEditorState: protectedProcedure
@@ -203,6 +203,7 @@ export const diaryRouter = createTRPCRouter({
         entryId: input.entryId,
         key: input.key,
       });
+
       return await getImageSignedUrl(input.key);
     }),
   getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {

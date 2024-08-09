@@ -89,17 +89,17 @@ export async function getEntryIdById({
 
 export async function deleteEntry({
   db,
-  userId,
   input,
 }: {
   db: TRPCContext["db"];
-  userId: string;
   input: DeleteEntryInput;
 }) {
   await db.transaction(async (tx) => {
     await tx
       .delete(editorStates)
       .where(eq(editorStates.entryId, input.entryId));
+
+    await tx.delete(imageKeys).where(eq(imageKeys.entryId, input.entryId));
 
     await tx.delete(entries).where(eq(entries.id, input.entryId));
   });
@@ -394,6 +394,18 @@ export async function deleteDiaryById({
         and(
           eq(diariesToUsers.diaryId, diaryId),
           eq(diariesToUsers.userId, userId),
+        ),
+      );
+
+    await tx
+      .delete(imageKeys)
+      .where(
+        inArray(
+          imageKeys.entryId,
+          tx
+            .select({ id: entries.id })
+            .from(entries)
+            .where(eq(entries.diaryId, diaryId)),
         ),
       );
 
