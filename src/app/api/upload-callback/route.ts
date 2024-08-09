@@ -43,19 +43,8 @@ export async function POST(req: Request) {
     return Response.json({ message: "Bad request" }, { status: 400 });
   }
 
-  const res = await db
-    .select({ entryId: entries.id })
-    .from(diariesToUsers)
-    .innerJoin(entries, eq(entries.diaryId, diariesToUsers.diaryId))
-    .where(
-      and(eq(diariesToUsers.userId, userId), eq(entries.id, Number(entryId))),
-    );
-
-  if (res.length === 0) {
-    return Response.json({ message: "Bad request" }, { status: 400 });
-  }
-
   const firstSlash = key.indexOf("/");
+
   await insertImageMetadata({
     db,
     userId,
