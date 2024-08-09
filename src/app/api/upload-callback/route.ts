@@ -11,7 +11,6 @@ const input = z.object({
 });
 
 export async function POST(req: Request) {
-  console.log("Hit webhook endpoint");
   const token = req.headers.get("authorization")?.split(" ")?.[1];
   if (token === undefined) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
@@ -31,8 +30,6 @@ export async function POST(req: Request) {
   const body = await req.json();
   const parsed = input.safeParse(body);
   if (!parsed.success) {
-    console.log("error: does not match format");
-    console.log(req);
     return Response.json({ message: "Invalid format" }, { status: 400 });
   }
 
