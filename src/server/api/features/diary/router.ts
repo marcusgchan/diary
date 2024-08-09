@@ -17,6 +17,7 @@ import {
   getDiaries,
   createDiary,
   getEntryIdById,
+  insertImageMetadata,
 } from "./service";
 import {
   createDiarySchema,
@@ -26,6 +27,8 @@ import {
   saveEditorStateSchema,
   updateEntryTitleSchema,
 } from "./schema";
+import { getImageSignedUrl, getPresignedPost } from "../shared/s3ImagesService";
+import { randomUUID } from "crypto";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -134,7 +137,7 @@ export const diaryRouter = createTRPCRouter({
           message: "Entry does not exist",
         });
       }
-      await deleteEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+      await deleteEntry({ db: ctx.db, input });
       return input.entryId;
     }),
   saveEditorState: protectedProcedure
@@ -170,4 +173,39 @@ export const diaryRouter = createTRPCRouter({
       });
       return { diaryId: input.diaryId, entryId: input.entryId, day: input.day };
     }),
+  getPresignedUrl: protectedProcedure
+    .input(
+      z.object({
+        diaryId: z.number(),
+        entryId: z.number(),
+        imageMetadata: z.object({
+          name: z.string(),
+          type: z.string(),
+          size: z.number(),
+        }),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return await getPresignedPost(
+        ctx.session.user.id,
+        input.diaryId,
+        input.entryId,
+        randomUUID(),
+        input.imageMetadata,
+      );
+    }),
+  saveImageMetadata: protectedProcedure
+    .input(z.object({ key: z.string(), entryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await insertImageMetadata({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+        key: input.key,
+      });
+      return null;
+    }),
+  getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {
+    return await getImageSignedUrl(input);
+  }),
 });

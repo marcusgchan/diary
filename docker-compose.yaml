@@ -1,6 +1,26 @@
-version: "3.3"
-
 services:
+  server:
+    build:
+      context: ./
+    ports:
+      - "3000:3000"
+    develop:
+      watch:
+        - action: rebuild
+          path: ./package.json
+
+        - action: sync+restart
+          path: ./.env
+          target: /app/.env
+
+        - action: sync
+          path: ./
+          target: /app
+          ignore:
+            - node_modules/
+    networks:
+      - diary
+
   db:
     image: mysql:latest
     environment:
@@ -13,8 +33,47 @@ services:
     networks:
       - diary
 
+  minio:
+    image: minio/minio:latest
+    command: >
+      minio server /data --console-address :9001
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${BUCKET_ACCESS_ID}
+      MINIO_ROOT_PASSWORD: ${BUCKET_SECRET_KEY}
+      MINIO_NOTIFY_WEBHOOK_ENABLE_PRIMARY: on
+      MINIO_NOTIFY_WEBHOOK_ENDPOINT_PRIMARY: ${BUCKET_WEBHOOK_URL}
+      MINIO_NOTIFY_WEBHOOK_AUTH_TOKEN_PRIMARY: ${BUCKET_WEBHOOK_TOKEN}
+    healthcheck:
+      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
+      interval: 5s
+      retries: 1
+      start_period: 5s
+      timeout: 5s
+    volumes:
+      - minio-data:/data
+    networks:
+      - diary
+
+  create-bucket:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${BUCKET_ACCESS_ID} ${BUCKET_SECRET_KEY} &&
+      /usr/bin/mc mb myminio/${BUCKET_NAME} &&
+      mc event add myminio/diary-bucket arn:minio:sqs::PRIMARY:webhook --event put
+      "
+    networks:
+      - diary
+
 networks:
   diary:
 
 volumes:
   diary-db:
+  minio-data:

@@ -13,13 +13,15 @@ import {
 import { Button } from "~/app/_components/ui/button";
 import { cn } from "~/app/_utils/cx";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { lazy, useState } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { RouterOutputs } from "~/server/api/trpc";
 import { useToast } from "~/app/_components/ui/use-toast";
+import dynamic from "next/dynamic";
 
-const Editor = lazy(() =>
-  import("./Editor").then((c) => ({ default: c.Editor })),
+const Editor = dynamic(
+  () => import("./Editor").then((c) => ({ default: c.Editor })),
+  { ssr: false },
 );
 
 type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;

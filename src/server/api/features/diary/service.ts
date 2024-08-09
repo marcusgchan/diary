@@ -4,6 +4,7 @@ import {
   diariesToUsers,
   editorStates,
   entries,
+  imageKeys,
 } from "~/server/db/schema";
 import { type TRPCContext } from "../../trpc";
 import {
@@ -88,17 +89,17 @@ export async function getEntryIdById({
 
 export async function deleteEntry({
   db,
-  userId,
   input,
 }: {
   db: TRPCContext["db"];
-  userId: string;
   input: DeleteEntryInput;
 }) {
   await db.transaction(async (tx) => {
     await tx
       .delete(editorStates)
       .where(eq(editorStates.entryId, input.entryId));
+
+    await tx.delete(imageKeys).where(eq(imageKeys.entryId, input.entryId));
 
     await tx.delete(entries).where(eq(entries.id, input.entryId));
   });
@@ -396,8 +397,54 @@ export async function deleteDiaryById({
         ),
       );
 
+    await tx
+      .delete(imageKeys)
+      .where(
+        inArray(
+          imageKeys.entryId,
+          tx
+            .select({ id: entries.id })
+            .from(entries)
+            .where(eq(entries.diaryId, diaryId)),
+        ),
+      );
+
     await tx.delete(entries).where(eq(entries.diaryId, diaryId));
 
     await tx.delete(diaries).where(eq(diaries.id, diaryId));
+  });
+}
+
+export async function insertImageMetadata({
+  db,
+  userId,
+  entryId,
+  key,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  key: string;
+}) {
+  const res = await db
+    .select({ entryId: entries.id })
+    .from(diariesToUsers)
+    .innerJoin(entries, eq(entries.diaryId, diariesToUsers.diaryId))
+    .where(and(eq(diariesToUsers.userId, userId), eq(entries.id, entryId)));
+
+  if (res.length === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST" });
+  }
+
+  // drizzle for mysql doesn't support on conflict do nothing so this is a workaround
+  db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ key: imageKeys.key })
+      .from(imageKeys)
+      .where(eq(imageKeys.key, key));
+
+    if (rows.length === 0) {
+      await tx.insert(imageKeys).values({ key, entryId });
+    }
   });
 }

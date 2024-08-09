@@ -19,10 +19,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
+import { api } from "~/trpc/client";
+import { useParams } from "next/navigation";
+import { useToast } from "~/app/_components/ui/use-toast";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();
@@ -79,11 +81,60 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [uploadedFile, setUploadedFile] = useState<File>();
   const [src, setSrc] = useState<string>();
   const [editor] = useLexicalComposerContext();
-  const handleConfirm = () => {
-    if (!uploadedFile) return;
-    if (!src) return;
-    editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src, altText: "test" });
-  };
+  const { toast } = useToast();
+  const params = useParams();
+  const saveImageMetadata = api.diary.saveImageMetadata.useMutation();
+  const queryutils = api.useContext();
+
+  async function handleConfirm() {
+    if (!uploadedFile || !src) return;
+
+    const data = await queryutils.diary.getPresignedUrl.fetch({
+      diaryId: Number(params.diaryId),
+      entryId: Number(params.entryId),
+      imageMetadata: {
+        name: uploadedFile.name,
+        type: uploadedFile.type,
+        size: uploadedFile.size,
+      },
+    });
+
+    if (!uploadedFile) {
+      return;
+    }
+
+    const formData = new FormData();
+    Object.entries(data.fields).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    formData.append("file", uploadedFile);
+
+    fetch(data.url, {
+      method: "POST",
+      body: formData,
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw Error("unable to upload file");
+        }
+        const key = data.fields.key;
+        if (!key) {
+          throw Error("unable to upload file");
+        }
+        await saveImageMetadata.mutateAsync({
+          key,
+          entryId: Number(params.entryId),
+        });
+        toast({ title: "Successfully uploaded image" });
+        editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+          src: `/api/image/${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`,
+          altText: "test",
+        });
+      })
+      .catch((_) => {
+        toast({ title: "Unable to upload image" });
+      });
+  }
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -92,8 +143,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const src = e.target?.result;
-      if (!src) return;
-      if (typeof src !== "string") return;
+      if (!src || typeof src !== "string") return;
       setUploadedFile(file);
       setSrc(src);
     };

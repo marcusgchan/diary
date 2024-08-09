@@ -148,6 +148,16 @@ export const entries = mysqlTable("entry", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const imageKeys = mysqlTable("image_key", {
+  key: varchar("key", { length: 255 }).primaryKey(),
+  entryId: bigint("entryId", { mode: "number" })
+    .references(() => entries.id)
+    .notNull(),
+  createdAt: datetime("createdAt")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const editorStates = mysqlTable("editor_state", {
   data: json("editorState").$type<
     SerializedEditorState<SerializedLexicalNode>
