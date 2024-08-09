@@ -4,6 +4,7 @@ import {
   diariesToUsers,
   editorStates,
   entries,
+  imageKeys,
 } from "~/server/db/schema";
 import { type TRPCContext } from "../../trpc";
 import {
@@ -400,4 +401,28 @@ export async function deleteDiaryById({
 
     await tx.delete(diaries).where(eq(diaries.id, diaryId));
   });
+}
+
+export async function insertImageMetadata({
+  db,
+  userId,
+  entryId,
+  key,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  key: string;
+}) {
+  const res = await db
+    .select({ entryId: entries.id })
+    .from(diariesToUsers)
+    .innerJoin(entries, eq(entries.diaryId, diariesToUsers.diaryId))
+    .where(and(eq(diariesToUsers.userId, userId), eq(entries.id, entryId)));
+
+  if (res.length === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST" });
+  }
+
+  await db.insert(imageKeys).values({ key, entryId });
 }

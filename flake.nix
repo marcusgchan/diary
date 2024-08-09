@@ -2,7 +2,7 @@
   description = "A Nix-flake-based Node.js development environment";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
   };
 
   outputs = { self , nixpkgs ,... }: let
@@ -17,7 +17,8 @@
     in pkgs.mkShell {
       # create an environment with nodejs_18, pnpm, and yarn
       packages = with pkgs; [
-          node_22
+          nodejs_22
+          corepack_22
       ];
 
       # shellHook = ''

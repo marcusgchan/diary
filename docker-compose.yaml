@@ -45,6 +45,7 @@ services:
       MINIO_ROOT_PASSWORD: ${BUCKET_SECRET_KEY}
       MINIO_NOTIFY_WEBHOOK_ENABLE_PRIMARY: on
       MINIO_NOTIFY_WEBHOOK_ENDPOINT_PRIMARY: ${BUCKET_WEBHOOK_URL}
+      MINIO_NOTIFY_WEBHOOK_AUTH_TOKEN_PRIMARY: ${BUCKET_WEBHOOK_TOKEN}
     healthcheck:
       test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
       interval: 5s
@@ -63,8 +64,8 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set myminio http://minio:9000 ${BUCKET_ACCESS_ID} ${BUCKET_SECRET_KEY};
-      /usr/bin/mc mb myminio/${BUCKET_NAME};
+      /usr/bin/mc alias set myminio http://minio:9000 ${BUCKET_ACCESS_ID} ${BUCKET_SECRET_KEY} &&
+      /usr/bin/mc mb myminio/${BUCKET_NAME} &&
       mc event add myminio/diary-bucket arn:minio:sqs::PRIMARY:webhook --event put
       "
     networks:

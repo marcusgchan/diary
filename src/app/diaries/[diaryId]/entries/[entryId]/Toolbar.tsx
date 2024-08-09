@@ -82,35 +82,14 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [src, setSrc] = useState<string>();
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
-  const uploadImageMutation = api.diary.uploadEntryImage.useMutation({
-    onSuccess(data) {
-      if (!uploadedFile) {
-        return;
-      }
-      const formData = new FormData();
-      Object.entries(data.fields).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
-      formData.append("file", uploadedFile);
-      fetch(data.url, {
-        method: "POST",
-        body: formData,
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw Error("unable to upload file");
-          }
-          toast({ title: "Successfully uploaded image" });
-        })
-        .catch((err) => {
-          toast({ title: "Unable to upload image" });
-        });
-    },
-  });
   const params = useParams();
-  const handleConfirm = () => {
+  const uploadImageMetadata = api.diary.saveImageMetadata.useMutation();
+  const queryutils = api.useContext();
+
+  async function handleConfirm() {
     if (!uploadedFile || !src) return;
-    uploadImageMutation.mutate({
+
+    const data = await queryutils.diary.getPresignedUrl.fetch({
       diaryId: Number(params.diaryId),
       entryId: Number(params.entryId),
       imageMetadata: {
@@ -119,8 +98,43 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         size: uploadedFile.size,
       },
     });
-    editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src, altText: "test" });
-  };
+
+    if (!uploadedFile) {
+      return;
+    }
+
+    const formData = new FormData();
+    Object.entries(data.fields).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    formData.append("file", uploadedFile);
+
+    fetch(data.url, {
+      method: "POST",
+      body: formData,
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw Error("unable to upload file");
+        }
+        const key = data.fields.key;
+        if (!key) {
+          throw Error("unable to upload file");
+        }
+        const url = await uploadImageMetadata.mutateAsync({
+          key,
+          entryId: Number(params.entryId),
+        });
+        toast({ title: "Successfully uploaded image" });
+        editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+          src: url,
+          altText: "test",
+        });
+      })
+      .catch((_) => {
+        toast({ title: "Unable to upload image" });
+      });
+  }
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;

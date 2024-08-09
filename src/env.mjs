@@ -36,6 +36,8 @@ export const env = createEnv({
     BUCKET_ACCESS_ID: z.string(),
     BUCKET_SECRET_KEY: z.string(),
     BUCKET_URL: z.string(),
+    BUCKET_WEBHOOK_URL: z.string(),
+    BUCKET_WEBHOOK_TOKEN: z.string(),
   },
 
   /**
@@ -63,6 +65,8 @@ export const env = createEnv({
     BUCKET_ACCESS_ID: process.env.BUCKET_ACCESS_ID,
     BUCKET_SECRET_KEY: process.env.BUCKET_SECRET_KEY,
     BUCKET_URL: process.env.BUCKET_URL,
+    BUCKET_WEBHOOK_URL: process.env.BUCKET_WEBHOOK_URL,
+    BUCKET_WEBHOOK_TOKEN: process.env.BUCKET_WEBHOOK_TOKEN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

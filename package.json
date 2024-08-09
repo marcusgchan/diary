@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "push": "dotenv drizzle-kit push:mysql",
+    "push": "dotenv drizzle-kit push",
     "studio": "dotenv drizzle-kit studio"
   },
   "dependencies": {
