@@ -7,7 +7,7 @@ import type {
 
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { LexicalNestedComposer } from "@lexical/react/LexicalNestedComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -71,7 +71,7 @@ function LazyImage({
   src: string;
   width: "inherit" | number;
 }): JSX.Element {
-  useSuspenseImage(src);
+  // useSuspenseImage(src);
   return (
     <img
       className={className || undefined}

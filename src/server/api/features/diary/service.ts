@@ -108,14 +108,14 @@ export async function deleteEntry({
 export async function getEntry({
   db,
   userId,
-  input,
+  entryId,
 }: {
   db: TRPCContext["db"];
   userId: string;
-  input: GetEntryInput;
+  entryId: number;
 }) {
   const [entry] = await db
-    .selectDistinct({
+    .select({
       id: entries.id,
       day: entries.day,
       editorState: editorStates.data,
@@ -125,13 +125,8 @@ export async function getEntry({
     .from(entries)
     .leftJoin(editorStates, eq(editorStates.entryId, entries.id))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(
-      and(
-        eq(entries.diaryId, input.diaryId),
-        eq(entries.id, input.entryId),
-        eq(diariesToUsers.userId, userId),
-      ),
-    );
+    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
+
   return entry ?? null;
 }
 
@@ -447,4 +442,40 @@ export async function insertImageMetadata({
       await tx.insert(imageKeys).values({ key, entryId });
     }
   });
+}
+
+export async function deleteImageMetadata({
+  db,
+  userId,
+  entryId,
+  key,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  key: string;
+}) {
+  // Need subquery with mysql
+  // https://stackoverflow.com/questions/4429319/you-cant-specify-target-table-for-update-in-from-clause/14302701#14302701
+  const sq = db
+    .select({ key: imageKeys.key, entryId: imageKeys.entryId })
+    .from(imageKeys)
+    .as("sq");
+  await db.delete(imageKeys).where(
+    inArray(
+      imageKeys.key,
+      db
+        .select({ key: sq.key })
+        .from(sq)
+        .innerJoin(entries, eq(entries.id, sq.entryId))
+        .innerJoin(diariesToUsers, eq(entries.diaryId, diariesToUsers.diaryId))
+        .where(
+          and(
+            eq(diariesToUsers.userId, userId),
+            eq(entries.id, entryId),
+            eq(imageKeys.key, key),
+          ),
+        ),
+    ),
+  );
 }

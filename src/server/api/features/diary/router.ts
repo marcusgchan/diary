@@ -18,6 +18,7 @@ import {
   createDiary,
   getEntryIdById,
   insertImageMetadata,
+  deleteImageMetadata,
 } from "./service";
 import {
   createDiarySchema,
@@ -27,7 +28,11 @@ import {
   saveEditorStateSchema,
   updateEntryTitleSchema,
 } from "./schema";
-import { getImageSignedUrl, getPresignedPost } from "../shared/s3ImagesService";
+import {
+  deleteImage,
+  getImageSignedUrl,
+  getPresignedPost,
+} from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
 
 export const diaryRouter = createTRPCRouter({
@@ -110,7 +115,7 @@ export const diaryRouter = createTRPCRouter({
       const entry = await getEntry({
         db: ctx.db,
         userId: ctx.session.user.id,
-        input,
+        entryId: input.entryId,
       });
       return entry ?? null;
     }),
@@ -144,7 +149,11 @@ export const diaryRouter = createTRPCRouter({
     .input(saveEditorStateSchema)
     .mutation(async ({ ctx, input }) => {
       await saveEditorState({ db: ctx.db, userId: ctx.session.user.id, input });
-      return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+      return await getEntry({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
     }),
   updateTitle: protectedProcedure
     .input(updateEntryTitleSchema)
@@ -204,6 +213,24 @@ export const diaryRouter = createTRPCRouter({
         key: input.key,
       });
       return null;
+    }),
+  deleteImageMetadata: protectedProcedure
+    .input(z.object({ key: z.string(), entryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await Promise.all([
+        deleteImage(input.key),
+        deleteImageMetadata({
+          db: ctx.db,
+          key: input.key,
+          entryId: input.entryId,
+          userId: ctx.session.user.id,
+        }),
+      ]);
+      return await getEntry({
+        db: ctx.db,
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+      });
     }),
   getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {
     return await getImageSignedUrl(input);

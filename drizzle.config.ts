@@ -5,7 +5,11 @@ export default defineConfig({
   dialect: "mysql",
   schema: "./src/server/db/schema.ts",
   dbCredentials: {
-    url: env.DATABASE_URL,
+    host: "localhost",
+    port: env.DATABSE_PORT,
+    database: env.DATABASE_NAME,
+    user: env.DATABASE_USER,
+    password: env.DATABASE_PASS,
   },
   verbose: true,
   tablesFilter: ["diary_*"],

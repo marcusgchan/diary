@@ -126,9 +126,11 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           entryId: Number(params.entryId),
         });
         toast({ title: "Successfully uploaded image" });
+        const imageKey = `${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`;
         editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-          src: `/api/image/${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`,
-          altText: "test",
+          src: `/api/image/${imageKey}`,
+          imageKey: imageKey,
+          altText: "",
         });
       })
       .catch((_) => {

@@ -38,8 +38,12 @@ export const env = createEnv({
     BUCKET_URL: z.string(),
     BUCKET_WEBHOOK_URL: z.string(),
     BUCKET_WEBHOOK_TOKEN: z.string(),
+    DATABASE_HOST: z.string(),
+    DATABASE_PORT: z.coerce.number(),
+    DATABASE_USER: z.string(),
+    DATABASE_PASS: z.string(),
+    DATABASE_NAME: z.string(),
   },
-
   /**
    * Specify your client-side environment variables schema here. This way you can ensure the app
    * isn't built with invalid env vars. To expose them to the client, prefix them with
@@ -67,6 +71,11 @@ export const env = createEnv({
     BUCKET_URL: process.env.BUCKET_URL,
     BUCKET_WEBHOOK_URL: process.env.BUCKET_WEBHOOK_URL,
     BUCKET_WEBHOOK_TOKEN: process.env.BUCKET_WEBHOOK_TOKEN,
+    DATABASE_HOST: process.env.DATABASE_HOST,
+    DATABASE_PORT: process.env.DATABASE_PORT,
+    DATABASE_USER: process.env.DATABASE_USER,
+    DATABASE_PASS: process.env.DATABASE_PASS,
+    DATABASE_NAME: process.env.DATABASE_NAME,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
