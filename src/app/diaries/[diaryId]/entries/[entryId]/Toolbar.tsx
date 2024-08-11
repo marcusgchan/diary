@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 import { api } from "~/trpc/client";
@@ -78,36 +78,50 @@ function InsertDropdownMenu() {
 }
 
 function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
-  const [uploadedFile, setUploadedFile] = useState<File>();
-  const [src, setSrc] = useState<string>();
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
   const params = useParams();
   const saveImageMetadata = api.diary.saveImageMetadata.useMutation();
   const queryutils = api.useContext();
+  const [startPolling, setStartPolling] = useState(false);
+  const imageKeyRef = useRef<string | undefined>();
+  const { data } = api.diary.getImageUploadStatus.useQuery(
+    { key: imageKeyRef.current },
+    {
+      enabled: startPolling,
+      refetchInterval: 1000,
+    },
+  );
 
-  async function handleConfirm() {
-    if (!uploadedFile || !src) return;
+  useEffect(() => {
+    if (data) {
+      setStartPolling(false);
+    }
+  }, [data]);
+
+  async function handleConfirm() {}
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const file = files.item(0);
+    if (!file) return;
 
     const data = await queryutils.diary.getPresignedUrl.fetch({
       diaryId: Number(params.diaryId),
       entryId: Number(params.entryId),
       imageMetadata: {
-        name: uploadedFile.name,
-        type: uploadedFile.type,
-        size: uploadedFile.size,
+        name: file.name,
+        type: file.type,
+        size: file.size,
       },
     });
-
-    if (!uploadedFile) {
-      return;
-    }
+    imageKeyRef.current = `${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`;
 
     const formData = new FormData();
     Object.entries(data.fields).forEach(([key, value]) => {
       formData.append(key, value);
     });
-    formData.append("file", uploadedFile);
+    formData.append("file", file);
 
     fetch(data.url, {
       method: "POST",
@@ -121,35 +135,22 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         if (!key) {
           throw Error("unable to upload file");
         }
-        await saveImageMetadata.mutateAsync({
-          key,
-          entryId: Number(params.entryId),
-        });
-        toast({ title: "Successfully uploaded image" });
-        const imageKey = `${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`;
-        editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-          src: `/api/image/${imageKey}`,
-          imageKey: imageKey,
-          altText: "",
-        });
+        setStartPolling(true);
+        // await saveImageMetadata.mutateAsync({
+        //   key,
+        //   entryId: Number(params.entryId),
+        // });
+        // toast({ title: "Successfully uploaded image" });
+        // const imageKey = `${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`;
+        // editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+        //   src: `/api/image/${imageKey}`,
+        //   imageKey: imageKey,
+        //   altText: "",
+        // });
       })
       .catch((_) => {
         toast({ title: "Unable to upload image" });
       });
-  }
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    const file = files.item(0);
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const src = e.target?.result;
-      if (!src || typeof src !== "string") return;
-      setUploadedFile(file);
-      setSrc(src);
-    };
-    reader.readAsDataURL(file);
   };
   return (
     <AlertDialog
@@ -181,7 +182,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm}>
+          <AlertDialogAction onClick={handleConfirm} disabled={startPolling}>
             Continue
           </AlertDialogAction>
         </AlertDialogFooter>

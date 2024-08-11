@@ -19,6 +19,7 @@ import {
   getEntryIdById,
   insertImageMetadata,
   deleteImageMetadata,
+  getImageUploadStatus,
 } from "./service";
 import {
   createDiarySchema,
@@ -235,4 +236,13 @@ export const diaryRouter = createTRPCRouter({
   getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {
     return await getImageSignedUrl(input);
   }),
+  getImageUploadStatus: protectedProcedure
+    .input(z.object({ key: z.string().or(z.undefined()) }))
+    .query(async ({ ctx, input }) => {
+      if (!input.key) {
+        return false;
+      }
+      const status = await getImageUploadStatus({ db: ctx.db, key: input.key });
+      return status;
+    }),
 });

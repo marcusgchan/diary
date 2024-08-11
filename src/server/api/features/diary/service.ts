@@ -479,3 +479,18 @@ export async function deleteImageMetadata({
     ),
   );
 }
+
+export async function getImageUploadStatus({
+  db,
+  key,
+}: {
+  db: TRPCContext["db"];
+  key: string;
+}) {
+  const [status] = await db
+    .select({ entryId: imageKeys.entryId })
+    .from(imageKeys)
+    .where(eq(imageKeys.key, key));
+
+  return !!status;
+}

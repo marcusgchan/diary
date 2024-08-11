@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   date,
   datetime,
   index,
@@ -153,6 +154,7 @@ export const imageKeys = mysqlTable("image_key", {
   entryId: bigint("entryId", { mode: "number" })
     .references(() => entries.id)
     .notNull(),
+  linked: boolean("linked").notNull().default(false),
   createdAt: datetime("createdAt")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
