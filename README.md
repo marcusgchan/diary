@@ -1,36 +1,22 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Travel Diary App
 
-## Getting Started
+The goal of this app is to remember/document traveling destinations and places visited. The is done by creating diary entries with images. Assuming the images have geolocation metadata, the app will display a map with markers of all the photos uploaded. Clicking on a specific photo will lead back to the diary entry.
 
-First, run the development server:
+## Features
 
+- Users can create, edit, and delete diaries
+- For each diary, users can create a diary entry
+- The diary entry text editor is created with lexical and supports image uploads (WYSIWYG editor)
+- Currently working on the image upload and google maps integration
+
+## How to run
+
+Ensure you have docker and pnpm installed. Run:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up -w -build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Once the server is running, run to sync the schema to the database:
+```bash
+pnpm run push
+```
