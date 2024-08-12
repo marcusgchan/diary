@@ -6,7 +6,7 @@ export default defineConfig({
   schema: "./src/server/db/schema.ts",
   dbCredentials: {
     host: "localhost",
-    port: env.DATABSE_PORT,
+    port: env.DATABASE_PORT,
     database: env.DATABASE_NAME,
     user: env.DATABASE_USER,
     password: env.DATABASE_PASS,
