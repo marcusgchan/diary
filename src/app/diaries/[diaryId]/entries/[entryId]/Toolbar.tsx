@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 import { api } from "~/trpc/client";
