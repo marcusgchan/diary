@@ -15,9 +15,9 @@ export default async function Diary({
   const url = headersList.get("x-url");
   if (session === null) {
     if (url !== null) {
-      return redirect(`/login?redirect=${encodeURIComponent(url)}`);
+      return redirect(`/api/auth/signin?redirect=${encodeURIComponent(url)}`);
     }
-    redirect("/login");
+    redirect("/api/auth/signin");
   }
 
   const row = await db
