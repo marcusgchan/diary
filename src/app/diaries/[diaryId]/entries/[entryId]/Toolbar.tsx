@@ -81,7 +81,6 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
   const params = useParams();
-  const saveImageMetadata = api.diary.saveImageMetadata.useMutation();
   const queryutils = api.useContext();
   const [startPolling, setStartPolling] = useState(false);
   const imageKeyRef = useRef<string | undefined>();
@@ -92,6 +91,8 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
       refetchInterval: 1000,
     },
   );
+  const cancelUpload = api.diary.cancelImageUpload.useMutation();
+  const confirmUpload = api.diary.confirmImageUpload.useMutation();
 
   useEffect(() => {
     if (data) {
@@ -99,7 +100,27 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     }
   }, [data]);
 
-  async function handleConfirm() {}
+  function handleCancel() {
+    if (imageKeyRef.current === undefined) {
+      return;
+    }
+    cancelUpload.mutate({
+      key: imageKeyRef.current,
+    });
+  }
+  function handleConfirm() {
+    if (imageKeyRef.current === undefined) {
+      console.log("something went wrong with the image upload");
+      return;
+    }
+
+    confirmUpload.mutate({ key: imageKeyRef.current });
+    editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+      src: `/api/image/${imageKeyRef.current}`,
+      imageKey: imageKeyRef.current,
+      altText: "",
+    });
+  }
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -123,6 +144,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     });
     formData.append("file", file);
 
+    setStartPolling(true);
     fetch(data.url, {
       method: "POST",
       body: formData,
@@ -135,21 +157,10 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         if (!key) {
           throw Error("unable to upload file");
         }
-        setStartPolling(true);
-        // await saveImageMetadata.mutateAsync({
-        //   key,
-        //   entryId: Number(params.entryId),
-        // });
-        // toast({ title: "Successfully uploaded image" });
-        // const imageKey = `${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`;
-        // editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-        //   src: `/api/image/${imageKey}`,
-        //   imageKey: imageKey,
-        //   altText: "",
-        // });
       })
       .catch((_) => {
         toast({ title: "Unable to upload image" });
+        setStartPolling(false);
       });
   };
   return (
@@ -181,7 +192,9 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={handleCancel} disabled={startPolling}>
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction onClick={handleConfirm} disabled={startPolling}>
             Continue
           </AlertDialogAction>

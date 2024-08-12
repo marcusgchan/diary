@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, exists, inArray } from "drizzle-orm";
 import {
   diaries,
   diariesToUsers,
@@ -12,7 +12,6 @@ import {
   DeleteEntryInput,
   EditDiaryName,
   EditEntryDate,
-  GetEntryInput,
   SaveEditorState,
   UpdateEntryTitle,
 } from "./schema";
@@ -446,38 +445,29 @@ export async function insertImageMetadata({
 
 export async function deleteImageMetadata({
   db,
-  userId,
-  entryId,
   key,
 }: {
   db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
   key: string;
 }) {
-  // Need subquery with mysql
-  // https://stackoverflow.com/questions/4429319/you-cant-specify-target-table-for-update-in-from-clause/14302701#14302701
-  const sq = db
-    .select({ key: imageKeys.key, entryId: imageKeys.entryId })
+  await db.delete(imageKeys).where(eq(imageKeys.key, key));
+}
+
+export async function getKeyByKey({
+  db,
+  key,
+  userId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  key: string;
+}) {
+  return await db
+    .select({ key: imageKeys.key })
     .from(imageKeys)
-    .as("sq");
-  await db.delete(imageKeys).where(
-    inArray(
-      imageKeys.key,
-      db
-        .select({ key: sq.key })
-        .from(sq)
-        .innerJoin(entries, eq(entries.id, sq.entryId))
-        .innerJoin(diariesToUsers, eq(entries.diaryId, diariesToUsers.diaryId))
-        .where(
-          and(
-            eq(diariesToUsers.userId, userId),
-            eq(entries.id, entryId),
-            eq(imageKeys.key, key),
-          ),
-        ),
-    ),
-  );
+    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+    .innerJoin(diariesToUsers, eq(entries.diaryId, diariesToUsers.diaryId))
+    .where(and(eq(imageKeys.key, key), eq(diariesToUsers.userId, userId)));
 }
 
 export async function getImageUploadStatus({
@@ -493,4 +483,27 @@ export async function getImageUploadStatus({
     .where(eq(imageKeys.key, key));
 
   return !!status;
+}
+
+export async function cancelImageUpload({
+  db,
+  key,
+}: {
+  db: TRPCContext["db"];
+  key: string;
+}) {
+  return await db.delete(imageKeys).where(eq(imageKeys.key, key));
+}
+
+export async function confirmImageUpload({
+  db,
+  key,
+}: {
+  db: TRPCContext["db"];
+  key: string;
+}) {
+  return await db
+    .update(imageKeys)
+    .set({ linked: true })
+    .where(eq(imageKeys.key, key));
 }

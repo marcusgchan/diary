@@ -20,6 +20,9 @@ import {
   insertImageMetadata,
   deleteImageMetadata,
   getImageUploadStatus,
+  cancelImageUpload,
+  getKeyByKey,
+  confirmImageUpload,
 } from "./service";
 import {
   createDiarySchema,
@@ -218,15 +221,23 @@ export const diaryRouter = createTRPCRouter({
   deleteImageMetadata: protectedProcedure
     .input(z.object({ key: z.string(), entryId: z.number() }))
     .mutation(async ({ ctx, input }) => {
+      const [key] = await getKeyByKey({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        key: input.key,
+      });
+      if (!key) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
       await Promise.all([
         deleteImage(input.key),
         deleteImageMetadata({
           db: ctx.db,
           key: input.key,
-          entryId: input.entryId,
-          userId: ctx.session.user.id,
         }),
       ]);
+
       return await getEntry({
         db: ctx.db,
         entryId: input.entryId,
@@ -244,5 +255,39 @@ export const diaryRouter = createTRPCRouter({
       }
       const status = await getImageUploadStatus({ db: ctx.db, key: input.key });
       return status;
+    }),
+  cancelImageUpload: protectedProcedure
+    .input(z.object({ key: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const [key] = await getKeyByKey({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        key: input.key,
+      });
+      if (!key) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      await Promise.all([
+        deleteImage(input.key),
+        cancelImageUpload({
+          db: ctx.db,
+          key: input.key,
+        }),
+      ]);
+    }),
+  confirmImageUpload: protectedProcedure
+    .input(z.object({ key: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const [key] = await getKeyByKey({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        key: input.key,
+      });
+      if (!key) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      await confirmImageUpload({ db: ctx.db, key: input.key });
     }),
 });
