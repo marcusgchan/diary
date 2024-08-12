@@ -1,6 +1,6 @@
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "~/env.mjs";
 import { config } from "~/server/config";
 import { s3Client } from "~/server/s3Client";
@@ -43,4 +43,29 @@ export async function getImageSignedUrl(key: string) {
     Key: key,
   });
   return getSignedUrl(s3Client, getCommand);
+}
+
+export async function deleteImage(key: string) {
+  const deleteCommand = new DeleteObjectCommand({
+    Bucket: env.BUCKET_NAME,
+    Key: key,
+  });
+
+  if (env.NODE_ENV === "development" || env.NODE_ENV == "test") {
+    const minioPort = env.BUCKET_URL.split(":")[2];
+    if (!minioPort) {
+      throw new Error("Minio port not found");
+    }
+    const prevEndpoint = s3Client.config.endpoint;
+    s3Client.config.endpoint = `http://minio:${minioPort}` as never;
+    try {
+      await s3Client.send(deleteCommand);
+    } catch (e) {
+      console.log(e);
+    } finally {
+      s3Client.config.endpoint = prevEndpoint;
+    }
+  } else {
+    await s3Client.send(deleteCommand);
+  }
 }

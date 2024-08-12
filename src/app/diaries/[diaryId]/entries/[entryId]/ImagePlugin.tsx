@@ -3,6 +3,7 @@
 import {
   $createParagraphNode,
   $createRangeSelection,
+  $getNodeByKey,
   $getSelection,
   $insertNodes,
   $isNodeSelection,
@@ -27,6 +28,8 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect } from "react";
 import { $wrapNodeInElement, mergeRegister } from "@lexical/utils";
+import { api } from "~/trpc/client";
+import { useParams } from "next/navigation";
 
 export type InsertImagePayload = Readonly<ImagePayload>;
 
@@ -82,6 +85,46 @@ export default function ImagesPlugin({
       ),
     );
   }, [captionsEnabled, editor]);
+
+  useRemoveImageMetadataOnDelete(editor);
+
+  return null;
+}
+
+function useRemoveImageMetadataOnDelete(editor: LexicalEditor) {
+  const params = useParams();
+  const diaryId = Number(params.diaryId);
+  const entryId = Number(params.entryId);
+  const queryUtils = api.useContext();
+  const deleteImageMetadata = api.diary.deleteImageMetadata.useMutation({
+    onSuccess(data) {
+      if (!data) {
+        return;
+      }
+      queryUtils.diary.getEntry.setData({ diaryId, entryId }, data);
+    },
+  });
+  useEffect(() => {
+    const removeMutationListener = editor.registerMutationListener(
+      ImageNode,
+      (mutatedNodes, { updateTags, dirtyLeaves, prevEditorState }) => {
+        // mutatedNodes is a Map where each key is the NodeKey, and the value is the state of mutation.
+        for (let [nodeKey, mutation] of mutatedNodes) {
+          if (mutation == "destroyed") {
+            editor.read(() => {
+              const node = prevEditorState._nodeMap.get(nodeKey) as ImageNode;
+              if (node == null) {
+                return;
+              }
+              deleteImageMetadata.mutate({ entryId, key: node.getImageKey() });
+            });
+          }
+        }
+      },
+      { skipInitialization: false },
+    );
+    return removeMutationListener;
+  });
 
   return null;
 }

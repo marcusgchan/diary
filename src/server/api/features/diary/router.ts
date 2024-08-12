@@ -18,6 +18,11 @@ import {
   createDiary,
   getEntryIdById,
   insertImageMetadata,
+  deleteImageMetadata,
+  getImageUploadStatus,
+  cancelImageUpload,
+  getKeyByKey,
+  confirmImageUpload,
 } from "./service";
 import {
   createDiarySchema,
@@ -27,7 +32,11 @@ import {
   saveEditorStateSchema,
   updateEntryTitleSchema,
 } from "./schema";
-import { getImageSignedUrl, getPresignedPost } from "../shared/s3ImagesService";
+import {
+  deleteImage,
+  getImageSignedUrl,
+  getPresignedPost,
+} from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
 
 export const diaryRouter = createTRPCRouter({
@@ -110,7 +119,7 @@ export const diaryRouter = createTRPCRouter({
       const entry = await getEntry({
         db: ctx.db,
         userId: ctx.session.user.id,
-        input,
+        entryId: input.entryId,
       });
       return entry ?? null;
     }),
@@ -144,7 +153,11 @@ export const diaryRouter = createTRPCRouter({
     .input(saveEditorStateSchema)
     .mutation(async ({ ctx, input }) => {
       await saveEditorState({ db: ctx.db, userId: ctx.session.user.id, input });
-      return await getEntry({ db: ctx.db, userId: ctx.session.user.id, input });
+      return await getEntry({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
     }),
   updateTitle: protectedProcedure
     .input(updateEntryTitleSchema)
@@ -205,7 +218,76 @@ export const diaryRouter = createTRPCRouter({
       });
       return null;
     }),
+  deleteImageMetadata: protectedProcedure
+    .input(z.object({ key: z.string(), entryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const [key] = await getKeyByKey({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        key: input.key,
+      });
+      if (!key) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      await Promise.all([
+        deleteImage(input.key),
+        deleteImageMetadata({
+          db: ctx.db,
+          key: input.key,
+        }),
+      ]);
+
+      return await getEntry({
+        db: ctx.db,
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+      });
+    }),
   getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {
     return await getImageSignedUrl(input);
   }),
+  getImageUploadStatus: protectedProcedure
+    .input(z.object({ key: z.string().or(z.undefined()) }))
+    .query(async ({ ctx, input }) => {
+      if (!input.key) {
+        return false;
+      }
+      const status = await getImageUploadStatus({ db: ctx.db, key: input.key });
+      return status;
+    }),
+  cancelImageUpload: protectedProcedure
+    .input(z.object({ key: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const [key] = await getKeyByKey({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        key: input.key,
+      });
+      if (!key) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      await Promise.all([
+        deleteImage(input.key),
+        cancelImageUpload({
+          db: ctx.db,
+          key: input.key,
+        }),
+      ]);
+    }),
+  confirmImageUpload: protectedProcedure
+    .input(z.object({ key: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const [key] = await getKeyByKey({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        key: input.key,
+      });
+      if (!key) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      await confirmImageUpload({ db: ctx.db, key: input.key });
+    }),
 });

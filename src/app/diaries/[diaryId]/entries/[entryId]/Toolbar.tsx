@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 import { api } from "~/trpc/client";
@@ -78,37 +78,73 @@ function InsertDropdownMenu() {
 }
 
 function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
-  const [uploadedFile, setUploadedFile] = useState<File>();
-  const [src, setSrc] = useState<string>();
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
   const params = useParams();
-  const saveImageMetadata = api.diary.saveImageMetadata.useMutation();
   const queryutils = api.useContext();
+  const [startPolling, setStartPolling] = useState(false);
+  const imageKeyRef = useRef<string | undefined>();
+  const { data } = api.diary.getImageUploadStatus.useQuery(
+    { key: imageKeyRef.current },
+    {
+      enabled: startPolling,
+      refetchInterval: 1000,
+    },
+  );
+  const cancelUpload = api.diary.cancelImageUpload.useMutation();
+  const confirmUpload = api.diary.confirmImageUpload.useMutation();
 
-  async function handleConfirm() {
-    if (!uploadedFile || !src) return;
+  useEffect(() => {
+    if (data) {
+      setStartPolling(false);
+    }
+  }, [data]);
+
+  function handleCancel() {
+    if (imageKeyRef.current === undefined) {
+      return;
+    }
+    cancelUpload.mutate({
+      key: imageKeyRef.current,
+    });
+  }
+  function handleConfirm() {
+    if (imageKeyRef.current === undefined) {
+      console.log("something went wrong with the image upload");
+      return;
+    }
+
+    confirmUpload.mutate({ key: imageKeyRef.current });
+    editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+      src: `/api/image/${imageKeyRef.current}`,
+      imageKey: imageKeyRef.current,
+      altText: "",
+    });
+  }
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const file = files.item(0);
+    if (!file) return;
 
     const data = await queryutils.diary.getPresignedUrl.fetch({
       diaryId: Number(params.diaryId),
       entryId: Number(params.entryId),
       imageMetadata: {
-        name: uploadedFile.name,
-        type: uploadedFile.type,
-        size: uploadedFile.size,
+        name: file.name,
+        type: file.type,
+        size: file.size,
       },
     });
-
-    if (!uploadedFile) {
-      return;
-    }
+    imageKeyRef.current = `${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`;
 
     const formData = new FormData();
     Object.entries(data.fields).forEach(([key, value]) => {
       formData.append(key, value);
     });
-    formData.append("file", uploadedFile);
+    formData.append("file", file);
 
+    setStartPolling(true);
     fetch(data.url, {
       method: "POST",
       body: formData,
@@ -121,33 +157,11 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         if (!key) {
           throw Error("unable to upload file");
         }
-        await saveImageMetadata.mutateAsync({
-          key,
-          entryId: Number(params.entryId),
-        });
-        toast({ title: "Successfully uploaded image" });
-        editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-          src: `/api/image/${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`,
-          altText: "test",
-        });
       })
       .catch((_) => {
         toast({ title: "Unable to upload image" });
+        setStartPolling(false);
       });
-  }
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    const file = files.item(0);
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const src = e.target?.result;
-      if (!src || typeof src !== "string") return;
-      setUploadedFile(file);
-      setSrc(src);
-    };
-    reader.readAsDataURL(file);
   };
   return (
     <AlertDialog
@@ -178,8 +192,10 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm}>
+          <AlertDialogCancel onClick={handleCancel} disabled={startPolling}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm} disabled={startPolling}>
             Continue
           </AlertDialogAction>
         </AlertDialogFooter>
