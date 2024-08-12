@@ -24,15 +24,11 @@ export default async function RootLayout({
   const headersList = headers();
   const url = headersList.get("x-url");
 
-  if (!session && url && !url.includes("/login")) {
-    if (url) {
-      redirect(`/login?redirect=${encodeURIComponent(url)}`);
+  if (!session) {
+    if (url && !url.includes("/api/auth/signin")) {
+      redirect(`/api/auth/signin?redirect=${encodeURIComponent(url)}`);
     }
-    redirect("/login");
-  }
-
-  if (url && url.includes("/login")) {
-    return <Base>{children}</Base>;
+    redirect("/api/auth/signin");
   }
 
   return (
