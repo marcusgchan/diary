@@ -16,7 +16,7 @@ Ensure you have docker and pnpm installed. Run:
 docker compose up -w -build
 ```
 
-Once the server is running, run to sync the schema to the database:
+Once the server is running, run this to sync the schema with database:
 ```bash
 pnpm run push
 ```
