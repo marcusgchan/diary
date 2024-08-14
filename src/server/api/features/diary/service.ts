@@ -409,6 +409,34 @@ export async function deleteDiaryById({
   });
 }
 
+export function getImageKeysByDiaryId({
+  db,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  diaryId: number;
+}) {
+  return db
+    .select({ Key: imageKeys.key })
+    .from(imageKeys)
+    .innerJoin(entries, eq(imageKeys.entryId, entries.id))
+    .innerJoin(diaries, eq(entries.diaryId, diaries.id))
+    .where(eq(diaries.id, diaryId));
+}
+
+export function getImageKeysByEntryId({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  return db
+    .select({ Key: imageKeys.key })
+    .from(imageKeys)
+    .where(eq(imageKeys.entryId, entryId));
+}
+
 export async function insertImageMetadata({
   db,
   userId,

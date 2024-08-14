@@ -23,6 +23,8 @@ import {
   cancelImageUpload,
   getKeyByKey,
   confirmImageUpload,
+  getImageKeysByDiaryId,
+  getImageKeysByEntryId,
 } from "./service";
 import {
   createDiarySchema,
@@ -34,6 +36,7 @@ import {
 } from "./schema";
 import {
   deleteImage,
+  deleteImages,
   getImageSignedUrl,
   getPresignedPost,
 } from "../shared/s3ImagesService";
@@ -98,11 +101,20 @@ export const diaryRouter = createTRPCRouter({
           message: "Diary does not exist",
         });
       }
-      await deleteDiaryById({
+      const keysToDelete = await getImageKeysByDiaryId({
         db: ctx.db,
-        userId: ctx.session.user.id,
         diaryId: input.diaryId,
       });
+
+      // TODO: properly handle errors with all settled
+      await Promise.all([
+        deleteImages(keysToDelete),
+        deleteDiaryById({
+          db: ctx.db,
+          userId: ctx.session.user.id,
+          diaryId: input.diaryId,
+        }),
+      ]);
     }),
   getEntries: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
@@ -146,7 +158,17 @@ export const diaryRouter = createTRPCRouter({
           message: "Entry does not exist",
         });
       }
-      await deleteEntry({ db: ctx.db, input });
+      const keysToDelete = await getImageKeysByEntryId({
+        db: ctx.db,
+        entryId: input.entryId,
+      });
+
+      // TODO properly handle errors
+      await Promise.all([
+        deleteImages(keysToDelete),
+        deleteEntry({ db: ctx.db, input }),
+      ]);
+
       return input.entryId;
     }),
   saveEditorState: protectedProcedure
