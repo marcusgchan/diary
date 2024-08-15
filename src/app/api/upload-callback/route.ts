@@ -11,6 +11,7 @@ const input = z.object({
 });
 
 export async function POST(req: Request) {
+  console.log(req);
   const token = req.headers.get("authorization")?.split(" ")?.[1];
   if (token === undefined) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
