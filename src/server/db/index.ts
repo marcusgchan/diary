@@ -1,20 +1,10 @@
-import { Client } from "@planetscale/database";
-//import { drizzle } from "drizzle-orm/planetscale-serverless";
-import { drizzle } from "drizzle-orm/mysql2";
-import mysql from "mysql2/promise";
-
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgress from "postgres";
 import { env } from "~/env.mjs";
 import * as schema from "./schema";
 
-/*export const db = drizzle(
-  new Client({
-    url: env.DATABASE_URL,
-  }).connection(),
-  { schema },
-);*/
+const connection = env.DATABASE_URL;
 
-export const db = drizzle(
-  await mysql.createConnection({
-    uri: env.DATABASE_URL,
-  }),
-);
+const client = postgress(connection);
+
+export const db = drizzle(client);

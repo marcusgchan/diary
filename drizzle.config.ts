@@ -2,15 +2,10 @@ import { defineConfig } from "drizzle-kit";
 import { env } from "./src/env.mjs";
 
 export default defineConfig({
-  dialect: "mysql",
+  dialect: "postgresql",
   schema: "./src/server/db/schema.ts",
   dbCredentials: {
-    host: "localhost",
-    port: env.DATABASE_PORT,
-    database: env.DATABASE_NAME,
-    user: env.DATABASE_USER,
-    password: env.DATABASE_PASS,
+    url: `postgres://${env.DATABASE_USER}:${env.DATABASE_PASS}@localhost:${env.DATABASE_PORT}/${env.DATABASE_NAME}`,
   },
   verbose: true,
-  tablesFilter: ["diary_*"],
 });
