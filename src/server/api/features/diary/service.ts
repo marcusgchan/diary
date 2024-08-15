@@ -42,10 +42,13 @@ export async function createDiary({
   name: string;
 }) {
   await db.transaction(async (tx) => {
-    const [inserted] = await tx.insert(diaries).values({ name: name });
+    const [inserted] = await tx
+      .insert(diaries)
+      .values({ name: name })
+      .returning({ insertedId: diaries.id });
     await tx.insert(diariesToUsers).values({
       userId: userId,
-      diaryId: inserted.insertId,
+      diaryId: inserted!.insertedId,
     });
   });
 }
@@ -308,12 +311,15 @@ export async function createEntry({
     }
     const [insertedEntry] = await tx
       .insert(entries)
-      .values({ diaryId: input.diaryId, day: input.day });
+      .values({ diaryId: input.diaryId, day: input.day })
+      .returning({ insertedId: entries.id });
 
     // Create editor state
-    await tx.insert(editorStates).values({ entryId: insertedEntry.insertId });
+    await tx
+      .insert(editorStates)
+      .values({ entryId: insertedEntry!.insertedId });
 
-    return { id: insertedEntry.insertId };
+    return { id: insertedEntry!.insertedId };
   });
 }
 

@@ -22,16 +22,18 @@ services:
       - diary
 
   db:
-    image: mysql:latest
+    image: postgres:latest
     environment:
-      - MYSQL_DATABASE=diary
-      - MYSQL_ROOT_PASSWORD=test123
-    volumes:
-      - diary-db:/var/lib/mysql
+      POSTGRES_PASSWORD: ${DATABASE_PASS}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_DB: ${DATABASE_NAME}
+      PGDATA: /data/postgres
     ports:
-      - "3306:3306"
+      - "5432:5432"
     networks:
       - diary
+    volumes:
+      - postgres-data:/data/postgres
 
   minio:
     image: minio/minio:latest
@@ -75,5 +77,5 @@ networks:
   diary:
 
 volumes:
-  diary-db:
+  postgres-data:
   minio-data:

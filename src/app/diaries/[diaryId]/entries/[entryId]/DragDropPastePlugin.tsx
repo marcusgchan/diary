@@ -29,6 +29,7 @@ export function DragDropPastePlugin(): null {
             if (isMimeType(file, ACCEPTABLE_IMAGE_TYPES)) {
               editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
                 altText: file.name,
+                imageKey: "",
                 src: result,
               });
             }

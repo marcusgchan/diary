@@ -1,18 +1,15 @@
-import { relations, sql } from "drizzle-orm";
 import {
   bigint,
+  bigserial,
   boolean,
   date,
-  datetime,
-  index,
-  int,
+  integer,
   json,
-  mysqlTableCreator,
+  pgTableCreator,
   primaryKey,
   text,
   timestamp,
-  varchar,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 import {
   type SerializedEditorState,
   type SerializedLexicalNode,
@@ -25,80 +22,55 @@ import { type AdapterAccount } from "next-auth/adapters";
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
-export const mysqlTable = mysqlTableCreator((name) => `diary_${name}`);
+export const pgTable = pgTableCreator((name) => `${name}`);
 
-export const users = mysqlTable("user", {
-  id: varchar("id", { length: 255 }).notNull().primaryKey(),
-  e: varchar("e", { length: 255 }),
-  name: varchar("name", { length: 255 }),
-  email: varchar("email", { length: 255 }).notNull(),
+export const users = pgTable("user", {
+  id: text("id").notNull().primaryKey(),
+  name: text("name"),
+  email: text("email").notNull(),
   emailVerified: timestamp("emailVerified", {
     mode: "date",
-    fsp: 3,
-  }).default(sql`CURRENT_TIMESTAMP(3)`),
-  image: varchar("image", { length: 255 }),
+  }),
+  image: text("image"),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
-  accounts: many(accounts),
-}));
-
-export const accounts = mysqlTable(
+export const accounts = pgTable(
   "account",
   {
-    userId: varchar("userId", { length: 255 })
+    userId: text("userId")
       .notNull()
-      .references(() => users.id),
-    type: varchar("type", { length: 255 })
-      .$type<AdapterAccount["type"]>()
-      .notNull(),
-    provider: varchar("provider", { length: 255 }).notNull(),
-    providerAccountId: varchar("providerAccountId", { length: 255 }).notNull(),
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").$type<AdapterAccount["type"]>().notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("providerAccountId").notNull(),
     refresh_token: text("refresh_token"),
     access_token: text("access_token"),
-    expires_at: int("expires_at"),
-    token_type: varchar("token_type", { length: 255 }),
-    scope: varchar("scope", { length: 255 }),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
     id_token: text("id_token"),
-    session_state: varchar("session_state", { length: 255 }),
+    session_state: text("session_state"),
   },
   (account) => ({
     compoundKey: primaryKey({
       columns: [account.provider, account.providerAccountId],
     }),
-    userIdIdx: index("userId_idx").on(account.userId),
   }),
 );
 
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, { fields: [accounts.userId], references: [users.id] }),
-}));
+export const sessions = pgTable("session", {
+  sessionToken: text("sessionToken").notNull().primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
 
-export const sessions = mysqlTable(
-  "session",
-  {
-    sessionToken: varchar("sessionToken", { length: 255 })
-      .notNull()
-      .primaryKey(),
-    userId: varchar("userId", { length: 255 })
-      .notNull()
-      .references(() => users.id),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
-  },
-  (session) => ({
-    userIdIdx: index("userId_idx").on(session.userId),
-  }),
-);
-
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, { fields: [sessions.userId], references: [users.id] }),
-}));
-
-export const verificationTokens = mysqlTable(
+export const verificationTokens = pgTable(
   "verification_token",
   {
-    identifier: varchar("identifier", { length: 255 }).notNull(),
-    token: varchar("token", { length: 255 }).notNull(),
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (vt) => ({
@@ -106,13 +78,13 @@ export const verificationTokens = mysqlTable(
   }),
 );
 
-export const diariesToUsers = mysqlTable(
+export const diariesToUsers = pgTable(
   "diary_to_user",
   {
-    userId: varchar("userId", { length: 255 })
+    userId: text("userId")
       .notNull()
       .references(() => users.id),
-    diaryId: bigint("diaryId", { mode: "number" })
+    diaryId: bigserial("diaryId", { mode: "number" })
       .notNull()
       .references(() => diaries.id),
   },
@@ -123,54 +95,40 @@ export const diariesToUsers = mysqlTable(
   },
 );
 
-export const diaries = mysqlTable("diary", {
-  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
-  name: varchar("name", { length: 255 }).notNull(),
-  createdAt: datetime("createdAt")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: datetime("updatedAt")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+export const diaries = pgTable("diary", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
-export const entries = mysqlTable("entry", {
-  id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
+export const entries = pgTable("entry", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
   diaryId: bigint("diaryId", { mode: "number" })
     .notNull()
     .references(() => diaries.id),
   day: date("day", { mode: "string" }).notNull(),
-  title: varchar("title", { length: 255 }),
-  createdAt: datetime("createdAt")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: datetime("updatedAt")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  title: text("title"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
-export const imageKeys = mysqlTable("image_key", {
-  key: varchar("key", { length: 255 }).primaryKey(),
+export const imageKeys = pgTable("image_key", {
+  key: text("key").primaryKey(),
   entryId: bigint("entryId", { mode: "number" })
     .references(() => entries.id)
     .notNull(),
   linked: boolean("linked").notNull().default(false),
-  createdAt: datetime("createdAt")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
 
-export const editorStates = mysqlTable("editor_state", {
+export const editorStates = pgTable("editor_state", {
   data: json("editorState").$type<
     SerializedEditorState<SerializedLexicalNode>
   >(),
   entryId: bigint("entryId", { mode: "number" })
     .primaryKey()
     .references(() => entries.id),
-  createdAt: datetime("createdAt")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: datetime("updatedAt")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
