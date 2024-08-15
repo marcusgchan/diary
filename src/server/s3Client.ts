@@ -3,7 +3,7 @@ import { env } from "~/env.mjs";
 
 export const s3Client = new S3Client({
   endpoint: env.BUCKET_URL,
-  forcePathStyle: true,
+  forcePathStyle: env.NODE_ENV !== "production",
   region: "us-west-1",
   credentials: {
     accessKeyId: env.BUCKET_ACCESS_ID,
