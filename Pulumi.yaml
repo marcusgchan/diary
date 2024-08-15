@@ -1,0 +1,6 @@
+name: diary
+runtime:
+  name: nodejs
+  options:
+    typescript: false
+    packagemanager: pnpm
