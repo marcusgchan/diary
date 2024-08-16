@@ -38,7 +38,6 @@ const hostedInput = z.object({
 });
 
 export async function POST(req: Request) {
-  console.log("req", req);
   const rawToken = req.headers.get("authorization");
   if (rawToken === null) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
@@ -73,9 +72,9 @@ export async function POST(req: Request) {
 
     const key = parsed.data.detail.object.key;
     const segments = key.split("/");
-    const userId = segments[1];
-    const entryId = segments[3];
-    const imageName = segments[4];
+    const userId = segments[0];
+    const entryId = segments[2];
+    const imageName = segments[3];
     console.log(key);
 
     if (!entryId || !imageName || !userId) {
