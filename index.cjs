@@ -1,6 +1,9 @@
 const pulumi = require("@pulumi/pulumi");
 const aws = require("@pulumi/aws");
-const { env } = require("./src/env.mjs");
+
+const cfg = new pulumi.Config();
+const BUCKET_WEBHOOK_TOKEN = cfg.require("bucketWebhookToken");
+const BUCKET_WEBHOOK_ENDPOINT = cfg.require("bucketWebhookEndpoint");
 
 // Create an S3 bucket
 const bucket = new aws.s3.Bucket("diaryBucket", {
@@ -40,7 +43,7 @@ const connection = new aws.cloudwatch.EventConnection("myConnection", {
   authParameters: {
     apiKey: {
       key: "authorization",
-      value: env.BUCKET_WEBHOOK_TOKEN,
+      value: BUCKET_WEBHOOK_TOKEN,
     },
   },
   description: "My API Connection",
@@ -51,8 +54,7 @@ const apiDestination = new aws.cloudwatch.EventApiDestination(
   {
     connectionArn: connection.arn,
     httpMethod: "POST",
-    invocationEndpoint:
-      "https://webhook.site/9c9e5bf2-2c04-4436-8b6e-65b9372ffd5d", // Change as required
+    invocationEndpoint: BUCKET_WEBHOOK_ENDPOINT, // Change as required
     name: "myApiDestination",
   },
 );
@@ -94,7 +96,7 @@ const target = new aws.cloudwatch.EventTarget("eventBusTarget", {
   arn: apiDestination.arn, // Target apiDestination
   httpTarget: {
     headerParameters: {
-      test: "test-header",
+      environment: "hosted",
     },
   },
 });
