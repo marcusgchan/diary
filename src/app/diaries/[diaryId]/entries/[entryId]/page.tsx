@@ -105,7 +105,7 @@ function DatePicker({ day }: { day: string }) {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
-  const [date, setDate] = useState<Date>(new Date(day.replaceAll("-", ",")));
+  const [date, setDate] = useState(new Date(day));
   const { toast } = useToast();
   const queryUtils = api.useContext();
   const updateEntryDateMutation = api.diary.updateEntryDate.useMutation({
