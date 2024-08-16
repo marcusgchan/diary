@@ -25,13 +25,6 @@ const eventPattern = bucket.bucket.apply((bucketName) =>
   JSON.stringify({
     source: ["aws.s3"],
     "detail-type": ["Object Created"],
-    // detail: {
-    // eventSource: ["s3.amazonaws.com"],
-    // eventName: ["PutObject", "CompleteMultipartUpload"],
-    //   requestParameters: {
-    //     bucketName: [bucketName],
-    //   },
-    // },
   }),
 );
 
@@ -97,7 +90,6 @@ const target = new aws.cloudwatch.EventTarget("eventBusTarget", {
   rule: rule.name, // Ensure this matches the created rule name
   roleArn: targetRole.arn, // Role that EventBridge assumes
   arn: apiDestination.arn, // Target apiDestination
-  // eventBusName: eventBus.name,
   httpTarget: {
     headerParameters: {
       test: "test-header",
@@ -105,36 +97,6 @@ const target = new aws.cloudwatch.EventTarget("eventBusTarget", {
   },
 });
 
-// Grant EventBridge permission to access the S3 bucket
-// const bucketPolicy = new aws.s3.BucketPolicy("diaryBucketPolicy", {
-//   bucket: bucket.id,
-//   policy: pulumi.all([bucket.arn]).apply(([bucketArn, eventBusArn]) =>
-//     JSON.stringify({
-//       Version: "2012-10-17",
-//       Statement: [
-//         {
-//           Effect: "Allow",
-//           Principal: { Service: "events.amazonaws.com" },
-//           Action: "s3:PutObject",
-//           Resource: [bucketArn, `${bucketArn}/*`],
-//           Condition: {
-//             StringEquals: {
-//               "aws:SourceArn": eventBusArn,
-//             },
-//           },
-//         },
-//         {
-//           Effect: "Allow",
-//           Principal: { Service: "events.amazonaws.com" },
-//           Action: "s3:GetObject",
-//           Resource: [bucketArn, `${bucketArn}/*`],
-//         },
-//       ],
-//     }),
-//   ),
-// });
-
 exports.bucketName = bucket.id;
-// exports.eventBusName = eventBus.id;
 exports.ruleName = rule.name;
 exports.targetArn = target.arn;
