@@ -25,7 +25,8 @@ import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 import { api } from "~/trpc/client";
 import { useParams } from "next/navigation";
 import { useToast } from "~/app/_components/ui/use-toast";
-import { confirmImageUpload } from "~/server/api/features/diary/service";
+import * as ExifReader from "exifreader";
+import { RouterOutputs } from "~/server/api/trpc";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();
@@ -137,15 +138,38 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
       return;
     }
 
-    const data = await queryutils.diary.getPresignedUrl.fetch({
-      diaryId: Number(params.diaryId),
-      entryId: Number(params.entryId),
-      imageMetadata: {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-      },
-    });
+    let tags: ExifReader.ExpandedTags | undefined;
+    try {
+      tags = await ExifReader.load(file, { expanded: true });
+      console.log("tags");
+    } catch (e) {
+      console.log(e);
+    }
+
+    const gps = {
+      lat: tags?.gps?.Latitude,
+      lon: tags?.gps?.Longitude,
+    };
+
+    console.log(gps);
+
+    let data: RouterOutputs["diary"]["getPresignedUrl"];
+    try {
+      data = await queryutils.diary.getPresignedUrl.fetch({
+        diaryId: Number(params.diaryId),
+        entryId: Number(params.entryId),
+        gps,
+        imageMetadata: {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        },
+      });
+    } catch (e) {
+      toast({ title: "Unable to upload image" });
+      setDisableCancel(false);
+      return;
+    }
 
     const formData = new FormData();
     Object.entries(data.fields).forEach(([key, value]) => {

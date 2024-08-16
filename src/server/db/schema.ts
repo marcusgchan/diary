@@ -2,6 +2,7 @@ import {
   bigint,
   bigserial,
   boolean,
+  decimal,
   date,
   integer,
   json,
@@ -9,6 +10,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  doublePrecision,
 } from "drizzle-orm/pg-core";
 import {
   type SerializedEditorState,
@@ -119,6 +121,8 @@ export const imageKeys = pgTable("image_key", {
     .references(() => entries.id)
     .notNull(),
   linked: boolean("linked").notNull().default(false),
+  lon: doublePrecision("lon"),
+  lat: doublePrecision("lat"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
 

@@ -25,6 +25,7 @@ import {
   confirmImageUpload,
   getImageKeysByDiaryId,
   getImageKeysByEntryId,
+  insertImageMetadataWithGps,
 } from "./service";
 import {
   createDiarySchema,
@@ -213,6 +214,10 @@ export const diaryRouter = createTRPCRouter({
       z.object({
         diaryId: z.number(),
         entryId: z.number(),
+        gps: z.object({
+          lat: z.number().optional(),
+          lon: z.number().optional(),
+        }),
         imageMetadata: z.object({
           name: z.string(),
           type: z.string(),
@@ -221,13 +226,50 @@ export const diaryRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      return await getPresignedPost(
+      const uuid = randomUUID();
+      const entry = await getEntryIdById({
+        db: ctx.db,
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+      });
+      if (!entry) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Entry with this date already exists",
+        });
+      }
+
+      const lat = input.gps.lat;
+      const lon = input.gps.lon;
+
+      if (lat !== undefined && lon !== undefined) {
+        console.log("inserted with gps");
+        await insertImageMetadataWithGps({
+          db: ctx.db,
+          userId: ctx.session.user.id,
+          entryId: input.entryId,
+          key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name}`,
+          lon,
+          lat,
+        });
+      } else {
+        console.log("inserted without gps");
+        await insertImageMetadata({
+          db: ctx.db,
+          userId: ctx.session.user.id,
+          entryId: input.entryId,
+          key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name}`,
+        });
+      }
+
+      const url = await getPresignedPost(
         ctx.session.user.id,
         input.diaryId,
         input.entryId,
-        randomUUID(),
+        uuid,
         input.imageMetadata,
       );
+      return url;
     }),
   saveImageMetadata: protectedProcedure
     .input(z.object({ key: z.string(), entryId: z.number() }))

@@ -464,17 +464,25 @@ export async function insertImageMetadata({
     throw new TRPCError({ code: "BAD_REQUEST" });
   }
 
-  // drizzle for mysql doesn't support on conflict do nothing so this is a workaround
-  db.transaction(async (tx) => {
-    const rows = await tx
-      .select({ key: imageKeys.key })
-      .from(imageKeys)
-      .where(eq(imageKeys.key, key));
+  await db.insert(imageKeys).values({ key, entryId }).onConflictDoNothing();
+}
 
-    if (rows.length === 0) {
-      await tx.insert(imageKeys).values({ key, entryId });
-    }
-  });
+export async function insertImageMetadataWithGps({
+  db,
+  userId,
+  entryId,
+  lat,
+  lon,
+  key,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  key: string;
+  lat: number;
+  lon: number;
+}) {
+  return db.insert(imageKeys).values({ key, entryId, lat, lon });
 }
 
 export async function deleteImageMetadata({
