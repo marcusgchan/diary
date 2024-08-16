@@ -81,15 +81,13 @@ export async function POST(req: Request) {
       return Response.json({ message: "Bad request" }, { status: 400 });
     }
 
-    const firstSlash = key.indexOf("/");
-
     console.log("Inserting into image keys");
 
     await insertImageMetadata({
       db,
       userId,
       entryId: Number(entryId),
-      key: key.slice(firstSlash + 1),
+      key: key,
     });
 
     return Response.json({});
