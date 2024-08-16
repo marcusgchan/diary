@@ -123,6 +123,7 @@ export const imageKeys = pgTable("image_key", {
   linked: boolean("linked").notNull().default(false),
   lon: doublePrecision("lon"),
   lat: doublePrecision("lat"),
+  datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
 

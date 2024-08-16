@@ -218,6 +218,7 @@ export const diaryRouter = createTRPCRouter({
           lat: z.number().optional(),
           lon: z.number().optional(),
         }),
+        dateTimeTaken: z.string().optional(),
         imageMetadata: z.object({
           name: z.string(),
           type: z.string(),
@@ -241,9 +242,19 @@ export const diaryRouter = createTRPCRouter({
 
       const lat = input.gps.lat;
       const lon = input.gps.lon;
+      const dateTimeTaken = input.dateTimeTaken;
+      let formattedDate = undefined;
+
+      const segments = dateTimeTaken?.split(" ");
+      if (segments) {
+        const date = segments[0]?.replaceAll(":", "/");
+        const time = segments[1];
+        if (date !== undefined && time !== undefined) {
+          formattedDate = `${date} ${time}`;
+        }
+      }
 
       if (lat !== undefined && lon !== undefined) {
-        console.log("inserted with gps");
         await insertImageMetadataWithGps({
           db: ctx.db,
           userId: ctx.session.user.id,
@@ -251,14 +262,15 @@ export const diaryRouter = createTRPCRouter({
           key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name}`,
           lon,
           lat,
+          dateTimeTaken: formattedDate,
         });
       } else {
-        console.log("inserted without gps");
         await insertImageMetadata({
           db: ctx.db,
           userId: ctx.session.user.id,
           entryId: input.entryId,
           key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name}`,
+          dateTimeTaken: formattedDate,
         });
       }
 

@@ -150,8 +150,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
       lat: tags?.gps?.Latitude,
       lon: tags?.gps?.Longitude,
     };
-
-    console.log(gps);
+    const dateTimeTaken = tags?.exif?.DateTimeOriginal?.description;
 
     let data: RouterOutputs["diary"]["getPresignedUrl"];
     try {
@@ -159,6 +158,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         diaryId: Number(params.diaryId),
         entryId: Number(params.entryId),
         gps,
+        dateTimeTaken,
         imageMetadata: {
           name: file.name,
           type: file.type,

@@ -448,11 +448,13 @@ export async function insertImageMetadata({
   userId,
   entryId,
   key,
+  dateTimeTaken,
 }: {
   db: TRPCContext["db"];
   userId: string;
   entryId: number;
   key: string;
+  dateTimeTaken?: string | undefined;
 }) {
   const res = await db
     .select({ entryId: entries.id })
@@ -474,6 +476,7 @@ export async function insertImageMetadataWithGps({
   lat,
   lon,
   key,
+  dateTimeTaken,
 }: {
   db: TRPCContext["db"];
   userId: string;
@@ -481,8 +484,16 @@ export async function insertImageMetadataWithGps({
   key: string;
   lat: number;
   lon: number;
+  dateTimeTaken: string | undefined;
 }) {
-  return db.insert(imageKeys).values({ key, entryId, lat, lon });
+  return db.insert(imageKeys).values({
+    key,
+    entryId,
+    lat,
+    lon,
+    datetimeTaken:
+      dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
+  });
 }
 
 export async function deleteImageMetadata({
