@@ -6,13 +6,46 @@ import { diariesToUsers, entries } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm/sql";
 import { insertImageMetadata } from "~/server/api/features/diary/service";
 
-const input = z.object({
+const localInput = z.object({
   Key: z.string(),
 });
 
+const hostedInput = z.object({
+  version: z.string(),
+  // id: z.string().uuid(),
+  // detailType: z.string(), // could be more specific if this is always "Object Created"
+  // source: z.string().url(), // could validate against "aws.s3"
+  // account: z.string(), // AWS account number format
+  // time: z.string().datetime(), // ISO 8601 format
+  // region: z.string(), // AWS region
+  // resources: z.array(z.string().url()), // could validate against specific ARN pattern
+  detail: z.object({
+    version: z.string(),
+    bucket: z.object({
+      name: z.string(),
+    }),
+    object: z.object({
+      key: z.string(),
+      size: z.number(),
+      etag: z.string(), // could validate against specific hash pattern
+      sequencer: z.string(), // could validate against specific format
+    }),
+    // "request-id": z.string(),
+    // requester: z.string(), // AWS account number format
+    // "source-ip-address": z.string().ip(), // IP address format
+    // reason: z.string(),
+  }),
+});
+
 export async function POST(req: Request) {
-  console.log(req);
-  const token = req.headers.get("authorization")?.split(" ")?.[1];
+  const rawToken = req.headers.get("authorization");
+  if (rawToken === null) {
+    return Response.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const environment = req.headers.get("environment");
+
+  const token = environment === "hosted" ? rawToken : rawToken.split(" ")?.[1];
   if (token === undefined) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -29,29 +62,56 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const parsed = input.safeParse(body);
-  if (!parsed.success) {
-    return Response.json({ message: "Invalid format" }, { status: 400 });
+  if (environment === "hosted") {
+    const parsed = hostedInput.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ message: "Invalid format" }, { status: 400 });
+    }
+
+    const key = parsed.data.detail.object.key;
+    const segments = key.split("/");
+    const userId = segments[1];
+    const entryId = segments[3];
+    const imageName = segments[4];
+
+    if (!entryId || !imageName || !userId) {
+      return Response.json({ message: "Bad request" }, { status: 400 });
+    }
+
+    const firstSlash = key.indexOf("/");
+
+    await insertImageMetadata({
+      db,
+      userId,
+      entryId: Number(entryId),
+      key: key.slice(firstSlash + 1),
+    });
+
+    return Response.json({});
+  } else {
+    const parsed = localInput.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ message: "Invalid format" }, { status: 400 });
+    }
+    const key = parsed.data.Key;
+    const segments = key.split("/");
+    const userId = segments[1];
+    const entryId = segments[3];
+    const imageName = segments[4];
+
+    if (!entryId || !imageName || !userId) {
+      return Response.json({ message: "Bad request" }, { status: 400 });
+    }
+
+    const firstSlash = key.indexOf("/");
+
+    await insertImageMetadata({
+      db,
+      userId,
+      entryId: Number(entryId),
+      key: key.slice(firstSlash + 1),
+    });
+
+    return Response.json({});
   }
-
-  const key = parsed.data.Key;
-  const segments = key.split("/");
-  const userId = segments[1];
-  const entryId = segments[3];
-  const imageName = segments[4];
-
-  if (!entryId || !imageName || !userId) {
-    return Response.json({ message: "Bad request" }, { status: 400 });
-  }
-
-  const firstSlash = key.indexOf("/");
-
-  await insertImageMetadata({
-    db,
-    userId,
-    entryId: Number(entryId),
-    key: key.slice(firstSlash + 1),
-  });
-
-  return Response.json({});
 }

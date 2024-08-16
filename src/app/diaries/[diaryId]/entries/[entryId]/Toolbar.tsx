@@ -25,6 +25,7 @@ import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 import { api } from "~/trpc/client";
 import { useParams } from "next/navigation";
 import { useToast } from "~/app/_components/ui/use-toast";
+import { confirmImageUpload } from "~/server/api/features/diary/service";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();
@@ -174,6 +175,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         toast({ title: "Unable to upload image" });
         setStartPolling(false);
         setDisableCancel(false);
+        setImageKeyRef(undefined);
       });
   };
   return (
@@ -210,7 +212,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            disabled={startPolling || !imageKeyRef}
+            disabled={startPolling || !imageKeyRef || confirmUpload.isLoading}
           >
             Continue
           </AlertDialogAction>
