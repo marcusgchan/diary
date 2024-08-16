@@ -76,6 +76,7 @@ export async function POST(req: Request) {
     const userId = segments[1];
     const entryId = segments[3];
     const imageName = segments[4];
+    console.log(key);
 
     if (!entryId || !imageName || !userId) {
       return Response.json({ message: "Bad request" }, { status: 400 });
