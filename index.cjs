@@ -1,5 +1,6 @@
 const pulumi = require("@pulumi/pulumi");
 const aws = require("@pulumi/aws");
+const { env } = require("./src/env.mjs");
 
 // Create an S3 bucket
 const bucket = new aws.s3.Bucket("diaryBucket", {
@@ -38,8 +39,8 @@ const connection = new aws.cloudwatch.EventConnection("myConnection", {
   authorizationType: "API_KEY",
   authParameters: {
     apiKey: {
-      key: "x-signature",
-      value: "1234",
+      key: "authorization",
+      value: env.BUCKET_WEBHOOK_TOKEN,
     },
   },
   description: "My API Connection",
