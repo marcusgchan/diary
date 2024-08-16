@@ -7,32 +7,40 @@ const bucket = new aws.s3.Bucket("diaryBucket", {
     {
       allowedHeaders: ["*"],
       allowedMethods: ["GET", "POST", "DELETE", "PUT", "HEAD"],
-      allowedOrigins: ["https://explorer-diary.vercel.app/*"],
+      allowedOrigins: ["*"],
       maxAgeSeconds: 3000,
     },
   ],
 });
 
-// Create an EventBridge Event Bus
-const eventBus = new aws.cloudwatch.EventBus("myEventBus");
-
-// Create an EventBridge rule to capture S3 Object Created events
-const rule = new aws.cloudwatch.EventRule("s3ObjectCreatedRule", {
-  eventBusName: eventBus.name,
-  eventPattern: JSON.stringify({
-    source: ["aws.s3"],
-    "detail-type": ["AWS API Call via CloudTrail"],
-    detail: {
-      eventSource: ["s3.amazonaws.com"],
-      eventName: ["PutObject", "CompleteMultipartUpload"],
-      requestParameters: {
-        bucketName: [bucket.bucket],
-      },
-    },
-  }),
+const bucketNotification = new aws.s3.BucketNotification("bucketNotification", {
+  bucket: bucket.bucket,
+  eventbridge: true,
 });
 
-// Create an EventBridge API destination
+// Create an EventBridge Event Bus
+// const eventBus = new aws.cloudwatch.EventBus("myEventBus");
+
+const eventPattern = bucket.bucket.apply((bucketName) =>
+  JSON.stringify({
+    source: ["aws.s3"],
+    "detail-type": ["Object Created"],
+    // detail: {
+    // eventSource: ["s3.amazonaws.com"],
+    // eventName: ["PutObject", "CompleteMultipartUpload"],
+    //   requestParameters: {
+    //     bucketName: [bucketName],
+    //   },
+    // },
+  }),
+);
+
+// Has bus and pattern to filter events
+const rule = new aws.cloudwatch.EventRule("s3ObjectCreatedRule", {
+  eventPattern: eventPattern,
+});
+
+// Connection for apiDestination
 const connection = new aws.cloudwatch.EventConnection("myConnection", {
   authorizationType: "API_KEY",
   authParameters: {
@@ -44,18 +52,34 @@ const connection = new aws.cloudwatch.EventConnection("myConnection", {
   description: "My API Connection",
   name: "myApiConnection",
 });
-
 const apiDestination = new aws.cloudwatch.EventApiDestination(
   "myApiDestination",
   {
     connectionArn: connection.arn,
     httpMethod: "POST",
-    invocationEndpoint: "https://explorer-diary.vercel.app/api/upload-callback", // Change as required
+    invocationEndpoint:
+      "https://webhook.site/9c9e5bf2-2c04-4436-8b6e-65b9372ffd5d", // Change as required
     name: "myApiDestination",
   },
 );
 
 const targetRole = new aws.iam.Role("eventBridgeTargetRole", {
+  inlinePolicies: [
+    {
+      policy: pulumi.all([apiDestination.arn]).apply(([apiDestinationArn]) =>
+        JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Action: "events:InvokeApiDestination",
+              Resource: `${apiDestinationArn}`,
+            },
+          ],
+        }),
+      ),
+    },
+  ],
   assumeRolePolicy: JSON.stringify({
     Version: "2012-10-17",
     Statement: [
@@ -70,48 +94,47 @@ const targetRole = new aws.iam.Role("eventBridgeTargetRole", {
 
 // Create an EventBridge Target to route the events to the API destination
 const target = new aws.cloudwatch.EventTarget("eventBusTarget", {
-  rule: rule.name,
-  roleArn: targetRole.arn,
-  eventBusName: eventBus.name,
-  arn: apiDestination.arn,
-  input: JSON.stringify({
-    token: "myCustomToken",
-    event: ".", // using '.' to pass the whole event as-is
-  }),
+  rule: rule.name, // Ensure this matches the created rule name
+  roleArn: targetRole.arn, // Role that EventBridge assumes
+  arn: apiDestination.arn, // Target apiDestination
+  // eventBusName: eventBus.name,
+  httpTarget: {
+    headerParameters: {
+      test: "test-header",
+    },
+  },
 });
 
 // Grant EventBridge permission to access the S3 bucket
-const bucketPolicy = new aws.s3.BucketPolicy("diaryBucketPolicy", {
-  bucket: bucket.id,
-  policy: pulumi
-    .all([bucket.arn, eventBus.arn])
-    .apply(([bucketArn, eventBusArn]) =>
-      JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Effect: "Allow",
-            Principal: { Service: "events.amazonaws.com" },
-            Action: "s3:PutObject",
-            Resource: [bucketArn, `${bucketArn}/*`],
-            Condition: {
-              StringEquals: {
-                "aws:SourceArn": eventBusArn,
-              },
-            },
-          },
-          {
-            Effect: "Allow",
-            Principal: { Service: "events.amazonaws.com" },
-            Action: "s3:GetObject",
-            Resource: [bucketArn, `${bucketArn}/*`],
-          },
-        ],
-      }),
-    ),
-});
+// const bucketPolicy = new aws.s3.BucketPolicy("diaryBucketPolicy", {
+//   bucket: bucket.id,
+//   policy: pulumi.all([bucket.arn]).apply(([bucketArn, eventBusArn]) =>
+//     JSON.stringify({
+//       Version: "2012-10-17",
+//       Statement: [
+//         {
+//           Effect: "Allow",
+//           Principal: { Service: "events.amazonaws.com" },
+//           Action: "s3:PutObject",
+//           Resource: [bucketArn, `${bucketArn}/*`],
+//           Condition: {
+//             StringEquals: {
+//               "aws:SourceArn": eventBusArn,
+//             },
+//           },
+//         },
+//         {
+//           Effect: "Allow",
+//           Principal: { Service: "events.amazonaws.com" },
+//           Action: "s3:GetObject",
+//           Resource: [bucketArn, `${bucketArn}/*`],
+//         },
+//       ],
+//     }),
+//   ),
+// });
 
 exports.bucketName = bucket.id;
-exports.eventBusName = eventBus.id;
+// exports.eventBusName = eventBus.id;
 exports.ruleName = rule.name;
 exports.targetArn = target.arn;
