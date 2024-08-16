@@ -80,6 +80,8 @@ export async function POST(req: Request) {
 
     const firstSlash = key.indexOf("/");
 
+    console.log("Inserting into image keys");
+
     await insertImageMetadata({
       db,
       userId,
