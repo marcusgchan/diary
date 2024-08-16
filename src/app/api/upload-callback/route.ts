@@ -38,6 +38,7 @@ const hostedInput = z.object({
 });
 
 export async function POST(req: Request) {
+  console.log("req", req);
   const rawToken = req.headers.get("authorization");
   if (rawToken === null) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
