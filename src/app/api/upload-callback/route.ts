@@ -66,6 +66,7 @@ export async function POST(req: Request) {
   if (environment === "hosted") {
     const parsed = hostedInput.safeParse(body);
     if (!parsed.success) {
+      console.log(parsed.error);
       return Response.json({ message: "Invalid format" }, { status: 400 });
     }
 
