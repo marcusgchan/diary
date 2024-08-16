@@ -23,7 +23,7 @@ export default function Diaries() {
     <div className="grid grid-cols-1 gap-5">
       <Header />
       <main className="h-full">
-        <ul className="grid h-full grid-cols-4 gap-4">
+        <ul className="grid h-full grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))]">
           <FetchResolver
             {...diariesQueryState}
             loadingComponent={Array.from({ length: 4 }).map((_, i) => (

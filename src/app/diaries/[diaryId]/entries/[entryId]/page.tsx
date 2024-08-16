@@ -18,6 +18,8 @@ import { format } from "date-fns";
 import { RouterOutputs } from "~/server/api/trpc";
 import { useToast } from "~/app/_components/ui/use-toast";
 import dynamic from "next/dynamic";
+import { Entries } from "../Entries";
+import { Header } from "../Header";
 
 const Editor = dynamic(
   () => import("./Editor").then((c) => ({ default: c.Editor })),
@@ -40,28 +42,39 @@ export default function Entry() {
     },
   );
   return (
-    <FetchResolver
-      {...entryQuery}
-      loadingComponent={
-        <main className="flex h-full flex-col gap-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-full w-full" />
-        </main>
-      }
-    >
-      {(data) => {
-        return !data ? (
-          <main>Doesn&#39;t exist</main>
-        ) : (
-          <main className="flex h-full flex-col gap-2">
-            <TitleInput title={data.title} />
-            <DatePicker day={data.day} />
-            <Editor initialEditorState={data.editorState} />
-          </main>
-        );
-      }}
-    </FetchResolver>
+    <div className="flex h-full flex-col gap-4">
+      <Header />
+      <div className="grid h-full min-h-0 flex-1 gap-2 sm:grid-cols-[220px_1fr]">
+        <aside className="hidden sm:block">
+          <h3 className="mb-2 text-2xl">Diary Entries</h3>
+          <Entries />
+        </aside>
+        <div className="h-full min-h-0">
+          <FetchResolver
+            {...entryQuery}
+            loadingComponent={
+              <main className="flex h-full flex-col gap-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-full w-full" />
+              </main>
+            }
+          >
+            {(data) => {
+              return !data ? (
+                <main>Doesn&#39;t exist</main>
+              ) : (
+                <main className="flex h-full flex-col gap-2">
+                  <TitleInput title={data.title} />
+                  <DatePicker day={data.day} />
+                  <Editor initialEditorState={data.editorState} />
+                </main>
+              );
+            }}
+          </FetchResolver>
+        </div>
+      </div>
+    </div>
   );
 }
 
