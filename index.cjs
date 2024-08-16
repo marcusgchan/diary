@@ -86,6 +86,7 @@ const targetRole = new aws.iam.Role("eventBridgeTargetRole", {
 });
 
 // Create an EventBridge Target to route the events to the API destination
+// TODO: dead letter config
 const target = new aws.cloudwatch.EventTarget("eventBusTarget", {
   rule: rule.name, // Ensure this matches the created rule name
   roleArn: targetRole.arn, // Role that EventBridge assumes
