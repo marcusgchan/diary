@@ -63,10 +63,8 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   if (environment === "hosted") {
-    console.log("hosted");
     const parsed = hostedInput.safeParse(body);
     if (!parsed.success) {
-      console.log(parsed.error);
       return Response.json({ message: "Invalid format" }, { status: 400 });
     }
 
@@ -75,13 +73,10 @@ export async function POST(req: Request) {
     const userId = segments[0];
     const entryId = segments[2];
     const imageName = segments[3];
-    console.log(key);
 
     if (!entryId || !imageName || !userId) {
       return Response.json({ message: "Bad request" }, { status: 400 });
     }
-
-    console.log("Inserting into image keys");
 
     await insertImageMetadata({
       db,
@@ -92,7 +87,6 @@ export async function POST(req: Request) {
 
     return Response.json({});
   } else {
-    console.log("local");
     const parsed = localInput.safeParse(body);
     if (!parsed.success) {
       return Response.json({ message: "Invalid format" }, { status: 400 });
