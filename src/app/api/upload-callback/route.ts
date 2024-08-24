@@ -2,9 +2,10 @@ import { z } from "zod";
 import { env } from "~/env.mjs";
 import { timingSafeEqual } from "crypto";
 import { db } from "~/server/db";
-import { diariesToUsers, entries } from "~/server/db/schema";
-import { eq, and } from "drizzle-orm/sql";
-import { insertImageMetadata } from "~/server/api/features/diary/service";
+import {
+  insertImageMetadata,
+  receivedImageWebhook,
+} from "~/server/api/features/diary/service";
 
 const localInput = z.object({
   Key: z.string(),
@@ -78,11 +79,9 @@ export async function POST(req: Request) {
       return Response.json({ message: "Bad request" }, { status: 400 });
     }
 
-    await insertImageMetadata({
+    await receivedImageWebhook({
       db,
-      userId,
-      entryId: Number(entryId),
-      key: key,
+      key,
     });
 
     return Response.json({});
@@ -103,10 +102,8 @@ export async function POST(req: Request) {
 
     const firstSlash = key.indexOf("/");
 
-    await insertImageMetadata({
+    await receivedImageWebhook({
       db,
-      userId,
-      entryId: Number(entryId),
       key: key.slice(firstSlash + 1),
     });
 

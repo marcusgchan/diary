@@ -2,7 +2,6 @@ import {
   bigint,
   bigserial,
   boolean,
-  decimal,
   date,
   integer,
   json,
@@ -121,6 +120,7 @@ export const imageKeys = pgTable("image_key", {
     .references(() => entries.id)
     .notNull(),
   linked: boolean("linked").notNull().default(false),
+  receivedWebhook: boolean("receivedWebhook").notNull().default(false),
   lon: doublePrecision("lon"),
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),

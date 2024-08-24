@@ -466,7 +466,25 @@ export async function insertImageMetadata({
     throw new TRPCError({ code: "BAD_REQUEST" });
   }
 
-  await db.insert(imageKeys).values({ key, entryId }).onConflictDoNothing();
+  await db
+    .insert(imageKeys)
+    .values({
+      key,
+      entryId,
+      datetimeTaken:
+        dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
+    })
+    .onConflictDoNothing();
+}
+
+export async function receivedImageWebhook({
+  db,
+  key,
+}: {
+  db: TRPCContext["db"];
+  key: string;
+}) {
+  return db.update(imageKeys).set({ key, receivedWebhook: true });
 }
 
 export async function insertImageMetadataWithGps({
@@ -531,11 +549,11 @@ export async function getImageUploadStatus({
   key: string;
 }) {
   const [status] = await db
-    .select({ entryId: imageKeys.entryId })
+    .select({ receivedWebhook: imageKeys.receivedWebhook })
     .from(imageKeys)
     .where(eq(imageKeys.key, key));
 
-  return !!status;
+  return !!status?.receivedWebhook;
 }
 
 export async function cancelImageUpload({
@@ -545,7 +563,7 @@ export async function cancelImageUpload({
   db: TRPCContext["db"];
   key: string;
 }) {
-  return await db.delete(imageKeys).where(eq(imageKeys.key, key));
+  return db.delete(imageKeys).where(eq(imageKeys.key, key));
 }
 
 export async function confirmImageUpload({
