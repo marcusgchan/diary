@@ -26,6 +26,7 @@ import {
   getImageKeysByDiaryId,
   getImageKeysByEntryId,
   insertImageMetadataWithGps,
+  getEntryIdByEntryAndDiaryId,
 } from "./service";
 import {
   createDiarySchema,
@@ -228,9 +229,10 @@ export const diaryRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const uuid = randomUUID();
-      const entry = await getEntryIdById({
+      const entry = await getEntryIdByEntryAndDiaryId({
         db: ctx.db,
         entryId: input.entryId,
+        diaryId: input.diaryId,
         userId: ctx.session.user.id,
       });
       if (!entry) {

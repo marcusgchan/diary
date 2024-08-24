@@ -3,6 +3,7 @@ import { env } from "~/env.mjs";
 import { timingSafeEqual } from "crypto";
 import { db } from "~/server/db";
 import {
+  getEntryIdByEntryAndDiaryId,
   insertImageMetadata,
   receivedImageWebhook,
 } from "~/server/api/features/diary/service";
@@ -72,11 +73,23 @@ export async function POST(req: Request) {
     const key = parsed.data.detail.object.key;
     const segments = key.split("/");
     const userId = segments[0];
-    const entryId = segments[2];
+    const diaryId = Number(segments[1]);
+    const entryId = Number(segments[2]);
     const imageName = segments[3];
 
     if (!entryId || !imageName || !userId) {
       return Response.json({ message: "Bad request" }, { status: 400 });
+    }
+
+    const res = await getEntryIdByEntryAndDiaryId({
+      db,
+      userId,
+      diaryId,
+      entryId,
+    });
+
+    if (!res) {
+      return Response.json({}, { status: 401 });
     }
 
     await receivedImageWebhook({
@@ -93,11 +106,23 @@ export async function POST(req: Request) {
     const key = parsed.data.Key;
     const segments = key.split("/");
     const userId = segments[1];
-    const entryId = segments[3];
+    const diaryId = Number(segments[2]);
+    const entryId = Number(segments[3]);
     const imageName = segments[4];
 
     if (!entryId || !imageName || !userId) {
       return Response.json({ message: "Bad request" }, { status: 400 });
+    }
+
+    const res = await getEntryIdByEntryAndDiaryId({
+      db,
+      userId,
+      diaryId,
+      entryId,
+    });
+
+    if (!res) {
+      return Response.json({}, { status: 401 });
     }
 
     const firstSlash = key.indexOf("/");
