@@ -99,6 +99,7 @@ export const diariesToUsers = pgTable(
 export const diaries = pgTable("diary", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   name: text("name").notNull(),
+  deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
@@ -110,6 +111,7 @@ export const entries = pgTable("entry", {
     .references(() => diaries.id),
   day: date("day", { mode: "string" }).notNull(),
   title: text("title"),
+  deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
@@ -124,6 +126,7 @@ export const imageKeys = pgTable("image_key", {
   lon: doublePrecision("lon"),
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
+  deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
 

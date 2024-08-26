@@ -27,6 +27,10 @@ import {
   getImageKeysByEntryId,
   insertImageMetadataWithGps,
   getEntryIdByEntryAndDiaryId,
+  updateDiaryStatusToDeleting,
+  updateDiaryStatusToNotDeleting,
+  updateDiaryEntryStatusToDeleting,
+  updateDiaryEntryStatusToNotDeleting,
 } from "./service";
 import {
   createDiarySchema,
@@ -108,15 +112,57 @@ export const diaryRouter = createTRPCRouter({
         diaryId: input.diaryId,
       });
 
-      // TODO: properly handle errors with all settled
-      await Promise.all([
-        deleteImages(keysToDelete),
-        deleteDiaryById({
-          db: ctx.db,
-          userId: ctx.session.user.id,
-          diaryId: input.diaryId,
-        }),
-      ]);
+      await updateDiaryStatusToDeleting({
+        diaryId: input.diaryId,
+        db: ctx.db,
+      });
+
+      try {
+        await deleteImages(keysToDelete);
+        try {
+          await deleteDiaryById({
+            db: ctx.db,
+            userId: ctx.session.user.id,
+            diaryId: input.diaryId,
+          });
+        } catch (_) {
+          // Deleted image but not metadata
+          ctx.session.log(
+            "delete_diary",
+            "error",
+            "failed to delete diary. image deleted from s3 but not deleted from database",
+            {
+              diaryId: input.diaryId,
+              imageKeys: keysToDelete.map((k) => k.Key),
+            },
+          );
+        }
+      } catch (_) {
+        ctx.session.log(
+          "delete_diary",
+          "warn",
+          "failed to delete images from s3. reverting diary status to not deleting",
+          {
+            diaryId: input.diaryId,
+          },
+        );
+        try {
+          await updateDiaryStatusToNotDeleting({
+            db: ctx.db,
+            diaryId: input.diaryId,
+          });
+        } catch (_) {
+          ctx.session.log(
+            "delete_diary",
+            "error",
+            "failed to revert diary status to not deleting. diary status is deleting but image from s3 is not deleted",
+            {
+              diaryId: input.diaryId,
+            },
+          );
+        }
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      }
     }),
   getEntries: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
@@ -165,11 +211,56 @@ export const diaryRouter = createTRPCRouter({
         entryId: input.entryId,
       });
 
-      // TODO properly handle errors
-      await Promise.all([
-        deleteImages(keysToDelete),
-        deleteEntry({ db: ctx.db, input }),
-      ]);
+      await updateDiaryEntryStatusToDeleting({
+        db: ctx.db,
+        entryId: input.entryId,
+      });
+
+      try {
+        await deleteImages(keysToDelete);
+        throw new Error();
+        try {
+          await deleteEntry({ db: ctx.db, input });
+        } catch (_) {
+          ctx.session.log(
+            "delete_entry",
+            "error",
+            "failed to delete entry. image deleted from s3 but not deleted from database",
+            {
+              diaryId: input.diaryId,
+              entryId: input.entryId,
+              imageKeys: keysToDelete.map((k) => k.Key),
+            },
+          );
+        }
+      } catch (_) {
+        ctx.session.log(
+          "delete_entry",
+          "warn",
+          "failed to delete images from s3. reverting entry status to not deleting",
+          {
+            diaryId: input.diaryId,
+            entryId: input.entryId,
+          },
+        );
+        try {
+          await updateDiaryEntryStatusToNotDeleting({
+            db: ctx.db,
+            entryId: input.entryId,
+          });
+        } catch (_) {
+          ctx.session.log(
+            "delete_entry",
+            "error",
+            "failed to revert entry status to not deleting. entry status is deleting but image from s3 is not deleted",
+            {
+              diaryId: input.diaryId,
+              entryId: input.entryId,
+            },
+          );
+        }
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      }
 
       return input.entryId;
     }),
