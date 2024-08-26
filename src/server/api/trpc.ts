@@ -16,6 +16,7 @@ import {
 import { type Session } from "next-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { trace } from "@opentelemetry/api";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
@@ -114,13 +115,51 @@ export const publicProcedure = t.procedure;
 
 /** Reusable middleware that enforces users are logged in before running the procedure. */
 const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
-  if (!ctx.session?.user) {
+  const user = ctx.session?.user;
+  if (!user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
+  const log = (
+    name: string,
+    level: string,
+    message: string,
+    opts?: { [key: string]: string | number | string[] | number[] },
+  ) => {
+    let ops: Record<string, string | number | string[] | number[]> = {};
+    if (opts) {
+      for (const [key, value] of Object.entries(opts)) {
+        if (Array.isArray(value)) {
+          ops[key] = `[${value.join(",")}]`;
+        } else {
+          ops[key] = value;
+        }
+      }
+    }
+    const tracer = trace.getTracer("api");
+    const span = tracer.startSpan(name);
+    span.setAttributes({
+      function: name,
+      // ["highlight.session_id"]: "abc123",
+      // ["highlight.trace_id"]: "def456",
+      user_id: user.id,
+      ...ops,
+    });
+
+    span.addEvent(
+      "log",
+      {
+        ["log.severity"]: level,
+        ["log.message"]: message,
+      },
+      new Date(),
+    );
+    span.end();
+  };
+
   return next({
     ctx: {
       // infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user },
+      session: { ...ctx.session, user: user, log },
     },
   });
 });

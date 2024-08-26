@@ -44,6 +44,9 @@ export const env = createEnv({
     DATABASE_PASS: z.string(),
     DATABASE_NAME: z.string(),
   },
+  shared: {
+    NEXT_PUBLIC_HIGHLIGHT_ID: z.string(),
+  },
   /**
    * Specify your client-side environment variables schema here. This way you can ensure the app
    * isn't built with invalid env vars. To expose them to the client, prefix them with
@@ -76,6 +79,7 @@ export const env = createEnv({
     DATABASE_USER: process.env.DATABASE_USER,
     DATABASE_PASS: process.env.DATABASE_PASS,
     DATABASE_NAME: process.env.DATABASE_NAME,
+    NEXT_PUBLIC_HIGHLIGHT_ID: process.env.NEXT_PUBLIC_HIGHLIGHT_ID,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

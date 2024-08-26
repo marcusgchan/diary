@@ -132,6 +132,32 @@ export async function deleteEntry({
   });
 }
 
+export async function updateDiaryEntryStatusToDeleting({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  return db
+    .update(entries)
+    .set({ deleting: true })
+    .where(eq(entries.id, entryId));
+}
+
+export async function updateDiaryEntryStatusToNotDeleting({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  return db
+    .update(entries)
+    .set({ deleting: false })
+    .where(eq(entries.id, entryId));
+}
+
 export async function getEntry({
   db,
   userId,
@@ -390,6 +416,32 @@ export async function getDiaryIdById({
       ),
     );
   return diary;
+}
+
+export async function updateDiaryStatusToDeleting({
+  db,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  diaryId: number;
+}) {
+  return db
+    .update(diaries)
+    .set({ deleting: true })
+    .where(eq(diaries.id, diaryId));
+}
+
+export async function updateDiaryStatusToNotDeleting({
+  db,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  diaryId: number;
+}) {
+  return db
+    .update(diaries)
+    .set({ deleting: false })
+    .where(eq(diaries.id, diaryId));
 }
 
 export async function deleteDiaryById({
