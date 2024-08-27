@@ -561,12 +561,14 @@ export async function receivedImageWebhook({
   db: TRPCContext["db"];
   key: string;
 }) {
-  return db.update(imageKeys).set({ key, receivedWebhook: true });
+  return db
+    .update(imageKeys)
+    .set({ receivedWebhook: true })
+    .where(eq(imageKeys.key, key));
 }
 
 export async function insertImageMetadataWithGps({
   db,
-  userId,
   entryId,
   lat,
   lon,

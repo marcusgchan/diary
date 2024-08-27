@@ -4,7 +4,6 @@ import { timingSafeEqual } from "crypto";
 import { db } from "~/server/db";
 import {
   getEntryIdByEntryAndDiaryId,
-  insertImageMetadata,
   receivedImageWebhook,
 } from "~/server/api/features/diary/service";
 
