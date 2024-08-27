@@ -1,6 +1,6 @@
 # Travel Diary App
 
-The goal of this app is to remember/document traveling destinations and places visited. The is done by creating diary entries with images. Assuming the images have geolocation metadata, the app will display a map with markers of all the photos uploaded. Clicking on a specific photo will lead back to the diary entry.
+The goal of this app is to remember/document traveling destinations and places visited. This is done by creating diary entries with images. Assuming the images have geolocation metadata, the app will display a map with markers of all the photos uploaded. Clicking on a specific photo will lead back to the diary entry.
 
 ## Features
 
