@@ -254,49 +254,49 @@ export default function ImageResizer({
         </button>
       )}
       <div
-        className="image-resizer image-resizer-n"
+        className="image-resizer image-resizer-n touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.north);
         }}
       />
       <div
-        className="image-resizer image-resizer-ne"
+        className="image-resizer image-resizer-ne touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.north | Direction.east);
         }}
       />
       <div
-        className="image-resizer image-resizer-e"
+        className="image-resizer image-resizer-e touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.east);
         }}
       />
       <div
-        className="image-resizer image-resizer-se"
+        className="image-resizer image-resizer-se touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.south | Direction.east);
         }}
       />
       <div
-        className="image-resizer image-resizer-s"
+        className="image-resizer image-resizer-s touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.south);
         }}
       />
       <div
-        className="image-resizer image-resizer-sw"
+        className="image-resizer image-resizer-sw touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.south | Direction.west);
         }}
       />
       <div
-        className="image-resizer image-resizer-w"
+        className="image-resizer image-resizer-w touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.west);
         }}
       />
       <div
-        className="image-resizer image-resizer-nw"
+        className="image-resizer image-resizer-nw touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.north | Direction.west);
         }}

@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 import { api } from "~/trpc/client";
@@ -79,16 +79,34 @@ function InsertDropdownMenu() {
   );
 }
 
+async function getImgSize(
+  src: string,
+): Promise<{ height: number; width: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const height = img.height;
+      const width = img.width;
+      resolve({ height, width });
+    };
+    img.onerror = (e) => {
+      reject(e);
+    };
+    img.src = src;
+  });
+}
+
 function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
   const params = useParams();
   const queryutils = api.useContext();
   const [startPolling, setStartPolling] = useState(false);
-  const [imageKeyRef, setImageKeyRef] = useState<string>();
+  const [imageKey, setImageKey] = useState<string>();
   const [disableCancel, setDisableCancel] = useState(false);
+  const fileRef = useRef<File>();
   const { data } = api.diary.getImageUploadStatus.useQuery(
-    { key: imageKeyRef },
+    { key: imageKey },
     {
       enabled: startPolling,
       refetchInterval: 1000,
@@ -105,23 +123,42 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   }, [data]);
 
   function handleCancel() {
-    if (imageKeyRef === undefined) {
+    if (imageKey === undefined) {
       return;
     }
     cancelUpload.mutate({
-      key: imageKeyRef,
+      key: imageKey,
     });
+    fileRef.current = undefined;
   }
-  function handleConfirm() {
-    if (imageKeyRef === undefined) {
+  async function handleConfirm() {
+    if (imageKey === undefined || fileRef.current === undefined) {
       console.log("something went wrong with the image upload");
       return;
     }
 
-    confirmUpload.mutate({ key: imageKeyRef });
+    let width: number | undefined;
+    let height: number | undefined;
+    try {
+      const dimensions = await getImgSize(`/api/image/${imageKey}`);
+      width = dimensions.width;
+      height = dimensions.height;
+    } catch (e) {}
+
+    if (width !== undefined && height !== undefined) {
+      if (width > 500) {
+        const aspectRatio = width / height;
+        height = 500 * (1 / aspectRatio);
+        width = 500;
+      }
+    }
+
+    confirmUpload.mutate({ key: imageKey });
     editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-      src: `/api/image/${imageKeyRef}`,
-      imageKey: imageKeyRef,
+      src: `/api/image/${imageKey}`,
+      imageKey: imageKey,
+      height,
+      width,
       altText: "",
     });
   }
@@ -137,6 +174,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
       setDisableCancel(false);
       return;
     }
+    fileRef.current = file;
 
     let tags: ExifReader.ExpandedTags | undefined;
     try {
@@ -177,7 +215,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     });
     formData.append("file", file);
 
-    setImageKeyRef(
+    setImageKey(
       `${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`,
     );
     setStartPolling(true);
@@ -199,7 +237,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
         toast({ title: "Unable to upload image" });
         setStartPolling(false);
         setDisableCancel(false);
-        setImageKeyRef(undefined);
+        setImageKey(undefined);
       });
   };
   return (
@@ -236,7 +274,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            disabled={startPolling || !imageKeyRef || confirmUpload.isLoading}
+            disabled={startPolling || !imageKey || confirmUpload.isLoading}
           >
             Continue
           </AlertDialogAction>

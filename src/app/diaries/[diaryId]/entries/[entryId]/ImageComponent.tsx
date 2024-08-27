@@ -340,54 +340,52 @@ export default function ImageComponent({
   const draggable = isSelected && $isNodeSelection(selection) && !isResizing;
   const isFocused = isSelected || isResizing;
   return (
-    <Suspense fallback={null}>
-      <>
-        <div draggable={draggable}>
-          <LazyImage
-            className={
-              isFocused
-                ? `focused ${$isNodeSelection(selection) ? "draggable" : ""}`
-                : null
-            }
-            src={src}
-            altText={altText}
-            imageRef={imageRef}
-            width={width}
-            height={height}
-            maxWidth={maxWidth}
-          />
-        </div>
-        {showCaption && (
-          <div className="image-caption-container">
-            <LexicalNestedComposer initialEditor={caption}>
-              <AutoFocusPlugin />
-              <HistoryPlugin externalHistoryState={historyState} />
-              <RichTextPlugin
-                contentEditable={<ContentEditable />}
-                placeholder={
-                  <div className="pointer-events-none absolute left-5 top-4">
-                    Enter a caption...
-                  </div>
-                }
-                ErrorBoundary={LexicalErrorBoundary}
-              />
-            </LexicalNestedComposer>
-          </div>
-        )}
-        {resizable && $isNodeSelection(selection) && isFocused && (
-          <ImageResizer
-            showCaption={showCaption}
-            setShowCaption={setShowCaption}
-            editor={editor}
-            buttonRef={buttonRef}
-            imageRef={imageRef}
-            maxWidth={maxWidth}
-            onResizeStart={onResizeStart}
-            onResizeEnd={onResizeEnd}
-            captionsEnabled={captionsEnabled}
-          />
-        )}
-      </>
-    </Suspense>
+    <>
+      <div draggable={draggable}>
+        <LazyImage
+          className={
+            isFocused
+              ? `focused ${$isNodeSelection(selection) ? "draggable" : ""}`
+              : null
+          }
+          src={src}
+          altText={altText}
+          imageRef={imageRef}
+          width={width}
+          height={height}
+          maxWidth={maxWidth}
+        />
+      </div>
+      {/* {showCaption && ( */}
+      {/*   <div className="image-caption-container"> */}
+      {/*     <LexicalNestedComposer initialEditor={caption}> */}
+      {/*       <AutoFocusPlugin /> */}
+      {/*       <HistoryPlugin externalHistoryState={historyState} /> */}
+      {/*       <RichTextPlugin */}
+      {/*         contentEditable={<ContentEditable />} */}
+      {/*         placeholder={ */}
+      {/*           <div className="pointer-events-none absolute left-5 top-4"> */}
+      {/*             Enter a caption... */}
+      {/*           </div> */}
+      {/*         } */}
+      {/*         ErrorBoundary={LexicalErrorBoundary} */}
+      {/*       /> */}
+      {/*     </LexicalNestedComposer> */}
+      {/*   </div> */}
+      {/* )} */}
+      {resizable && $isNodeSelection(selection) && isFocused && (
+        <ImageResizer
+          showCaption={showCaption}
+          setShowCaption={setShowCaption}
+          editor={editor}
+          buttonRef={buttonRef}
+          imageRef={imageRef}
+          maxWidth={maxWidth}
+          onResizeStart={onResizeStart}
+          onResizeEnd={onResizeEnd}
+          captionsEnabled={captionsEnabled}
+        />
+      )}
+    </>
   );
 }
