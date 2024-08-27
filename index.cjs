@@ -11,7 +11,7 @@ const bucket = new aws.s3.Bucket("diaryBucket", {
     {
       allowedHeaders: ["*"],
       allowedMethods: ["GET", "POST", "DELETE", "PUT", "HEAD"],
-      allowedOrigins: ["*"],
+      allowedOrigins: ["https://diary-explorer.vercel.app/*"],
       maxAgeSeconds: 3000,
     },
   ],
