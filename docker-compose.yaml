@@ -4,6 +4,10 @@ services:
       context: ./
     ports:
       - "3000:3000"
+    volumes:
+      - ./:/app
+    networks:
+      - diary
     develop:
       watch:
         - action: rebuild
@@ -18,8 +22,6 @@ services:
           target: /app
           ignore:
             - node_modules/
-    networks:
-      - diary
 
   db:
     image: postgres:latest
