@@ -19,7 +19,6 @@ export async function GET(
     return Response.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  console.log(params);
   const url = await getImageSignedUrl(
     `${params.userId}/${params.diaryId}/${params.entryId}/${params.imageName}`,
   );
