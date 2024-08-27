@@ -49,7 +49,7 @@ export default function Entry() {
           <h3 className="mb-2 text-2xl">Diary Entries</h3>
           <Entries />
         </aside>
-        <div className="h-full min-h-0">
+        <div className="h-full min-h-0 min-w-0">
           <FetchResolver
             {...entryQuery}
             loadingComponent={
