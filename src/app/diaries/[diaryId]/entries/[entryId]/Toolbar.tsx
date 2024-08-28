@@ -157,8 +157,8 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
       src: `/api/image/${imageKey}`,
       imageKey: imageKey,
-      height,
-      width,
+      maxHeight: height,
+      maxWidth: width,
       altText: "",
     });
   }

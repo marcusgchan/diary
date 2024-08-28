@@ -20,13 +20,14 @@ import ImageComponent from "./ImageComponent";
 export interface ImagePayload {
   altText: string;
   caption?: LexicalEditor;
-  height?: number;
+  height?: number | "100%";
+  width?: number | "100%";
+  maxHeight?: number;
   key?: NodeKey;
   maxWidth?: number;
   showCaption?: boolean;
   src: string;
   imageKey: string;
-  width?: number;
   captionsEnabled?: boolean;
 }
 
@@ -49,12 +50,13 @@ export type SerializedImageNode = Spread<
   {
     altText: string;
     caption: SerializedEditor;
-    height?: number;
+    height: number | "100%";
+    width: number | "100%";
     maxWidth: number;
+    maxHeight: number;
     showCaption: boolean;
     src: string;
     imageKey: string;
-    width?: number;
   },
   SerializedLexicalNode
 >;
@@ -62,9 +64,10 @@ export type SerializedImageNode = Spread<
 export class ImageNode extends DecoratorNode<JSX.Element> {
   __src: string;
   __altText: string;
-  __width: "inherit" | number;
-  __height: "inherit" | number;
+  __width: "100%" | number;
+  __height: "100%" | number;
   __maxWidth: number;
+  __maxHeight: number;
   __showCaption: boolean;
   __caption: LexicalEditor;
   // Captions cannot yet be used within editor cells
@@ -80,9 +83,10 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       node.__src,
       node.__imageKey,
       node.__altText,
-      node.__maxWidth,
       node.__width,
       node.__height,
+      node.__maxWidth,
+      node.__maxHeight,
       node.__showCaption,
       node.__caption,
       node.__captionsEnabled,
@@ -97,6 +101,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       width,
       imageKey,
       maxWidth,
+      maxHeight,
       caption,
       src,
       showCaption,
@@ -106,6 +111,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       altText,
       height,
       maxWidth,
+      maxHeight,
       showCaption,
       src,
       width,
@@ -140,9 +146,10 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     src: string,
     imageKey: string,
     altText: string,
-    maxWidth: number,
-    width?: "inherit" | number,
-    height?: "inherit" | number,
+    width?: "100%" | number,
+    height?: "100%" | number,
+    maxWidth?: number,
+    maxHeight?: number,
     showCaption?: boolean,
     caption?: LexicalEditor,
     captionsEnabled?: boolean,
@@ -152,10 +159,11 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     this.__src = src;
     this.__imageKey = imageKey;
     this.__altText = altText;
-    this.__maxWidth = maxWidth;
-    this.__width = width || "inherit";
-    this.__height = height || "inherit";
-    this.__showCaption = showCaption || false;
+    this.__maxWidth = maxWidth ?? 0;
+    this.__maxHeight = maxHeight ?? 0;
+    this.__width = width ?? "100%";
+    this.__height = height ?? "100%";
+    this.__showCaption = showCaption ?? false;
     this.__caption = caption || createEditor();
     //this.__captionsEnabled = captionsEnabled || captionsEnabled === undefined;
     this.__captionsEnabled = false;
@@ -166,23 +174,21 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
       imageKey: this.__imageKey,
       altText: this.getAltText(),
       caption: this.__caption.toJSON(),
-      height: this.__height === "inherit" ? 0 : this.__height,
+      height: this.__height,
+      width: this.__width,
+      maxHeight: this.__maxHeight,
       maxWidth: this.__maxWidth,
       showCaption: this.__showCaption,
       src: this.getSrc(),
       type: "image",
       version: 1,
-      width: this.__width === "inherit" ? 0 : this.__width,
     };
   }
 
-  setWidthAndHeight(
-    width: "inherit" | number,
-    height: "inherit" | number,
-  ): void {
+  setWidthAndHeight(width: number, height: number): void {
     const writable = this.getWritable();
-    writable.__width = width;
-    writable.__height = height;
+    writable.__maxWidth = width;
+    writable.__maxHeight = height;
   }
 
   setShowCaption(showCaption: boolean): void {
@@ -226,6 +232,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
         width={this.__width}
         height={this.__height}
         maxWidth={this.__maxWidth}
+        maxHeight={this.__maxHeight}
         nodeKey={this.getKey()}
         showCaption={this.__showCaption}
         caption={this.__caption}
@@ -241,6 +248,7 @@ export function $createImageNode({
   imageKey,
   height,
   maxWidth = 500,
+  maxHeight,
   captionsEnabled,
   src,
   width,
@@ -253,9 +261,10 @@ export function $createImageNode({
       src,
       imageKey,
       altText,
-      maxWidth,
       width,
       height,
+      maxWidth,
+      maxHeight,
       showCaption,
       caption,
       captionsEnabled,

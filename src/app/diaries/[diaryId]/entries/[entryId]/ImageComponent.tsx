@@ -62,14 +62,16 @@ function LazyImage({
   width,
   height,
   maxWidth,
+  maxHeight,
 }: {
   altText: string;
   className: string | null;
-  height: "inherit" | number;
+  height: "100%" | number;
   imageRef: { current: null | HTMLImageElement };
   maxWidth: number;
+  maxHeight: number;
   src: string;
-  width: "inherit" | number;
+  width: "100%" | number;
 }): JSX.Element {
   // useSuspenseImage(src);
   return (
@@ -79,9 +81,10 @@ function LazyImage({
       alt={altText}
       ref={imageRef}
       style={{
-        height,
-        maxWidth,
-        width,
+        width: width,
+        height: height,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
       }}
       draggable="false"
     />
@@ -95,6 +98,7 @@ export default function ImageComponent({
   width,
   height,
   maxWidth,
+  maxHeight,
   resizable,
   showCaption,
   caption,
@@ -102,13 +106,14 @@ export default function ImageComponent({
 }: {
   altText: string;
   caption: LexicalEditor;
-  height: "inherit" | number;
+  height: "100%" | number;
   maxWidth: number;
+  maxHeight: number;
   nodeKey: NodeKey;
   resizable: boolean;
   showCaption: boolean;
   src: string;
-  width: "inherit" | number;
+  width: "100%" | number;
   captionsEnabled: boolean;
 }): JSX.Element {
   const imageRef = useRef<null | HTMLImageElement>(null);
@@ -315,10 +320,7 @@ export default function ImageComponent({
     });
   };
 
-  const onResizeEnd = (
-    nextWidth: "inherit" | number,
-    nextHeight: "inherit" | number,
-  ) => {
+  const onResizeEnd = (nextWidth: number, nextHeight: number) => {
     // Delay hiding the resize bars for click case
     setTimeout(() => {
       setIsResizing(false);
@@ -354,6 +356,7 @@ export default function ImageComponent({
           width={width}
           height={height}
           maxWidth={maxWidth}
+          maxHeight={maxHeight}
         />
       </div>
       {/* {showCaption && ( */}

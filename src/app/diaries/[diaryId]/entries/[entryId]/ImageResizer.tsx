@@ -29,7 +29,7 @@ export default function ImageResizer({
   buttonRef: { current: null | HTMLButtonElement };
   imageRef: { current: null | HTMLElement };
   maxWidth?: number;
-  onResizeEnd: (width: "inherit" | number, height: "inherit" | number) => void;
+  onResizeEnd: (width: number, height: number) => void;
   onResizeStart: () => void;
   setShowCaption: (show: boolean) => void;
   showCaption: boolean;
@@ -41,8 +41,8 @@ export default function ImageResizer({
     value: "default",
   });
   const positioningRef = useRef<{
-    currentHeight: "inherit" | number;
-    currentWidth: "inherit" | number;
+    currentHeight: number;
+    currentWidth: number;
     direction: number;
     isResizing: boolean;
     ratio: number;
@@ -63,9 +63,8 @@ export default function ImageResizer({
   });
   const editorRootElement = editor.getRootElement();
   // Find max width, accounting for editor padding.
-  const maxWidthContainer = maxWidth
-    ? maxWidth
-    : editorRootElement !== null
+  const maxWidthContainer =
+    editorRootElement !== null
       ? editorRootElement.getBoundingClientRect().width - 20
       : 100;
   const maxHeightContainer =
@@ -155,8 +154,8 @@ export default function ImageResizer({
       onResizeStart();
 
       controlWrapper.classList.add("image-control-wrapper--resizing");
-      image.style.height = `${height}px`;
-      image.style.width = `${width}px`;
+      image.style.maxHeight = `${height}px`;
+      image.style.maxWidth = `${width}px`;
 
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
@@ -184,8 +183,9 @@ export default function ImageResizer({
         );
 
         const height = width / positioning.ratio;
-        image.style.width = `${width}px`;
-        image.style.height = `${height}px`;
+
+        image.style.maxWidth = `${width}px`;
+        image.style.maxHeight = `${height}px`;
         positioning.currentHeight = height;
         positioning.currentWidth = width;
       } else if (isVertical) {
@@ -198,7 +198,7 @@ export default function ImageResizer({
           maxHeightContainer,
         );
 
-        image.style.height = `${height}px`;
+        image.style.maxHeight = `${height}px`;
         positioning.currentHeight = height;
       } else {
         let diff = Math.floor(positioning.startX - event.clientX);
@@ -210,7 +210,7 @@ export default function ImageResizer({
           maxWidthContainer,
         );
 
-        image.style.width = `${width}px`;
+        image.style.maxWidth = `${width}px`;
         positioning.currentWidth = width;
       }
     }
@@ -253,48 +253,48 @@ export default function ImageResizer({
           Add Caption
         </button>
       )}
-      <div
-        className="image-resizer image-resizer-n touch-none"
-        onPointerDown={(event) => {
-          handlePointerDown(event, Direction.north);
-        }}
-      />
+      {/* <div */}
+      {/*   className="image-resizer image-resizer-n touch-none" */}
+      {/*   onPointerDown={(event) => { */}
+      {/*     handlePointerDown(event, Direction.north); */}
+      {/*   }} */}
+      {/* /> */}
       <div
         className="image-resizer image-resizer-ne touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.north | Direction.east);
         }}
       />
-      <div
-        className="image-resizer image-resizer-e touch-none"
-        onPointerDown={(event) => {
-          handlePointerDown(event, Direction.east);
-        }}
-      />
+      {/* <div */}
+      {/*   className="image-resizer image-resizer-e touch-none" */}
+      {/*   onPointerDown={(event) => { */}
+      {/*     handlePointerDown(event, Direction.east); */}
+      {/*   }} */}
+      {/* /> */}
       <div
         className="image-resizer image-resizer-se touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.south | Direction.east);
         }}
       />
-      <div
-        className="image-resizer image-resizer-s touch-none"
-        onPointerDown={(event) => {
-          handlePointerDown(event, Direction.south);
-        }}
-      />
+      {/* <div */}
+      {/*   className="image-resizer image-resizer-s touch-none" */}
+      {/*   onPointerDown={(event) => { */}
+      {/*     handlePointerDown(event, Direction.south); */}
+      {/*   }} */}
+      {/* /> */}
       <div
         className="image-resizer image-resizer-sw touch-none"
         onPointerDown={(event) => {
           handlePointerDown(event, Direction.south | Direction.west);
         }}
       />
-      <div
-        className="image-resizer image-resizer-w touch-none"
-        onPointerDown={(event) => {
-          handlePointerDown(event, Direction.west);
-        }}
-      />
+      {/* <div */}
+      {/*   className="image-resizer image-resizer-w touch-none" */}
+      {/*   onPointerDown={(event) => { */}
+      {/*     handlePointerDown(event, Direction.west); */}
+      {/*   }} */}
+      {/* /> */}
       <div
         className="image-resizer image-resizer-nw touch-none"
         onPointerDown={(event) => {
