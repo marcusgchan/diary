@@ -218,7 +218,6 @@ export const diaryRouter = createTRPCRouter({
 
       try {
         await deleteImages(keysToDelete);
-        throw new Error();
         try {
           await deleteEntry({ db: ctx.db, input });
         } catch (_) {
