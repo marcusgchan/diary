@@ -8,6 +8,7 @@ import {
 import { env } from "~/env.mjs";
 import { config } from "~/server/config";
 import { s3Client } from "~/server/s3Client";
+import { Readable } from "stream";
 
 export async function getPresignedPost(
   userId: string,
@@ -72,6 +73,54 @@ export async function deleteImage(key: string) {
   } else {
     await s3Client.send(deleteCommand);
   }
+}
+
+export async function getImage(key: string): Promise<Buffer | undefined> {
+  const getCommand = new GetObjectCommand({
+    Bucket: env.BUCKET_NAME,
+    Key: key,
+  });
+
+  if (env.NODE_ENV === "development" || env.NODE_ENV == "test") {
+    const minioPort = env.BUCKET_URL.split(":")[2];
+    if (!minioPort) {
+      throw new Error("Minio port not found");
+    }
+    const prevEndpoint = s3Client.config.endpoint;
+    s3Client.config.endpoint = `http://minio:${minioPort}` as never;
+    let buf: Buffer | undefined;
+    try {
+      let data = await s3Client.send(getCommand);
+      if (!data.Body) {
+        throw new Error("cannot get image");
+      }
+
+      buf = await streamToBuffer(data.Body as Readable);
+    } catch (e) {
+      console.log(e);
+    } finally {
+      s3Client.config.endpoint = prevEndpoint;
+    }
+    return buf;
+  } else {
+    try {
+      let buf: Buffer;
+      const data = await s3Client.send(getCommand);
+      if (!data.Body) {
+        throw new Error("cannot get image");
+      }
+
+      buf = await streamToBuffer(data.Body as Readable);
+      return buf;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+}
+
+// https://transang.me/modern-fetch-and-how-to-get-buffer-output-from-aws-sdk-v3-getobjectcommand/
+async function streamToBuffer(stream: Readable) {
+  return Buffer.concat(await stream.toArray());
 }
 
 export async function deleteImages(keys: { Key: string }[]) {

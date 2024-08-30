@@ -6,6 +6,8 @@ import {
   getEntryIdByEntryAndDiaryId,
   receivedImageWebhook,
 } from "~/server/api/features/diary/service";
+import { getImage } from "~/server/api/features/shared/s3ImagesService";
+import sharp from "sharp";
 
 const localInput = z.object({
   Key: z.string(),
@@ -132,5 +134,23 @@ export async function POST(req: Request) {
     });
 
     return Response.json({});
+  }
+}
+
+async function compressImage(key: string): Promise<Buffer | undefined> {
+  const imgBuf = await getImage(key);
+  if (imgBuf === undefined) {
+    console.log("unable to retrieve image from s3");
+    return;
+  }
+
+  try {
+    const compressed = await sharp(imgBuf)
+      .resize(500)
+      .webp({ quality: 70 })
+      .toBuffer();
+    return compressed;
+  } catch (e) {
+    console.error("unable to compress image", e);
   }
 }
