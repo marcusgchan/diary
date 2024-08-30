@@ -13,10 +13,10 @@ The goal of this app is to remember/document traveling destinations and places v
 
 Ensure you have docker and pnpm installed. Run:
 ```bash
-docker compose up -w -build
+docker compose up
 ```
 
-Once the server is running, run this to sync the schema with database:
+Once the containers are running, run this to sync the schema with database:
 ```bash
 pnpm run push
 ```
