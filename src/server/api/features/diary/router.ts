@@ -346,12 +346,14 @@ export const diaryRouter = createTRPCRouter({
         }
       }
 
+      const indexOfDot = input.imageMetadata.name.lastIndexOf(".");
+
       if (lat !== undefined && lon !== undefined) {
         await insertImageMetadataWithGps({
           db: ctx.db,
           userId: ctx.session.user.id,
           entryId: input.entryId,
-          key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name}`,
+          key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name.slice(0, indexOfDot)}`,
           lon,
           lat,
           dateTimeTaken: formattedDate,
@@ -361,7 +363,7 @@ export const diaryRouter = createTRPCRouter({
           db: ctx.db,
           userId: ctx.session.user.id,
           entryId: input.entryId,
-          key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name}`,
+          key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name.slice(0, indexOfDot)}`,
           dateTimeTaken: formattedDate,
         });
       }

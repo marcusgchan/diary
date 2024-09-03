@@ -203,6 +203,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           size: file.size,
         },
       });
+      console.log(data);
     } catch (e) {
       toast({ title: "Unable to upload image" });
       setDisableCancel(false);

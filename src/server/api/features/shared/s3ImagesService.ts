@@ -18,7 +18,7 @@ export async function getPresignedPost(
   uuid: string,
   imageMetadata: { name: string; type: string; size: number },
 ) {
-  const filename = `${uuid}-${imageMetadata.name}`;
+  const filename = `${uuid}-${imageMetadata.name.slice(0, imageMetadata.name.lastIndexOf("."))}`;
   const presignedPost = await createPresignedPost(s3Client, {
     Bucket: env.BUCKET_NAME,
     Key: `${userId}/${diaryId}/${entryId}/${filename}`,

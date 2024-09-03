@@ -137,9 +137,8 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return Response.json({ message: "Invalid format" }, { status: 400 });
     }
-    const dotIndex = parsed.data.Key.lastIndexOf(".");
-    const key = parsed.data.Key.slice(0, dotIndex);
-    const segments = key.split("/");
+    const resource = parsed.data.Key;
+    const segments = resource.split("/");
     const userId = segments[1];
     const diaryId = Number(segments[2]);
     const entryId = Number(segments[3]);
@@ -160,6 +159,8 @@ export async function POST(req: Request) {
       return Response.json({}, { status: 401 });
     }
 
+    const key = `${userId}/${diaryId}/${entryId}/${imageName}`;
+
     const uploaded = await getImageUploadStatus({ db, key });
     if (uploaded) {
       return Response.json({}, { status: 201 });
@@ -177,22 +178,22 @@ export async function POST(req: Request) {
       return Response.json({}, { status: 500 });
     }
 
-    const firstSlash = key.indexOf("/");
-
     try {
-      await uploadImage(imgBuf, key);
+      await uploadImage(imgBuf, key + "optimized.webp");
     } catch (e) {
-      console.error(`unable to upload compressed image with key ${key}`);
+      console.error(`unable to upload compressed image with key ${resource}`);
     }
 
     try {
       await receivedImageWebhook({
         db,
-        key: key.slice(firstSlash + 1),
+        key,
         compressionStatus: "uncompressed",
       });
     } catch (e) {
-      console.error(`unable to update image key (${key}) status to received`);
+      console.error(
+        `unable to update image key (${resource}) status to received`,
+      );
     }
 
     return Response.json({});
