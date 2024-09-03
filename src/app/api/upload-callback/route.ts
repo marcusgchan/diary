@@ -179,7 +179,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      await uploadImage(imgBuf, key + "optimized.webp");
+      await uploadImage(compressImageBuf, key);
     } catch (e) {
       console.error(`unable to upload compressed image with key ${resource}`);
     }
