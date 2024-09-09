@@ -56,7 +56,7 @@
     "next-auth": "^4.24.5",
     "postgres": "^3.4.4",
     "react": "^18",
-    "react-day-picker": "^8.9.1",
+    "react-day-picker": "^9.0.9",
     "react-dom": "^18",
     "superjson": "^2.2.1",
     "tailwind-merge": "^2.2.0",
