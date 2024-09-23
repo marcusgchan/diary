@@ -18,6 +18,7 @@ export async function getPresignedPost(
   uuid: string,
   imageMetadata: { name: string; type: string; size: number },
 ) {
+  console.log("what is the url????\n\n", env.BUCKET_URL);
   const filename = `${uuid}-${imageMetadata.name.slice(0, imageMetadata.name.lastIndexOf("."))}`;
   const presignedPost = await createPresignedPost(s3Client, {
     Bucket: env.BUCKET_NAME,
@@ -133,16 +134,16 @@ export async function uploadImage(buffer: Buffer, key: string) {
     const prevEndpoint = s3Client.config.endpoint;
     s3Client.config.endpoint = `http://minio:${minioPort}` as never;
     try {
-      return await s3Client.send(uploadCommand);
+      await s3Client.send(uploadCommand);
     } catch (e) {
       console.log(e);
-      s3Client.config.endpoint = prevEndpoint;
       throw new Error("unable to upload image");
+    } finally {
+      s3Client.config.endpoint = prevEndpoint;
     }
   } else {
     try {
-      const data = await s3Client.send(uploadCommand);
-      return data;
+      await s3Client.send(uploadCommand);
     } catch (e) {
       console.log(e);
       throw new Error("unable to upload image");
