@@ -17,7 +17,7 @@
     "@auth/drizzle-adapter": "^0.3.11",
     "@aws-sdk/client-s3": "^3.478.0",
     "@aws-sdk/s3-presigned-post": "^3.478.0",
-    "@aws-sdk/s3-request-presigner": "^3.478.0",
+    "@aws-sdk/s3-request-presigner": "^3.666.0",
     "@lexical/code": "^0.17.0",
     "@lexical/link": "^0.17.0",
     "@lexical/list": "^0.17.0",
