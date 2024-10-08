@@ -4,6 +4,7 @@ import {
   diariesToUsers,
   editorStates,
   entries,
+  ImageKeys,
   imageKeys,
 } from "~/server/db/schema";
 import { type TRPCContext } from "../../trpc";
@@ -557,13 +558,15 @@ export async function insertImageMetadata({
 export async function receivedImageWebhook({
   db,
   key,
+  compressionStatus,
 }: {
   db: TRPCContext["db"];
   key: string;
+  compressionStatus: ImageKeys["compressionStatus"];
 }) {
   return db
     .update(imageKeys)
-    .set({ receivedWebhook: true })
+    .set({ receivedWebhook: true, compressionStatus })
     .where(eq(imageKeys.key, key));
 }
 

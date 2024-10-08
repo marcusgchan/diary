@@ -146,10 +146,10 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     } catch (e) {}
 
     if (width !== undefined && height !== undefined) {
-      if (width > 500) {
+      if (width > 200) {
         const aspectRatio = width / height;
-        height = 500 * (1 / aspectRatio);
-        width = 500;
+        height = 200 * (1 / aspectRatio);
+        width = 200;
       }
     }
 
@@ -158,6 +158,8 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
       src: `/api/image/${imageKey}`,
       imageKey: imageKey,
       maxHeight: height,
+      height: height,
+      width: width,
       maxWidth: width,
       altText: "",
     });
@@ -203,6 +205,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           size: file.size,
         },
       });
+      console.log(data);
     } catch (e) {
       toast({ title: "Unable to upload image" });
       setDisableCancel(false);

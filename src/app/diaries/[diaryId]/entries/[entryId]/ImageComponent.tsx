@@ -4,6 +4,7 @@ import type {
   LexicalEditor,
   NodeKey,
 } from "lexical";
+import { cn } from "@/app/_utils/cx";
 
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -74,10 +75,11 @@ function LazyImage({
   width: "100%" | number;
 }): JSX.Element {
   // useSuspenseImage(src);
+  // const [loaded, setLoaded] = useState(false);
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      className={className || undefined}
+      className={cn(className)}
       src={src}
       alt={altText}
       ref={imageRef}

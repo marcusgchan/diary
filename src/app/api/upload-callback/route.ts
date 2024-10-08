@@ -4,8 +4,14 @@ import { timingSafeEqual } from "crypto";
 import { db } from "~/server/db";
 import {
   getEntryIdByEntryAndDiaryId,
+  getImageUploadStatus,
   receivedImageWebhook,
 } from "~/server/api/features/diary/service";
+import {
+  getImage,
+  uploadImage,
+} from "~/server/api/features/shared/s3ImagesService";
+import sharp from "sharp";
 
 const localInput = z.object({
   Key: z.string(),
@@ -90,11 +96,40 @@ export async function POST(req: Request) {
     if (!res) {
       return Response.json({}, { status: 401 });
     }
+    const uploaded = await getImageUploadStatus({ db, key });
+    if (uploaded) {
+      return Response.json({}, { status: 201 });
+    }
 
-    await receivedImageWebhook({
-      db,
-      key,
-    });
+    const imgBuf = await getImage(key);
+    if (imgBuf === undefined) {
+      console.log("unable to retrieve image from s3");
+      return Response.json({}, { status: 500 });
+    }
+
+    const compressImageBuf = await compressImage(imgBuf);
+    if (compressImageBuf === undefined) {
+      console.log("unable to compress image");
+      return Response.json({}, { status: 500 });
+    }
+
+    const firstSlash = key.indexOf("/");
+
+    try {
+      await uploadImage(imgBuf, key);
+    } catch (e) {
+      console.error(`unable to upload compressed image with key ${key}`);
+    }
+
+    try {
+      await receivedImageWebhook({
+        db,
+        key: key.slice(firstSlash + 1),
+        compressionStatus: "uncompressed",
+      });
+    } catch (e) {
+      console.error(`unable to update image key (${key}) status to received`);
+    }
 
     return Response.json({});
   } else {
@@ -102,8 +137,8 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return Response.json({ message: "Invalid format" }, { status: 400 });
     }
-    const key = parsed.data.Key;
-    const segments = key.split("/");
+    const resource = parsed.data.Key;
+    const segments = resource.split("/");
     const userId = segments[1];
     const diaryId = Number(segments[2]);
     const entryId = Number(segments[3]);
@@ -124,13 +159,55 @@ export async function POST(req: Request) {
       return Response.json({}, { status: 401 });
     }
 
-    const firstSlash = key.indexOf("/");
+    const key = `${userId}/${diaryId}/${entryId}/${imageName}`;
 
-    await receivedImageWebhook({
-      db,
-      key: key.slice(firstSlash + 1),
-    });
+    const uploaded = await getImageUploadStatus({ db, key });
+    if (uploaded) {
+      return Response.json({}, { status: 201 });
+    }
+
+    const imgBuf = await getImage(key);
+    if (imgBuf === undefined) {
+      console.log("unable to retrieve image from s3");
+      return Response.json({}, { status: 500 });
+    }
+
+    const compressImageBuf = await compressImage(imgBuf);
+    if (compressImageBuf === undefined) {
+      console.log("unable to compress image");
+      return Response.json({}, { status: 500 });
+    }
+
+    try {
+      await uploadImage(compressImageBuf, key);
+    } catch (e) {
+      console.error(`unable to upload compressed image with key ${resource}`);
+    }
+
+    try {
+      await receivedImageWebhook({
+        db,
+        key,
+        compressionStatus: "uncompressed",
+      });
+    } catch (e) {
+      console.error(
+        `unable to update image key (${resource}) status to received`,
+      );
+    }
 
     return Response.json({});
+  }
+}
+
+async function compressImage(buffer: Buffer): Promise<Buffer | undefined> {
+  try {
+    const compressed = await sharp(buffer)
+      .resize(500)
+      .webp({ quality: 70 })
+      .toBuffer();
+    return compressed;
+  } catch (e) {
+    console.error("unable to compress image", e);
   }
 }

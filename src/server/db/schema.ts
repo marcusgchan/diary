@@ -127,8 +127,15 @@ export const imageKeys = pgTable("image_key", {
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
   deleting: boolean("deleting").notNull().default(false),
+  // uncompressed, compressed
+  compressionStatus: text("compressionStatus")
+    .default("uncompressed")
+    .$type<"uncompressed" | "compressed">()
+    .notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
+
+export type ImageKeys = typeof imageKeys.$inferSelect;
 
 export const editorStates = pgTable("editor_state", {
   data: json("editorState").$type<
