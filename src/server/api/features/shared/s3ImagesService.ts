@@ -18,7 +18,6 @@ export async function getPresignedPost(
   uuid: string,
   imageMetadata: { name: string; type: string; size: number },
 ) {
-  console.log("what is the url????\n\n", env.BUCKET_URL);
   const filename = `${uuid}-${imageMetadata.name.slice(0, imageMetadata.name.lastIndexOf("."))}`;
   const presignedPost = await createPresignedPost(s3Client, {
     Bucket: env.BUCKET_NAME,
@@ -67,6 +66,7 @@ export async function deleteImage(key: string) {
     s3Client.config.endpoint = `http://minio:${minioPort}` as never;
     try {
       await s3Client.send(deleteCommand);
+      s3Client.config.endpoint = prevEndpoint;
     } catch (e) {
       console.log(e);
       s3Client.config.endpoint = prevEndpoint;
@@ -135,11 +135,11 @@ export async function uploadImage(buffer: Buffer, key: string) {
     s3Client.config.endpoint = `http://minio:${minioPort}` as never;
     try {
       await s3Client.send(uploadCommand);
+      s3Client.config.endpoint = prevEndpoint;
     } catch (e) {
       console.log(e);
-      throw new Error("unable to upload image");
-    } finally {
       s3Client.config.endpoint = prevEndpoint;
+      throw new Error("unable to upload image");
     }
   } else {
     try {
@@ -173,6 +173,7 @@ export async function deleteImages(keys: { Key: string }[]) {
     s3Client.config.endpoint = `http://minio:${minioPort}` as never;
     try {
       await s3Client.send(deleteCommand);
+      s3Client.config.endpoint = prevEndpoint;
     } catch (e) {
       console.log(e);
       s3Client.config.endpoint = prevEndpoint;
