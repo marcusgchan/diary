@@ -57,24 +57,7 @@ export async function deleteImage(key: string) {
     Key: key,
   });
 
-  if (env.NODE_ENV === "development" || env.NODE_ENV == "test") {
-    const minioPort = env.BUCKET_URL.split(":")[2];
-    if (!minioPort) {
-      throw new Error("Minio port not found");
-    }
-    const prevEndpoint = s3Client.config.endpoint;
-    s3Client.config.endpoint = `http://minio:${minioPort}` as never;
-    try {
-      await s3Client.send(deleteCommand);
-      s3Client.config.endpoint = prevEndpoint;
-    } catch (e) {
-      console.log(e);
-      s3Client.config.endpoint = prevEndpoint;
-      throw new Error("unable to delete image");
-    }
-  } else {
-    await s3Client.send(deleteCommand);
-  }
+  await s3Client.send(deleteCommand);
 }
 
 export async function getImage(key: string): Promise<Buffer | undefined> {
@@ -82,41 +65,17 @@ export async function getImage(key: string): Promise<Buffer | undefined> {
     Bucket: env.BUCKET_NAME,
     Key: key,
   });
-
-  if (env.NODE_ENV === "development" || env.NODE_ENV == "test") {
-    const minioPort = env.BUCKET_URL.split(":")[2];
-    if (!minioPort) {
-      throw new Error("Minio port not found");
+  try {
+    let buf: Buffer;
+    const data = await s3Client.send(getCommand);
+    if (!data.Body) {
+      throw new Error("cannot get image");
     }
-    const prevEndpoint = s3Client.config.endpoint;
-    s3Client.config.endpoint = `http://minio:${minioPort}` as never;
-    let buf: Buffer | undefined;
-    try {
-      let data = await s3Client.send(getCommand);
-      if (!data.Body) {
-        throw new Error("cannot get image");
-      }
 
-      buf = await streamToBuffer(data.Body as Readable);
-    } catch (e) {
-      console.log(e);
-    } finally {
-      s3Client.config.endpoint = prevEndpoint;
-    }
+    buf = await streamToBuffer(data.Body as Readable);
     return buf;
-  } else {
-    try {
-      let buf: Buffer;
-      const data = await s3Client.send(getCommand);
-      if (!data.Body) {
-        throw new Error("cannot get image");
-      }
-
-      buf = await streamToBuffer(data.Body as Readable);
-      return buf;
-    } catch (e) {
-      console.log(e);
-    }
+  } catch (e) {
+    console.log(e);
   }
 }
 
@@ -126,28 +85,11 @@ export async function uploadImage(buffer: Buffer, key: string) {
     Key: key,
     Body: buffer,
   });
-  if (env.NODE_ENV === "development" || env.NODE_ENV == "test") {
-    const minioPort = env.BUCKET_URL.split(":")[2];
-    if (!minioPort) {
-      throw new Error("Minio port not found");
-    }
-    const prevEndpoint = s3Client.config.endpoint;
-    s3Client.config.endpoint = `http://minio:${minioPort}` as never;
-    try {
-      await s3Client.send(uploadCommand);
-      s3Client.config.endpoint = prevEndpoint;
-    } catch (e) {
-      console.log(e);
-      s3Client.config.endpoint = prevEndpoint;
-      throw new Error("unable to upload image");
-    }
-  } else {
-    try {
-      await s3Client.send(uploadCommand);
-    } catch (e) {
-      console.log(e);
-      throw new Error("unable to upload image");
-    }
+  try {
+    await s3Client.send(uploadCommand);
+  } catch (e) {
+    console.log(e);
+    throw new Error("unable to upload image");
   }
 }
 
@@ -164,22 +106,5 @@ export async function deleteImages(keys: { Key: string }[]) {
     },
   });
 
-  if (env.NODE_ENV === "development" || env.NODE_ENV == "test") {
-    const minioPort = env.BUCKET_URL.split(":")[2];
-    if (!minioPort) {
-      throw new Error("Minio port not found");
-    }
-    const prevEndpoint = s3Client.config.endpoint;
-    s3Client.config.endpoint = `http://minio:${minioPort}` as never;
-    try {
-      await s3Client.send(deleteCommand);
-      s3Client.config.endpoint = prevEndpoint;
-    } catch (e) {
-      console.log(e);
-      s3Client.config.endpoint = prevEndpoint;
-      throw new Error("unable to delete images");
-    }
-  } else {
-    await s3Client.send(deleteCommand);
-  }
+  await s3Client.send(deleteCommand);
 }

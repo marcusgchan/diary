@@ -82,7 +82,7 @@
     "tailwindcss": "^3",
     "typescript": "^5"
   },
-  "packageManager": "pnpm",
+  "packageManager": "pnpm@8.14.1",
   "pnpm": {
     "supportedArchitectures": {
       "os": [
