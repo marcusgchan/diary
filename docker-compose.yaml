@@ -1,29 +1,4 @@
 services:
-  server:
-    build:
-      context: ./
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./:/app
-      - /app/node_modules
-    networks:
-      - diary
-    develop:
-      watch:
-        - action: rebuild
-          path: ./package.json
-
-        - action: sync+restart
-          path: ./.env
-          target: /app/.env
-
-        - action: sync
-          path: ./
-          target: /app
-          ignore:
-            - node_modules/
-
   db:
     image: postgres:latest
     environment:
