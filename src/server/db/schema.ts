@@ -127,6 +127,7 @@ export const imageKeys = pgTable("image_key", {
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
   deleting: boolean("deleting").notNull().default(false),
+  // uncompressed, compressed
   compressionStatus: text("compressionStatus")
     .default("uncompressed")
     .$type<"uncompressed" | "compressed">()
