@@ -14,12 +14,13 @@ import { Button } from "~/app/_components/ui/button";
 import { cn } from "~/app/_utils/cx";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { RouterOutputs } from "~/server/api/trpc";
 import { useToast } from "~/app/_components/ui/use-toast";
 import dynamic from "next/dynamic";
 import { Entries } from "../Entries";
 import { Header } from "../Header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Editor = dynamic(
   () => import("./Editor").then((c) => ({ default: c.Editor })),
@@ -67,13 +68,61 @@ export default function Entry() {
                 <main className="flex h-full flex-col gap-2">
                   <TitleInput title={data.title} />
                   <DatePicker day={data.day} />
-                  <Editor initialEditorState={data.editorState} />
+                  <Tabs defaultValue="images" className="flex h-full flex-col">
+                    <TabsList className="self-start">
+                      <TabsTrigger value="images">Images</TabsTrigger>
+                      <TabsTrigger value="text">Text</TabsTrigger>
+                    </TabsList>
+                    <TabsContent
+                      value="images"
+                      className="grid grid-cols-1 lg:grid-cols-2"
+                    >
+                      <Images />
+                      <Map />
+                    </TabsContent>
+                    <TabsContent value="text" className="h-full">
+                      <Editor initialEditorState={data.editorState} />
+                    </TabsContent>
+                  </Tabs>
                 </main>
               );
             }}
           </FetchResolver>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Images() {
+  return (
+    <div>
+      <h4 className="mb-2 text-xl">Image Entries</h4>
+      <ul className="grid gap-4">
+        <li>
+          <article>
+            <h5 className="mb-2 text-xl">Title</h5>
+            <div className="aspect-square w-[400px] rounded bg-gray-50"></div>
+            <p>the quick brown fox jumps over the lazy dog</p>
+          </article>
+        </li>
+        <li>
+          <article>
+            <h5 className="mb-2 text-xl">Title</h5>
+            <div className="aspect-square w-[400px] rounded bg-gray-50"></div>
+            <p>the quick brown fox jumps over the lazy dog</p>
+          </article>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+function Map() {
+  return (
+    <div>
+      <h4 className="mb-2 text-xl">Map</h4>
+      <div className="aspect-square w-[400px] bg-gray-50"></div>
     </div>
   );
 }
@@ -118,7 +167,7 @@ function DatePicker({ day }: { day: string }) {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
-  const [date, setDate] = useState(new Date(day));
+  const [date, setDate] = useState(parseISO(day));
   const { toast } = useToast();
   const queryUtils = api.useContext();
   const updateEntryDateMutation = api.diary.updateEntryDate.useMutation({
@@ -130,14 +179,14 @@ function DatePicker({ day }: { day: string }) {
       await queryUtils.diary.getEntries.invalidate({
         diaryId: Number(diaryId),
       });
-      setDate(new Date(data.day.replaceAll("-", ",")));
+      setDate(new Date(parseISO(data.day)));
     },
     onError(e) {
       toast({ variant: "destructive", title: e.message });
     },
   });
   function handleChangeDate(date: Date | undefined) {
-    const updatedDate = date ?? new Date(day.replaceAll("-", ","));
+    const updatedDate = date ?? parseISO(day);
     updateEntryDateMutation.mutate({
       diaryId: Number(diaryId),
       entryId: Number(entryId),
