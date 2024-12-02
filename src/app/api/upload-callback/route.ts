@@ -129,6 +129,7 @@ export async function POST(req: Request) {
     }
 
     try {
+      console.log("key: ", key.slice(firstSlash + 1))
       await receivedImageWebhook({
         db,
         key: key.slice(firstSlash + 1),
