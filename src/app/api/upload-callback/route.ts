@@ -80,12 +80,13 @@ export async function POST(req: Request) {
       return Response.json({ message: "Invalid format" }, { status: 400 });
     }
 
-    const key = parsed.data.detail.object.key;
-    const segments = key.split("/");
+    const resource = parsed.data.detail.object.key;
+    const segments = resource.split("/");
     const userId = segments[0];
     const diaryId = Number(segments[1]);
     const entryId = Number(segments[2]);
     const imageName = segments[3];
+    const key = `${userId}/${diaryId}/${entryId}/${imageName}`;
 
     if (!entryId || !imageName || !userId) {
       console.log("invalid key")
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
       return Response.json({}, { status: 201 });
     }
 
-    const imgBuf = await getImage(key);
+    const imgBuf = await getImage(resource);
     if (imgBuf === undefined) {
       console.log("unable to retrieve image from s3");
       return Response.json({}, { status: 500 });
@@ -120,23 +121,23 @@ export async function POST(req: Request) {
       return Response.json({}, { status: 500 });
     }
 
-    const firstSlash = key.indexOf("/");
+    const firstSlash = resource.indexOf("/");
 
     try {
-      await uploadImage(imgBuf, key);
+      await uploadImage(imgBuf, resource);
     } catch (e) {
-      console.error(`unable to upload compressed image with key ${key}`);
+      console.error(`unable to upload compressed image with key ${resource}`);
     }
 
     try {
-      console.log("key: ", key.slice(firstSlash + 1))
+      console.log("key: ", resource.slice(firstSlash + 1))
       await receivedImageWebhook({
         db,
-        key: key.slice(firstSlash + 1),
+        key: resource.slice(firstSlash + 1),
         compressionStatus: "uncompressed",
       });
     } catch (e) {
-      console.error(`unable to update image key (${key}) status to received`);
+      console.error(`unable to update image key (${resource}) status to received`);
     }
 
     return Response.json({});
