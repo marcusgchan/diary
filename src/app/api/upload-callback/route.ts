@@ -130,10 +130,10 @@ export async function POST(req: Request) {
     }
 
     try {
-      console.log("key: ", resource.slice(firstSlash + 1))
+      console.log("key: ", key)
       await receivedImageWebhook({
         db,
-        key: resource.slice(firstSlash + 1),
+        key,
         compressionStatus: "uncompressed",
       });
     } catch (e) {
