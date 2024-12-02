@@ -45,6 +45,9 @@ const hostedInput = z.object({
 });
 
 export async function POST(req: Request) {
+  console.log("received webhook")
+  await new Promise((res) => setTimeout(res, 10000));
+
   const rawToken = req.headers.get("authorization");
   if (rawToken === null) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
@@ -70,8 +73,10 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   if (environment === "hosted") {
+    console.log("hosted")
     const parsed = hostedInput.safeParse(body);
     if (!parsed.success) {
+      console.log("invalid parsed body")
       return Response.json({ message: "Invalid format" }, { status: 400 });
     }
 
@@ -83,6 +88,7 @@ export async function POST(req: Request) {
     const imageName = segments[3];
 
     if (!entryId || !imageName || !userId) {
+      console.log("invalid key")
       return Response.json({ message: "Bad request" }, { status: 400 });
     }
 
@@ -94,6 +100,7 @@ export async function POST(req: Request) {
     });
 
     if (!res) {
+      console.log("dis entry doesn't exist")
       return Response.json({}, { status: 401 });
     }
     const uploaded = await getImageUploadStatus({ db, key });
