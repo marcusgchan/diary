@@ -74,6 +74,7 @@ export async function POST(req: Request) {
   const body = await req.json();
   if (environment === "hosted") {
     console.log("hosted")
+    console.log(body)
     const parsed = hostedInput.safeParse(body);
     if (!parsed.success) {
       console.log("invalid parsed body")
