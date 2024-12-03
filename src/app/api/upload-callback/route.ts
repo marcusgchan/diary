@@ -106,6 +106,7 @@ export async function POST(req: Request) {
     }
     const uploaded = await getImageUploadStatus({ db, key });
     if (uploaded) {
+      console.log("image uploaded already with key", key)
       return Response.json({}, { status: 201 });
     }
 
@@ -121,10 +122,9 @@ export async function POST(req: Request) {
       return Response.json({}, { status: 500 });
     }
 
-    const firstSlash = resource.indexOf("/");
-
     try {
-      await uploadImage(imgBuf, resource);
+      console.log("uploading image")
+      await uploadImage(imgBuf, key);
     } catch (e) {
       console.error(`unable to upload compressed image with key ${resource}`);
     }
