@@ -124,13 +124,6 @@ export async function POST(req: Request) {
     }
 
     try {
-      console.log("uploading image")
-      await uploadImage(imgBuf, key);
-    } catch (e) {
-      console.error(`unable to upload compressed image with key ${resource}`);
-    }
-
-    try {
       console.log("key: ", key)
       await receivedImageWebhook({
         db,
@@ -139,6 +132,13 @@ export async function POST(req: Request) {
       });
     } catch (e) {
       console.error(`unable to update image key (${resource}) status to received`);
+    }
+
+    try {
+      console.log("uploading image")
+      await uploadImage(imgBuf, key);
+    } catch (e) {
+      console.error(`unable to upload compressed image with key ${resource}`);
     }
 
     return Response.json({});
@@ -173,6 +173,7 @@ export async function POST(req: Request) {
 
     const uploaded = await getImageUploadStatus({ db, key });
     if (uploaded) {
+      console.log("uploaded alrady");
       return Response.json({}, { status: 201 });
     }
 
