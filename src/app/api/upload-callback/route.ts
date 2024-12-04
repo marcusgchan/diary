@@ -45,7 +45,7 @@ const hostedInput = z.object({
 });
 
 export async function POST(req: Request) {
-  console.log("received webhook")
+  console.log("received webhook");
   await new Promise((res) => setTimeout(res, 3000));
 
   const rawToken = req.headers.get("authorization");
@@ -73,11 +73,11 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   if (environment === "hosted") {
-    console.log("hosted")
-    console.log(body)
+    console.log("hosted");
+    console.log(body);
     const parsed = hostedInput.safeParse(body);
     if (!parsed.success) {
-      console.log("invalid parsed body")
+      console.log("invalid parsed body");
       return Response.json({ message: "Invalid format" }, { status: 400 });
     }
 
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     const key = `${userId}/${diaryId}/${entryId}/${imageName}`;
 
     if (!entryId || !imageName || !userId) {
-      console.log("invalid key")
+      console.log("invalid key");
       return Response.json({ message: "Bad request" }, { status: 400 });
     }
 
@@ -102,44 +102,54 @@ export async function POST(req: Request) {
     });
 
     if (!res) {
-      console.log("dis entry doesn't exist")
+      console.log("dis entry doesn't exist");
       return Response.json({}, { status: 401 });
     }
     const uploaded = await getImageUploadStatus({ db, key });
     if (uploaded) {
-      console.log("image uploaded already with key", key)
+      console.log("image uploaded already with key", key);
       return Response.json({}, { status: 201 });
     }
 
-    const imgBuf = await getImage(resource);
-    if (imgBuf === undefined) {
-      console.log("unable to retrieve image from s3");
-      return Response.json({}, { status: 500 });
-    }
-
-    const compressImageBuf = await compressImage(imgBuf);
-    if (compressImageBuf === undefined) {
-      console.log("unable to compress image");
-      return Response.json({}, { status: 500 });
-    }
-
     try {
-      console.log("key: ", key)
+      console.log("key: ", key);
       await receivedImageWebhook({
         db,
         key,
         compressionStatus: "uncompressed",
       });
     } catch (e) {
-      console.error(`unable to update image key (${resource}) status to received`);
+      console.error(
+        `unable to update image key (${resource}) status to received`,
+      );
     }
 
-    try {
-      console.log("uploading image")
-      await uploadImage(imgBuf, key);
-    } catch (e) {
-      console.error(`unable to upload compressed image with key ${resource}`);
+    const imgBuf = await getImage(resource);
+    if (true) {
+      // if (imgBuf === undefined) {
+      console.log("unable to retrieve image from s3");
+      const res = new Response();
+      res.headers.set("Retry-After", "-1");
+      return Response.json({}, { status: 500 });
     }
+
+    // const compressImageBuf = await compressImage(imgBuf);
+    // if (compressImageBuf === undefined) {
+    //   console.log("unable to compress image");
+    //   const res = new Response();
+    //
+    //   // Negative to avoid retry
+    //   // https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html
+    //   res.headers.set("Retry-After", "-1");
+    //   return res;
+    // }
+    //
+    // try {
+    //   console.log("uploading image");
+    //   await uploadImage(imgBuf, key);
+    // } catch (e) {
+    //   console.error(`unable to upload compressed image with key ${resource}`);
+    // }
 
     return Response.json({});
   } else {
