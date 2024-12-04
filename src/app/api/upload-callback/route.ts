@@ -46,7 +46,7 @@ const hostedInput = z.object({
 
 export async function POST(req: Request) {
   console.log("received webhook")
-  await new Promise((res) => setTimeout(res, 5000));
+  await new Promise((res) => setTimeout(res, 3000));
 
   const rawToken = req.headers.get("authorization");
   if (rawToken === null) {
