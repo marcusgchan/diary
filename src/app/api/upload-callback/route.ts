@@ -15,9 +15,6 @@ import {
 import sharp from "sharp";
 
 export async function POST(req: Request) {
-  console.log("received webhook");
-  await new Promise((res) => setTimeout(res, 3000));
-
   const rawToken = req.headers.get("authorization");
   if (rawToken === null) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
@@ -58,7 +55,6 @@ export async function POST(req: Request) {
   });
 
   if (!res) {
-    console.log("dis entry doesn't exist");
     return Response.json({}, { status: 401 });
   }
   const uploaded = await getImageUploadStatus({ db, key });
