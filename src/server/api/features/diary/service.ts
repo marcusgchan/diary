@@ -115,6 +115,37 @@ export async function getEntryIdByEntryAndDiaryId({
   return entry;
 }
 
+export async function getEntryTitleDayById({
+  db,
+  userId,
+  entryId,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  diaryId: number;
+}) {
+  const [entry] = await db
+    .select({ title: entries.title, day: entries.day })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(
+      and(
+        eq(diariesToUsers.diaryId, diaryId),
+        eq(entries.id, entryId),
+        eq(diariesToUsers.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  if (!entry) {
+    return null;
+  }
+
+  return { title: entry.title ?? null, day: entry.day };
+}
+
 export async function deleteEntry({
   db,
   input,
