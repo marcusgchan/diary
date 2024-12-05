@@ -558,6 +558,19 @@ export async function insertImageMetadata({
 export async function receivedImageWebhook({
   db,
   key,
+}: {
+  db: TRPCContext["db"];
+  key: string;
+}) {
+  return db
+    .update(imageKeys)
+    .set({ receivedWebhook: true })
+    .where(eq(imageKeys.key, key));
+}
+
+export async function setCompressionStatus({
+  db,
+  key,
   compressionStatus,
 }: {
   db: TRPCContext["db"];
@@ -566,7 +579,7 @@ export async function receivedImageWebhook({
 }) {
   return db
     .update(imageKeys)
-    .set({ receivedWebhook: true, compressionStatus })
+    .set({ compressionStatus })
     .where(eq(imageKeys.key, key));
 }
 
