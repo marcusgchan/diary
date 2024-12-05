@@ -6,12 +6,115 @@ import {
   getEntryIdByEntryAndDiaryId,
   getImageUploadStatus,
   receivedImageWebhook,
+  setCompressionStatus,
 } from "~/server/api/features/diary/service";
 import {
   getImage,
   uploadImage,
 } from "~/server/api/features/shared/s3ImagesService";
 import sharp from "sharp";
+
+export async function POST(req: Request) {
+  console.log("received webhook");
+  await new Promise((res) => setTimeout(res, 3000));
+
+  const rawToken = req.headers.get("authorization");
+  if (rawToken === null) {
+    return Response.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const environment =
+    req.headers.get("environment") == "hosted" ? "hosted" : "local";
+
+  const token = environment === "hosted" ? rawToken : rawToken.split(" ")?.[1];
+  if (token === undefined) {
+    return Response.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  if (token.length !== env.BUCKET_WEBHOOK_TOKEN.length) {
+    return Response.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const encoder = new TextEncoder();
+  const a = encoder.encode(token);
+  const b = encoder.encode(env.BUCKET_WEBHOOK_TOKEN);
+  if (a.byteLength !== b.byteLength || !timingSafeEqual(a, b)) {
+    return Response.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const content = getInfoFromBody(body, environment);
+  if (!content.success) {
+    return Response.json({ message: content.message }, { status: 400 });
+  }
+
+  const { key, userId, diaryId, entryId } = content;
+
+  const res = await getEntryIdByEntryAndDiaryId({
+    db,
+    userId,
+    diaryId,
+    entryId,
+  });
+
+  if (!res) {
+    console.log("dis entry doesn't exist");
+    return Response.json({}, { status: 401 });
+  }
+  const uploaded = await getImageUploadStatus({ db, key });
+  if (uploaded) {
+    console.log("image uploaded already with key", key);
+    return Response.json({}, { status: 201 });
+  }
+
+  try {
+    await receivedImageWebhook({
+      db,
+      key,
+    });
+  } catch (e) {
+    console.error(`unable to update image key (${key}) status to received`);
+  }
+
+  const imgBuf = await getImage(key);
+  if (imgBuf === undefined) {
+    console.log("unable to retrieve image from s3");
+    const res = new Response();
+    res.headers.set("Retry-After", "-1");
+    return Response.json({}, { status: 500 });
+  }
+
+  const compressImageBuf = await compressImage(imgBuf);
+  if (compressImageBuf === undefined) {
+    console.log("unable to compress image");
+    const res = new Response();
+
+    // Negative to avoid retry
+    // https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html
+    res.headers.set("Retry-After", "-1");
+    return res;
+  }
+
+  try {
+    console.log("uploading image");
+    await uploadImage(imgBuf, key);
+    try {
+      await setCompressionStatus({
+        db,
+        key,
+        compressionStatus: "compressed",
+      });
+    } catch (e) {
+      console.log(
+        "unable to update compression status to compressed even though image is compressed",
+      );
+    }
+  } catch (e) {
+    console.error(`unable to upload compressed image with key ${key}`);
+  }
+
+  return Response.json({});
+}
 
 const localInput = z.object({
   Key: z.string(),
@@ -44,183 +147,6 @@ const hostedInput = z.object({
   }),
 });
 
-export async function POST(req: Request) {
-  console.log("received webhook");
-  await new Promise((res) => setTimeout(res, 3000));
-
-  const rawToken = req.headers.get("authorization");
-  if (rawToken === null) {
-    return Response.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const environment = req.headers.get("environment");
-
-  const token = environment === "hosted" ? rawToken : rawToken.split(" ")?.[1];
-  if (token === undefined) {
-    return Response.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (token.length !== env.BUCKET_WEBHOOK_TOKEN.length) {
-    return Response.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const encoder = new TextEncoder();
-  const a = encoder.encode(token);
-  const b = encoder.encode(env.BUCKET_WEBHOOK_TOKEN);
-  if (a.byteLength !== b.byteLength || !timingSafeEqual(a, b)) {
-    return Response.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = await req.json();
-  if (environment === "hosted") {
-    console.log("hosted");
-    console.log(body);
-    const parsed = hostedInput.safeParse(body);
-    if (!parsed.success) {
-      console.log("invalid parsed body");
-      return Response.json({ message: "Invalid format" }, { status: 400 });
-    }
-
-    const resource = parsed.data.detail.object.key;
-    const segments = resource.split("/");
-    const userId = segments[0];
-    const diaryId = Number(segments[1]);
-    const entryId = Number(segments[2]);
-    const imageName = segments[3];
-    const key = `${userId}/${diaryId}/${entryId}/${imageName}`;
-
-    if (!entryId || !imageName || !userId) {
-      console.log("invalid key");
-      return Response.json({ message: "Bad request" }, { status: 400 });
-    }
-
-    const res = await getEntryIdByEntryAndDiaryId({
-      db,
-      userId,
-      diaryId,
-      entryId,
-    });
-
-    if (!res) {
-      console.log("dis entry doesn't exist");
-      return Response.json({}, { status: 401 });
-    }
-    const uploaded = await getImageUploadStatus({ db, key });
-    if (uploaded) {
-      console.log("image uploaded already with key", key);
-      return Response.json({}, { status: 201 });
-    }
-
-    try {
-      console.log("key: ", key);
-      await receivedImageWebhook({
-        db,
-        key,
-        compressionStatus: "uncompressed",
-      });
-    } catch (e) {
-      console.error(
-        `unable to update image key (${resource}) status to received`,
-      );
-    }
-
-    const imgBuf = await getImage(resource);
-    if (true) {
-      // if (imgBuf === undefined) {
-      console.log("unable to retrieve image from s3");
-      const res = new Response();
-      res.headers.set("Retry-After", "-1");
-      return Response.json({}, { status: 500 });
-    }
-
-    // const compressImageBuf = await compressImage(imgBuf);
-    // if (compressImageBuf === undefined) {
-    //   console.log("unable to compress image");
-    //   const res = new Response();
-    //
-    //   // Negative to avoid retry
-    //   // https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html
-    //   res.headers.set("Retry-After", "-1");
-    //   return res;
-    // }
-    //
-    // try {
-    //   console.log("uploading image");
-    //   await uploadImage(imgBuf, key);
-    // } catch (e) {
-    //   console.error(`unable to upload compressed image with key ${resource}`);
-    // }
-
-    return Response.json({});
-  } else {
-    const parsed = localInput.safeParse(body);
-    if (!parsed.success) {
-      return Response.json({ message: "Invalid format" }, { status: 400 });
-    }
-    const resource = parsed.data.Key;
-    const segments = resource.split("/");
-    const userId = segments[1];
-    const diaryId = Number(segments[2]);
-    const entryId = Number(segments[3]);
-    const imageName = segments[4];
-
-    if (!entryId || !imageName || !userId) {
-      return Response.json({ message: "Bad request" }, { status: 400 });
-    }
-
-    const res = await getEntryIdByEntryAndDiaryId({
-      db,
-      userId,
-      diaryId,
-      entryId,
-    });
-
-    if (!res) {
-      return Response.json({}, { status: 401 });
-    }
-
-    const key = `${userId}/${diaryId}/${entryId}/${imageName}`;
-
-    const uploaded = await getImageUploadStatus({ db, key });
-    if (uploaded) {
-      console.log("uploaded alrady");
-      return Response.json({}, { status: 201 });
-    }
-
-    const imgBuf = await getImage(key);
-    if (imgBuf === undefined) {
-      console.log("unable to retrieve image from s3");
-      return Response.json({}, { status: 500 });
-    }
-
-    const compressImageBuf = await compressImage(imgBuf);
-    if (compressImageBuf === undefined) {
-      console.log("unable to compress image");
-      return Response.json({}, { status: 500 });
-    }
-
-    try {
-      await uploadImage(compressImageBuf, key);
-    } catch (e) {
-      console.error(`unable to upload compressed image with key ${resource}`);
-    }
-
-    try {
-      await receivedImageWebhook({
-        db,
-        key,
-        compressionStatus: "uncompressed",
-      });
-    } catch (e) {
-      console.error(
-        `unable to update image key (${resource}) status to received`,
-      );
-    }
-
-    return Response.json({});
-  }
-}
-
 async function compressImage(buffer: Buffer): Promise<Buffer | undefined> {
   try {
     const compressed = await sharp(buffer)
@@ -230,5 +156,83 @@ async function compressImage(buffer: Buffer): Promise<Buffer | undefined> {
     return compressed;
   } catch (e) {
     console.error("unable to compress image", e);
+  }
+}
+
+type WebhookReqBody = {
+  success: true;
+  key: string;
+  userId: string;
+  diaryId: number;
+  entryId: number;
+};
+
+type ParsingError = {
+  success: false;
+  message: string;
+};
+
+function getInfoFromBody(
+  body: string,
+  environment: "hosted" | "local",
+): WebhookReqBody | ParsingError {
+  if (environment === "hosted") {
+    const parsed = hostedInput.safeParse(body);
+    if (!parsed.success) {
+      console.log("invalid parsed body");
+      throw new Error("invalid format");
+    }
+
+    const resource = parsed.data.detail.object.key;
+    const segments = resource.split("/");
+    const userId = segments[0];
+    const diaryId = Number(segments[1]);
+    const entryId = Number(segments[2]);
+    const imageName = segments[3];
+    const key = `${userId}/${diaryId}/${entryId}/${imageName}`;
+    if (!entryId || !imageName || !userId) {
+      return {
+        success: false,
+        message: "invalid format",
+      };
+    }
+
+    return {
+      success: true,
+      key,
+      userId,
+      diaryId,
+      entryId,
+    };
+  } else {
+    const parsed = localInput.safeParse(body);
+    if (!parsed.success) {
+      return {
+        success: false,
+        message: "invalid format",
+      };
+    }
+    const resource = parsed.data.Key;
+    const segments = resource.split("/");
+    const userId = segments[1];
+    const diaryId = Number(segments[2]);
+    const entryId = Number(segments[3]);
+    const imageName = segments[4];
+    const key = `${userId}/${diaryId}/${entryId}/${imageName}`;
+
+    if (!entryId || !imageName || !userId) {
+      return {
+        success: false,
+        message: "invalid format",
+      };
+    }
+
+    return {
+      success: true,
+      key,
+      userId,
+      diaryId,
+      entryId,
+    };
   }
 }
