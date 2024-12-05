@@ -317,7 +317,7 @@ export const diaryRouter = createTRPCRouter({
         }),
       }),
     )
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const uuid = randomUUID();
       const entry = await getEntryIdByEntryAndDiaryId({
         db: ctx.db,

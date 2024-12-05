@@ -100,7 +100,6 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
   const params = useParams();
-  const queryutils = api.useContext();
   const [startPolling, setStartPolling] = useState(false);
   const [imageKey, setImageKey] = useState<string>();
   const [disableCancel, setDisableCancel] = useState(false);
@@ -114,6 +113,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   );
   const cancelUpload = api.diary.cancelImageUpload.useMutation();
   const confirmUpload = api.diary.confirmImageUpload.useMutation();
+  const insertImageMetadata = api.diary.getPresignedUrl.useMutation();
 
   useEffect(() => {
     if (data) {
@@ -194,7 +194,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
 
     let data: RouterOutputs["diary"]["getPresignedUrl"];
     try {
-      data = await queryutils.diary.getPresignedUrl.fetch({
+      data = await insertImageMetadata.mutateAsync({
         diaryId: Number(params.diaryId),
         entryId: Number(params.entryId),
         gps,
@@ -205,7 +205,6 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           size: file.size,
         },
       });
-      console.log(data);
     } catch (e) {
       toast({ title: "Unable to upload image" });
       setDisableCancel(false);
