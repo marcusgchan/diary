@@ -11,7 +11,10 @@ const bucket = new aws.s3.Bucket("diaryBucket", {
     {
       allowedHeaders: ["*"],
       allowedMethods: ["GET", "POST", "DELETE", "PUT", "HEAD"],
-      allowedOrigins: ["https://diary-explorer.vercel.app/*"],
+      allowedOrigins: [
+        "https://explorer-diary.vercel.app",
+        "https://explorer-diary.vercel.app/*",
+      ],
       maxAgeSeconds: 3000,
     },
   ],
@@ -37,7 +40,6 @@ const rule = new aws.cloudwatch.EventRule("s3ObjectCreatedRule", {
   eventPattern: eventPattern,
 });
 
-// Connection for apiDestination
 const connection = new aws.cloudwatch.EventConnection("myConnection", {
   authorizationType: "API_KEY",
   authParameters: {
@@ -54,7 +56,7 @@ const apiDestination = new aws.cloudwatch.EventApiDestination(
   {
     connectionArn: connection.arn,
     httpMethod: "POST",
-    invocationEndpoint: BUCKET_WEBHOOK_ENDPOINT, // Change as required
+    invocationEndpoint: BUCKET_WEBHOOK_ENDPOINT,
     name: "myApiDestination",
   },
 );
@@ -92,12 +94,16 @@ const targetRole = new aws.iam.Role("eventBridgeTargetRole", {
 // TODO: dead letter config
 const target = new aws.cloudwatch.EventTarget("eventBusTarget", {
   rule: rule.name, // Ensure this matches the created rule name
-  roleArn: targetRole.arn, // Role that EventBridge assumes
-  arn: apiDestination.arn, // Target apiDestination
+  roleArn: targetRole.arn,
+  arn: apiDestination.arn,
   httpTarget: {
     headerParameters: {
       environment: "hosted",
     },
+  },
+  retryPolicy: {
+    maximumRetryAttempts: 60,
+    maximumEventAgeInSeconds: 60,
   },
 });
 
