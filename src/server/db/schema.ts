@@ -33,7 +33,7 @@ export const users = pgTable("user", {
     mode: "date",
   }),
   image: text("image"),
-});
+}).enableRLS();
 
 export const accounts = pgTable(
   "account",
@@ -57,7 +57,7 @@ export const accounts = pgTable(
       columns: [account.provider, account.providerAccountId],
     }),
   }),
-);
+).enableRLS();
 
 export const sessions = pgTable("session", {
   sessionToken: text("sessionToken").notNull().primaryKey(),
@@ -65,7 +65,7 @@ export const sessions = pgTable("session", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
-});
+}).enableRLS();
 
 export const verificationTokens = pgTable(
   "verification_token",
@@ -77,7 +77,7 @@ export const verificationTokens = pgTable(
   (vt) => ({
     compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
   }),
-);
+).enableRLS();
 
 export const diariesToUsers = pgTable(
   "diary_to_user",
@@ -94,7 +94,7 @@ export const diariesToUsers = pgTable(
       pk: primaryKey({ columns: [table.userId, table.diaryId] }),
     };
   },
-);
+).enableRLS();
 
 export const diaries = pgTable("diary", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
@@ -102,7 +102,7 @@ export const diaries = pgTable("diary", {
   deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const entries = pgTable("entry", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
@@ -114,7 +114,7 @@ export const entries = pgTable("entry", {
   deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const imageKeys = pgTable("image_key", {
   key: text("key").primaryKey(),
@@ -133,7 +133,7 @@ export const imageKeys = pgTable("image_key", {
     .$type<"uncompressed" | "compressed">()
     .notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export type ImageKeys = typeof imageKeys.$inferSelect;
 
@@ -146,4 +146,4 @@ export const editorStates = pgTable("editor_state", {
     .references(() => entries.id),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+}).enableRLS();
