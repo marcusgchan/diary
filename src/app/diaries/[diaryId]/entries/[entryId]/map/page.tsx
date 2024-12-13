@@ -1,20 +1,21 @@
 import { RouterOutputs } from "~/server/api/trpc";
+import EntryMapHeader from "./EntryMapHeader";
 
 type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 
 export default async function Entry() {
   return (
     <div className="flex flex-wrap gap-4">
-      <Images />
+      <EntryImages />
       <Map />
     </div>
   );
 }
 
-function Images() {
+function EntryImages() {
   return (
     <div>
-      <h4 className="mb-2 text-xl">Image Entries</h4>
+      <EntryMapHeader />
       <ul className="grid gap-4">
         <li>
           <article>
