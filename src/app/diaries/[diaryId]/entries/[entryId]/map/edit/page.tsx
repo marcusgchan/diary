@@ -1,5 +1,6 @@
+import { Book } from "../Book";
 import { EditMapForm } from "./EditMapForm";
 
 export default function EditMapPage() {
-  return <EditMapForm />;
+  return <Book leftPageContent={<EditMapForm />} />;
 }
