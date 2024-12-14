@@ -20,7 +20,7 @@ export function EntryTab() {
             currentPath("map") && "bg-black",
           )}
         >
-          Image Diary
+          Map Entry
         </Link>
       </li>
       <li>
@@ -31,7 +31,7 @@ export function EntryTab() {
             currentPath("journal") && "bg-black",
           )}
         >
-          Text Diary
+          Journal
         </Link>
       </li>
     </ul>

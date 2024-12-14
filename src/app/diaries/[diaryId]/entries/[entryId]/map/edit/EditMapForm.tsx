@@ -51,6 +51,18 @@ export function EditMapForm() {
     control,
     name: "posts",
   });
+
+  function addPost() {
+    append({
+      title: "",
+      description: "",
+      image: {
+        type: "",
+        size: 0,
+        name: "",
+      },
+    });
+  }
   register(`posts.0.image`);
 
   function handleImageUpload(payload: ImagePayload) {
@@ -86,7 +98,11 @@ export function EditMapForm() {
           </fieldset>
         );
       })}
-      <button type="button" className="rounded border-2 border-muted">
+      <button
+        onClick={addPost}
+        type="button"
+        className="rounded border-2 border-muted"
+      >
         +
       </button>
       <Button>Save</Button>
