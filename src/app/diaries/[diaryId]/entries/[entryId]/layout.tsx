@@ -34,8 +34,6 @@ export default async function EntryLayout({
           <main className="flex h-full flex-col gap-2">
             {data ? (
               <>
-                <TitleInput title={data.title} />
-                <DatePicker day={data.day} />
                 <EntryTab />
                 {children}
               </>
