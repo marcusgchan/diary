@@ -58,16 +58,16 @@ export default async function Entry({
       <EntryMapHeader />
       <TitleInput title={data!.title} />
       <DatePicker day={data!.day} />
-      <div className="grid grid-cols-[max-content_100px_max-content]">
+      <div className="grid grid-cols-[max-content_100px_max-content] [grid-auto-rows:50px_auto_auto]">
         {posts.map((post, i) => {
           return (
             <Post
               className={cn(
-                "[grid-row-end:span_2]",
+                "[grid-row-end:span_3]",
                 i % 2 == 0 && "col-start-1 col-end-2 bg-red-400",
                 i % 2 == 1 && "col-start-3 col-end-4",
               )}
-              styles={{ gridRowStart: 1 + i * 2 }}
+              styles={{ gridRowStart: 1 + i * 3 }}
               key={post.id}
               post={post}
             />
@@ -78,11 +78,11 @@ export default async function Entry({
             return (
               <>
                 <div
-                  style={{ gridRowStart: 2 + i * 2 }}
+                  style={{ gridRowStart: 3 + i * 3 }}
                   key={i}
                   className={cn(
                     i % 2 == 1 && "[rotate:y_180deg]",
-                    "col-start-2 col-end-3 [grid-row-end:span_2]",
+                    "col-start-2 col-end-3 [grid-row-end:span_3]",
                   )}
                 >
                   <Curve
@@ -93,11 +93,11 @@ export default async function Entry({
                   />
                 </div>
                 <div
-                  style={{ gridRowStart: 2 + i * 2 }}
+                  style={{ gridRowStart: 3 + i * 3 }}
                   key={i}
                   className={cn(
                     i % 2 == 1 && "[rotate:y_180deg]",
-                    "col-start-2 col-end-3 [grid-row-end:span_2]",
+                    "col-start-2 col-end-3 [grid-row-end:span_3]",
                   )}
                 >
                   <Curve
