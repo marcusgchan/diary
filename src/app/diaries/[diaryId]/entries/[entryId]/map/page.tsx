@@ -58,7 +58,6 @@ export default async function Entry({
       <EntryMapHeader />
       <TitleInput title={data!.title} />
       <DatePicker day={data!.day} />
-      <h3 className="text-lg">My Image Entries</h3>
       <div className="grid grid-cols-[max-content_100px_max-content]">
         {posts.map((post, i) => {
           return (
@@ -117,16 +116,6 @@ export default async function Entry({
             );
           })}
       </div>
-      {/* <Book */}
-      {/*   firstPageHeader={ */}
-      {/*     <> */}
-      {/*       <TitleInput title={data!.title} /> */}
-      {/*       <DatePicker day={data!.day} /> */}
-      {/*       <h3 className="text-lg">My Image Entries</h3> */}
-      {/*     </> */}
-      {/*   } */}
-      {/*   posts={posts} */}
-      {/* /> */}
     </div>
   );
 }
