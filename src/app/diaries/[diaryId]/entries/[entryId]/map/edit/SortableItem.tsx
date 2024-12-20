@@ -19,7 +19,11 @@ export function SortableItem({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="grid grid-cols-[1fr_auto]">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="col-span-2 grid grid-cols-subgrid"
+    >
       {children}
       <button
         type="button"

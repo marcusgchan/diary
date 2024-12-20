@@ -25,7 +25,6 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -122,7 +121,10 @@ export function EditMapForm() {
 
   return (
     <FormProvider {...formMethods}>
-      <form className="grid max-w-lg gap-4" onSubmit={handleSubmit(onSubmit)}>
+      <form
+        className="grid max-w-lg grid-cols-[1fr_auto] gap-y-4"
+        onSubmit={handleSubmit(onSubmit)}
+      >
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -168,11 +170,11 @@ export function EditMapForm() {
         <button
           onClick={addPost}
           type="button"
-          className="rounded border-2 border-muted"
+          className="col-start-1 col-end-2 rounded border-2 border-muted"
         >
           +
         </button>
-        <Button>Save</Button>
+        <Button className="col-start-1 col-end-2">Save</Button>
       </form>
     </FormProvider>
   );
