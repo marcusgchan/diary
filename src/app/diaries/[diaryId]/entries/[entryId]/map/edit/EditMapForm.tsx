@@ -71,7 +71,7 @@ export function EditMapForm() {
     handleSubmit,
     formState: { errors },
   } = formMethods;
-  const { fields, append, remove, swap } = useFieldArray({
+  const { fields, append, remove, move } = useFieldArray({
     control,
     name: "posts",
   });
@@ -113,7 +113,7 @@ export function EditMapForm() {
     if (over && active.id !== over.id) {
       const oldIndex = fields.findIndex((field) => field.id == active.id);
       const newIndex = fields.findIndex((field) => field.id == over.id);
-      swap(oldIndex, newIndex);
+      move(oldIndex, newIndex);
     }
   }
 
