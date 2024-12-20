@@ -15,6 +15,22 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChangeEvent } from "react";
 import { cn } from "~/app/_utils/cx";
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableItem } from "./SortableItem";
 
 const formSchema = z.object({
   posts: z
@@ -61,6 +77,13 @@ export function EditMapForm() {
     name: "posts",
   });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   function addPost() {
     append({
       title: "",
@@ -85,45 +108,63 @@ export function EditMapForm() {
     resetField(`posts.${index}`);
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex((field) => field.id == active.id);
+      const newIndex = fields.findIndex((field) => field.id == over.id);
+      swap(oldIndex, newIndex);
+    }
+  }
+
   const onSubmit: SubmitHandler<FormValues> = (e) => {};
 
   return (
     <FormProvider {...formMethods}>
-      <form className="grid max-w-md gap-4" onSubmit={handleSubmit(onSubmit)}>
-        {fields.map((field, index) => {
-          const fieldErrors = errors?.posts?.[index];
-          console.log(fieldErrors);
-          return (
-            <fieldset
-              key={field.id}
-              className="relative grid gap-2 bg-gray-100"
-            >
-              <button
-                onClick={() => remove(index)}
-                className="absolute right-0 top-0 -translate-y-1/2 translate-x-1/2"
-              >
-                X
-              </button>
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  {...register(`posts.${index}.title`)}
-                  id="title"
-                  type="text"
-                  placeholder="Whistler at Night"
-                />
-              </div>
-              <ImageUpload onChange={handleImageUpload} index={index} />
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  {...register(`posts.${index}.description`)}
-                  id="description"
-                />
-              </div>
-            </fieldset>
-          );
-        })}
+      <form className="grid max-w-lg gap-4" onSubmit={handleSubmit(onSubmit)}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={fields}
+            strategy={verticalListSortingStrategy}
+          >
+            {fields.map((field, index) => {
+              return (
+                <SortableItem key={field.id} id={field.id}>
+                  <fieldset className="relative grid gap-2 bg-gray-100">
+                    <button
+                      onClick={() => remove(index)}
+                      className="absolute right-0 top-0 -translate-y-1/2 translate-x-1/2"
+                    >
+                      X
+                    </button>
+                    <div>
+                      <Label htmlFor="title">Title</Label>
+                      <Input
+                        {...register(`posts.${index}.title`)}
+                        id="title"
+                        type="text"
+                        placeholder="Whistler at Night"
+                      />
+                    </div>
+                    <ImageUpload onChange={handleImageUpload} index={index} />
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        {...register(`posts.${index}.description`)}
+                        id="description"
+                      />
+                    </div>
+                  </fieldset>
+                </SortableItem>
+              );
+            })}
+          </SortableContext>
+        </DndContext>
         <button
           onClick={addPost}
           type="button"
