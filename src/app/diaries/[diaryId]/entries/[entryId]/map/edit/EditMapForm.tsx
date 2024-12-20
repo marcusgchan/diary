@@ -94,9 +94,6 @@ export function EditMapForm() {
       },
     });
   }
-  function removePost(index: number) {
-    remove(index);
-  }
 
   function handleImageUpload(index: number, payload: ImagePayload | null) {
     console.log({ payload });
