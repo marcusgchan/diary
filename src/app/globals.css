@@ -75,6 +75,15 @@
   }
 }
 
+@keyframes path {
+  from  {
+    stroke-dashoffset: 200;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 .ImageNode__contentEditable {
   min-height: 20px;
   border: 0px;
