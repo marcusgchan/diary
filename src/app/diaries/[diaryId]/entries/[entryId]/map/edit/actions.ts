@@ -42,8 +42,9 @@ class _Builder<Context, Schema extends z.ZodTypeAny | undefined> {
       : () => Promise<unknown>,
   ) {
     return async (formData: FormData) => {
+      const fields = Object.fromEntries(formData);
       if (this.dataSchema) {
-        const parsed = this.dataSchema.safeParse(formData);
+        const parsed = this.dataSchema.safeParse(fields);
         if (!parsed.success) {
           return new Error("Invalid format");
         }
@@ -63,7 +64,8 @@ const Builder: new <
 
 const b = new Builder();
 
-b.schema(z.object({ name: z.string(), age: z.number() }))
+const action1 = b
+  .schema(z.object({ name: z.string(), age: z.number() }))
   .middleware()
   .action(async (data) => {});
 
