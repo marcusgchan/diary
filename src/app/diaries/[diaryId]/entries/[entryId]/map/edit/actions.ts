@@ -37,32 +37,34 @@ class _Builder<Context, Schema extends z.ZodTypeAny | undefined> {
   }
 
   action(
-    callback: (
-      data: Schema extends z.ZodTypeAny ? z.infer<Schema> : never,
-    ) => unknown,
+    callback: Schema extends z.ZodTypeAny
+      ? (data: z.infer<Schema>) => Promise<unknown>
+      : () => Promise<unknown>,
   ) {
     return async (formData: FormData) => {
       if (this.dataSchema) {
-        const parsed = this.dataSchema.safeParse(formData) as z.infer<
-          NonNullable<Schema>
-        >;
-        return (callback as (data: z.infer<NonNullable<Schema>>) => unknown)(
-          parsed,
-        );
+        const parsed = this.dataSchema.safeParse(formData);
+        if (!parsed.success) {
+          return new Error("Invalid format");
+        }
+        return callback(parsed);
       }
-      return (callback as () => unknown)();
+      return callback(undefined);
     };
   }
 }
 
-const Builder: new <T, Schema extends z.ZodTypeAny | undefined>(props?: {
+const Builder: new <
+  T,
+  Schema extends z.ZodTypeAny | undefined = undefined,
+>(props?: {
   context?: () => T;
 }) => Builder0<T, Schema> = _Builder;
 
-const b = new Builder<{}, undefined>();
+const b = new Builder();
 
-b.schema(z.object({ name: z.string() }))
+b.schema(z.object({ name: z.string(), age: z.number() }))
   .middleware()
-  .action((data) => {});
+  .action(async (data) => {});
 
-b.action((a) => {});
+b.action(async () => {});
