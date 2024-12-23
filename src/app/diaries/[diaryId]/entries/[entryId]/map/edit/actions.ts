@@ -6,7 +6,7 @@ export async function createPostAction(formData: FormData) {}
 
 type Builder0<T, Schema extends z.ZodTypeAny> = Pick<
   _Builder<T, Schema>,
-  "schema"
+  "schema" | "middleware" | "action"
 >;
 type Builder1<T, Schema extends z.ZodTypeAny> = Pick<
   _Builder<T, Schema>,
@@ -36,13 +36,17 @@ class _Builder<Context, Schema extends z.ZodTypeAny> {
     return this as _Builder<Context, Schema>;
   }
 
-  action(callback: (data: z.infer<Schema>) => unknown) {
+  action(
+    callback: (
+      data: typeof this.dataSchema extends undefined ? never : z.infer<Schema>,
+    ) => unknown,
+  ) {
     return async (formData: FormData) => {
       if (this.dataSchema) {
         const parsed = this.dataSchema.safeParse(formData) as z.infer<Schema>;
-        return callback(parsed);
+        return (callback as (data: z.infer<Schema>) => unknown)(parsed);
       }
-      return callback();
+      return (callback as () => unknown)();
     };
   }
 }
@@ -56,3 +60,5 @@ const b = new Builder();
 b.schema(z.object({ name: z.string() }))
   .middleware()
   .action((data) => {});
+
+b.action((data) => {});
