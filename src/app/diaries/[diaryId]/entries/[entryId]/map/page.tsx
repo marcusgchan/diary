@@ -85,7 +85,7 @@ export default async function Entry({
                     "col-start-2 col-end-3 [grid-row-end:span_3]",
                   )}
                 >
-                  <Curve
+                  <SexyCurve
                     style={{
                       strokeDasharray: 10,
                       strokeDashoffset: 0,
@@ -100,7 +100,7 @@ export default async function Entry({
                     "col-start-2 col-end-3 [grid-row-end:span_3]",
                   )}
                 >
-                  <Curve
+                  <SexyCurve
                     style={{
                       animationName: "path",
                       strokeDasharray: 200,
@@ -159,7 +159,7 @@ function Post({
   );
 }
 
-function Curve({
+function SexyCurve({
   className,
   style,
 }: {
