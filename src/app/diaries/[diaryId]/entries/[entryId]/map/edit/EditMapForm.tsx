@@ -245,25 +245,65 @@ function ImageUpload({
 
     onChange(index, file);
   }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+
+    const files = e.dataTransfer.items;
+    if (!files) {
+      return;
+    }
+
+    const file = files[0]?.getAsFile();
+    if (!file || !file.type.includes("image/")) {
+      return;
+    }
+
+    onChange(index, file);
+  }
   register(`posts.${index}.imageMetadata`);
   const error = errors.posts?.[index]?.imageMetadata;
   const hasError = !!error?.size?.message || !!error?.mimetype?.message;
   return (
-    <div className="grid w-full items-center gap-1.5">
-      <Label htmlFor={`${id}-image`}>Image</Label>
-      <Input
-        id={`${id}-image`}
-        type="file"
-        accept="image/*"
-        className={cn(hasError && "border-red-300")}
-        onChange={handleFileChange}
-      />
-      {hasError && (
-        <div className="bg-red-300 p-2">
-          {error.size?.message && <p>{error.size.message}</p>}
-          {error.mimetype?.message && <p>{error.mimetype.message}</p>}
+    <Label htmlFor={`${id}-image`}>
+      <div
+        className="grid items-center gap-1.5"
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+      >
+        <div className="grid aspect-square w-full max-w-[250px] content-center justify-center gap-2 rounded border-2 border-dashed border-black p-8 text-center [grid-auto-rows:max-content]">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400"
+            stroke="currentColor"
+            fill="none"
+            viewBox="0 0 48 48"
+            aria-hidden="true"
+          >
+            <path
+              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <p className="leading-4">Click to upload image or drag and drop</p>
+          <p className="text-sm">Max file size 9mb</p>
+          <input
+            id={`${id}-image`}
+            type="file"
+            accept="image/*"
+            className={cn(hasError && "border-red-300", "sr-only min-w-0")}
+            onChange={handleFileChange}
+            multiple={false}
+          />
         </div>
-      )}
-    </div>
+        {hasError && (
+          <div className="bg-red-300 p-2">
+            {error.size?.message && <p>{error.size.message}</p>}
+            {error.mimetype?.message && <p>{error.mimetype.message}</p>}
+          </div>
+        )}
+      </div>
+    </Label>
   );
 }
