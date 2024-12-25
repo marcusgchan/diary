@@ -46,3 +46,16 @@ export const createDiarySchema = z.object({
   name: z.string().min(1),
 });
 export type CreateDiary = z.infer<typeof createDiarySchema>;
+
+export const createPostSchema = z
+  .object({
+    title: z.string(),
+    imageMetadata: z.object({
+      name: z.string(),
+      size: z.number(),
+      mimetype: z.string(),
+    }),
+    description: z.string(),
+  })
+  .array();
+export type CreatePost = z.infer<typeof createPostSchema>;

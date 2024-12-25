@@ -28,7 +28,7 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect } from "react";
 import { $wrapNodeInElement, mergeRegister } from "@lexical/utils";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 
 export type InsertImagePayload = Readonly<ImagePayload>;

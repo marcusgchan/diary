@@ -13,7 +13,7 @@ import {
 } from "~/app/_components/ui/popover";
 import { useToast } from "~/app/_components/ui/use-toast";
 import { cn } from "~/app/_utils/cx";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 
 export function DatePicker({ day }: { day: string }) {
   const params = useParams();

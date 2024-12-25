@@ -16,10 +16,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/app/_components/ui/alert-dialog";
-import { Button } from "~/app/_components/ui/button";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { cn } from "~/app/_utils/cx";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 
 export function Entries() {
   const params = useParams();

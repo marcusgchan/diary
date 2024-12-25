@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import FetchResolver from "~/app/_components/FetchResolver";
 import { Skeleton } from "~/app/_components/ui/skeleton";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 
 const Editor = dynamic(
   () => import("./Editor").then((c) => ({ default: c.Editor })),

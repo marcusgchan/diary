@@ -35,6 +35,7 @@ import {
 import {
   createDiarySchema,
   createEntrySchema,
+  createPostSchema,
   editDiaryNameSchema,
   editEntryDateSchema,
   saveEditorStateSchema,
@@ -263,6 +264,9 @@ export const diaryRouter = createTRPCRouter({
 
       return input.entryId;
     }),
+  createPost: protectedProcedure
+    .input(createPostSchema)
+    .mutation(async ({ ctx, db }) => {}),
   saveEditorState: protectedProcedure
     .input(saveEditorStateSchema)
     .mutation(async ({ ctx, input }) => {

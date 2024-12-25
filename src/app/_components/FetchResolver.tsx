@@ -1,6 +1,6 @@
 import { type TRPCClientErrorBase } from "@trpc/client";
 import { type UseTRPCQueryResult } from "@trpc/react-query/shared";
-import { type DefaultErrorShape } from "@trpc/server";
+import { type inferRouterError } from "@trpc/server";
 
 type Props<TData> = UseTRPCQueryResult<
   TData,
@@ -23,6 +23,8 @@ export default function FetchResolver<TData>({
     return loadingComponent;
   } else if (isError) {
     return errorComponent;
+  } else if (!data) {
+    return <p>hmm</p>;
   } else {
     return children(data);
   }

@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { RouterOutputs } from "~/server/api/trpc";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 
 type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 

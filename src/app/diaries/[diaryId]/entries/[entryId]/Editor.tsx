@@ -1,4 +1,4 @@
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";

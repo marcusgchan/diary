@@ -30,12 +30,14 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableItem } from "./SortableItem";
+import { api } from "~/trpc/TrpcProvider";
 
 const formSchema = z.object({
   posts: z
     .object({
+      id: z.number(),
       title: z.string(),
-      image: z.object({
+      imageMetadata: z.object({
         name: z.string(),
         size: z.number().max(8920, { message: "Max image size is 8.9MB" }),
         mimetype: z.string().min(1, { message: "Image Required" }),
@@ -46,14 +48,22 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+let formId = 0;
+
+function getId(): number {
+  return formId++;
+}
+
 export function EditMapForm() {
   const formMethods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       posts: [
         {
+          id: getId(),
           title: "",
-          image: {
+          imageMetadata: {
             name: "",
             size: 0,
             mimetype: "",
@@ -63,17 +73,11 @@ export function EditMapForm() {
       ],
     },
   });
-  const {
-    control,
-    register,
-    setValue,
-    resetField,
-    handleSubmit,
-    formState: { errors },
-  } = formMethods;
+  const { control, register, setValue, resetField, handleSubmit } = formMethods;
   const { fields, append, remove, move } = useFieldArray({
     control,
     name: "posts",
+    keyName: "_id",
   });
 
   const sensors = useSensors(
@@ -85,9 +89,10 @@ export function EditMapForm() {
 
   function addPost() {
     append({
+      id: getId(),
       title: "",
       description: "",
-      image: {
+      imageMetadata: {
         mimetype: "",
         size: 0,
         name: "",
@@ -96,9 +101,10 @@ export function EditMapForm() {
   }
 
   function handleImageUpload(index: number, payload: ImagePayload | null) {
-    console.log({ payload });
     if (payload) {
-      setValue(`posts.${index}.image`, payload, { shouldValidate: true });
+      setValue(`posts.${index}.imageMetadata`, payload, {
+        shouldValidate: true,
+      });
       return;
     }
     resetField(`posts.${index}`);
@@ -114,7 +120,10 @@ export function EditMapForm() {
     }
   }
 
-  const onSubmit: SubmitHandler<FormValues> = (e) => {};
+  const createPostMutation = api.diary.createPost.useMutation();
+  const onSubmit: SubmitHandler<FormValues> = (data) => {
+    createPostMutation.mutate(data.posts);
+  };
 
   return (
     <FormProvider {...formMethods}>
@@ -142,20 +151,26 @@ export function EditMapForm() {
                       X
                     </button>
                     <div>
-                      <Label htmlFor="title">Title</Label>
+                      <Label htmlFor={`${field.id}-title`}>Title</Label>
                       <Input
                         {...register(`posts.${index}.title`)}
-                        id="title"
+                        id={`${field.id}-title`}
                         type="text"
                         placeholder="Whistler at Night"
                       />
                     </div>
-                    <ImageUpload onChange={handleImageUpload} index={index} />
+                    <ImageUpload
+                      id={field.id}
+                      onChange={handleImageUpload}
+                      index={index}
+                    />
                     <div>
-                      <Label htmlFor="description">Description</Label>
+                      <Label htmlFor={`${field.id}-description`}>
+                        Description
+                      </Label>
                       <Textarea
                         {...register(`posts.${index}.description`)}
-                        id="description"
+                        id={`${field.id}-description`}
                       />
                     </div>
                   </fieldset>
@@ -186,14 +201,17 @@ type ImagePayload = {
 function ImageUpload({
   onChange,
   index,
+  id,
 }: {
   onChange: (index: number, p: ImagePayload | null) => void;
   index: number;
+  id: number;
 }) {
   const {
     register,
     formState: { errors },
   } = useFormContext<FormValues>();
+
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (files === null) {
@@ -213,14 +231,14 @@ function ImageUpload({
       mimetype: file.type,
     });
   }
-  register(`posts.${index}.image`);
-  const error = errors.posts?.[index]?.image;
+  register(`posts.${index}.imageMetadata`);
+  const error = errors.posts?.[index]?.imageMetadata;
   const hasError = !!error?.size?.message || !!error?.mimetype?.message;
-  console.log(!!error?.size?.message, !!error?.mimetype?.message);
   return (
     <div className="grid w-full items-center gap-1.5">
-      <Label htmlFor="image">Image</Label>
+      <Label htmlFor={`${id}-image`}>Image</Label>
       <Input
+        id={`${id}-image`}
         type="file"
         accept="image/*"
         className={cn(hasError && "border-red-300")}

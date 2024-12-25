@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "~/app/_components/ui/button";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 
 export function Header() {
   const params = useParams();
