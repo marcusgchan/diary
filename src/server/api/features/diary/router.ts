@@ -266,7 +266,7 @@ export const diaryRouter = createTRPCRouter({
     }),
   createPost: protectedProcedure
     .input(createPostSchema)
-    .mutation(async ({ ctx, db }) => {}),
+    .mutation(async ({ ctx, input }) => {}),
   saveEditorState: protectedProcedure
     .input(saveEditorStateSchema)
     .mutation(async ({ ctx, input }) => {
@@ -303,6 +303,41 @@ export const diaryRouter = createTRPCRouter({
         input,
       });
       return { diaryId: input.diaryId, entryId: input.entryId, day: input.day };
+    }),
+  createPresignedPostUrl: protectedProcedure
+    .input(
+      z.object({
+        diaryId: z.number(),
+        entryId: z.number(),
+        imageMetadata: z.object({
+          name: z.string(),
+          mimetype: z.string(),
+          size: z.number(),
+        }),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const entry = await getEntryIdByEntryAndDiaryId({
+        db: ctx.db,
+        entryId: input.entryId,
+        diaryId: input.diaryId,
+        userId: ctx.session.user.id,
+      });
+      if (!entry) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Entry does not exist",
+        });
+      }
+      const uuid = randomUUID();
+      const url = await getPresignedPost(
+        ctx.session.user.id,
+        input.diaryId,
+        input.entryId,
+        uuid,
+        input.imageMetadata,
+      );
+      return url;
     }),
   getPresignedUrl: protectedProcedure
     .input(

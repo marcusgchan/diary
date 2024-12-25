@@ -55,7 +55,13 @@ function getId(): number {
   return formId++;
 }
 
-export function EditMapForm() {
+export function EditMapForm({
+  diaryId,
+  entryId,
+}: {
+  diaryId: number;
+  entryId: number;
+}) {
   const formMethods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -100,9 +106,27 @@ export function EditMapForm() {
     });
   }
 
-  function handleImageUpload(index: number, payload: ImagePayload | null) {
-    if (payload) {
-      setValue(`posts.${index}.imageMetadata`, payload, {
+  const utils = api.useUtils();
+  async function handleImageUpload(index: number, file: File | null) {
+    if (file) {
+      const metadata = {
+        name: file.name,
+        size: file.size,
+        mimetype: file.type,
+      };
+      const data = await utils.diary.createPresignedPostUrl.fetch({
+        diaryId,
+        entryId,
+        imageMetadata: metadata,
+      });
+
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(data.fields)) {
+        formData.set(key, value);
+      }
+      formData.set("file", file);
+
+      setValue(`posts.${index}.imageMetadata`, metadata, {
         shouldValidate: true,
       });
       return;
@@ -192,18 +216,12 @@ export function EditMapForm() {
   );
 }
 
-type ImagePayload = {
-  name: string;
-  size: number;
-  mimetype: string;
-};
-
 function ImageUpload({
   onChange,
   index,
   id,
 }: {
-  onChange: (index: number, p: ImagePayload | null) => void;
+  onChange: (index: number, file: File | null) => void;
   index: number;
   id: number;
 }) {
@@ -225,11 +243,7 @@ function ImageUpload({
       return;
     }
 
-    onChange(index, {
-      name: file.name,
-      size: file.size,
-      mimetype: file.type,
-    });
+    onChange(index, file);
   }
   register(`posts.${index}.imageMetadata`);
   const error = errors.posts?.[index]?.imageMetadata;
