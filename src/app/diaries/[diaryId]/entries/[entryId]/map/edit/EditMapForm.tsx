@@ -9,6 +9,7 @@ import {
   useFieldArray,
   useForm,
   FormProvider,
+  useFormContext,
 } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,6 +79,12 @@ const posts = [
   },
 ];
 
+type HandleImageUploadCallabck = (
+  index: number,
+  id: number,
+  file: File | null,
+) => void;
+
 export function EditMapForm({
   diaryId,
   entryId,
@@ -91,14 +98,7 @@ export function EditMapForm({
       posts: posts,
     },
   });
-  const {
-    control,
-    register,
-    setValue,
-    formState: { errors },
-    resetField,
-    handleSubmit,
-  } = formMethods;
+  const { control, register, setValue, resetField, handleSubmit } = formMethods;
   const { fields, append, remove, move } = useFieldArray({
     control,
     name: "posts",
@@ -136,20 +136,21 @@ export function EditMapForm({
     setImgUploadStatuses((prev) => ({ ...prev, [id]: { type: "empty" } }));
   }
 
-  function removePost(index: number, id: number) {
+  async function removePost(index: number, id: number) {
     remove(index);
     setImgUploadStatuses((prev) => {
       const { [id]: _, ...other } = prev;
       return other;
     });
+    // delete from s3
   }
 
   const utils = api.useUtils();
-  async function handleImageUpload(
+  const handleImageUpload: HandleImageUploadCallabck = async (
     index: number,
     id: number,
     file: File | null,
-  ) {
+  ) => {
     if (file) {
       const metadata = {
         name: file.name,
@@ -180,7 +181,7 @@ export function EditMapForm({
     setImgUploadStatuses((prev) => {
       return { ...prev, [id]: { type: "empty" } };
     });
-  }
+  };
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -217,7 +218,7 @@ export function EditMapForm({
               const uploadStatus = imgUploadStatuses[field.id]!;
               return (
                 <SortableItem key={field.id} id={field.id}>
-                  <fieldset className="relative grid gap-2 bg-gray-100 [grid-auto-rows:auto_250px_auto]">
+                  <FieldSet>
                     <button
                       onClick={() => removePost(index, field.id)}
                       className="absolute right-0 top-0 -translate-y-1/2 translate-x-1/2"
@@ -234,67 +235,12 @@ export function EditMapForm({
                       />
                     </div>
                     <div>
-                      {imgUploadStatuses[field.id]!.type === "empty" && (
-                        <ImageUpload
-                          id={field.id}
-                          onChange={handleImageUpload}
-                          index={index}
-                        >
-                          {({
-                            handleDragOver,
-                            handleDrop,
-                            handleFileChange,
-                          }) => {
-                            register(`posts.${index}.imageMetadata`);
-                            const error = errors.posts?.[index]?.imageMetadata;
-                            const hasError =
-                              !!error?.size?.message ||
-                              !!error?.mimetype?.message;
-                            return (
-                              <Label htmlFor={`${field.id}-image`}>
-                                <div
-                                  className="grid items-center gap-1.5"
-                                  onDrop={handleDrop}
-                                  onDragOver={handleDragOver}
-                                >
-                                  <div className="grid aspect-square w-full max-w-[250px] content-center justify-center gap-2 rounded border-2 border-dashed border-black p-8 text-center [grid-auto-rows:max-content]">
-                                    <ImgLogo />
-                                    <p className="leading-4">
-                                      Click to upload image or drag and drop
-                                    </p>
-                                    <p className="text-sm">Max file size 9mb</p>
-                                    <input
-                                      id={`${field.id}-image`}
-                                      type="file"
-                                      accept="image/*"
-                                      className={cn(
-                                        hasError && "border-red-300",
-                                        "sr-only min-w-0",
-                                      )}
-                                      onChange={handleFileChange}
-                                      multiple={false}
-                                    />
-                                  </div>
-                                  {hasError && (
-                                    <div className="bg-red-300 p-2">
-                                      {error.size?.message && (
-                                        <p>{error.size.message}</p>
-                                      )}
-                                      {error.mimetype?.message && (
-                                        <p>{error.mimetype.message}</p>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </Label>
-                            );
-                          }}
-                        </ImageUpload>
-                      )}
-                      {uploadStatus.type === "loading" && <div>Loading...</div>}
-                      {uploadStatus.type === "uploaded" && (
-                        <img src={uploadStatus.url} alt="" />
-                      )}
+                      <ImageField
+                        imageUploadStatus={uploadStatus}
+                        fieldId={field.id}
+                        fieldIndex={index}
+                        handleImageUpload={handleImageUpload}
+                      />
                     </div>
                     <div>
                       <Label htmlFor={`${field.id}-description`}>
@@ -305,7 +251,7 @@ export function EditMapForm({
                         id={`${field.id}-description`}
                       />
                     </div>
-                  </fieldset>
+                  </FieldSet>
                 </SortableItem>
               );
             })}
@@ -321,6 +267,110 @@ export function EditMapForm({
         <Button className="col-start-1 col-end-2">Save</Button>
       </form>
     </FormProvider>
+  );
+}
+
+function ImageField({
+  fieldId,
+  fieldIndex,
+  imageUploadStatus,
+  handleImageUpload,
+}: {
+  fieldId: number;
+  fieldIndex: number;
+  imageUploadStatus: UploadStatus;
+  handleImageUpload: HandleImageUploadCallabck;
+}) {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext<FormValues>();
+  if (imageUploadStatus.type === "empty") {
+    return (
+      <ImageUpload id={fieldId} onChange={handleImageUpload} index={fieldIndex}>
+        {({ handleDragOver, handleDrop, handleFileChange }) => {
+          register(`posts.${fieldIndex}.imageMetadata`);
+          const error = errors.posts?.[fieldIndex]?.imageMetadata;
+          const hasError = !!error?.size?.message || !!error?.mimetype?.message;
+          return (
+            <Label htmlFor={`${fieldId}-image`}>
+              <Dropzone handleDragOver={handleDragOver} handleDrop={handleDrop}>
+                <DropzoneContent>
+                  <ImgLogo />
+                  <p className="leading-4">
+                    Click to upload image or drag and drop
+                  </p>
+                  <p className="text-sm">Max file size 9mb</p>
+                  <input
+                    id={`${fieldId}-image`}
+                    type="file"
+                    accept="image/*"
+                    className={cn(
+                      hasError && "border-red-300",
+                      "sr-only min-w-0",
+                    )}
+                    onChange={handleFileChange}
+                    multiple={false}
+                  />
+                </DropzoneContent>
+                {hasError && (
+                  <div className="bg-red-300 p-2">
+                    {error.size?.message && <p>{error.size.message}</p>}
+                    {error.mimetype?.message && <p>{error.mimetype.message}</p>}
+                  </div>
+                )}
+              </Dropzone>
+            </Label>
+          );
+        }}
+      </ImageUpload>
+    );
+  }
+
+  if (imageUploadStatus.type === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  if (imageUploadStatus.type === "error") {
+    return <div>something went wrong</div>;
+  }
+
+  return <img src={imageUploadStatus.url} alt="" />;
+}
+
+function FieldSet({ children }: { children: React.ReactNode }) {
+  return (
+    <fieldset className="relative grid gap-2 bg-gray-100 [grid-auto-rows:auto_250px_auto]">
+      {children}
+    </fieldset>
+  );
+}
+
+function Dropzone({
+  handleDrop,
+  handleDragOver,
+  children,
+}: {
+  handleDrop: (e: React.DragEvent) => void;
+  handleDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="grid items-center gap-1.5"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DropzoneContent({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid aspect-square w-full max-w-[250px] content-center justify-center gap-2 rounded border-2 border-dashed border-black p-8 text-center [grid-auto-rows:max-content]">
+      {children}
+    </div>
   );
 }
 
