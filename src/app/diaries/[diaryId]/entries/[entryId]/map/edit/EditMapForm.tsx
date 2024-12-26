@@ -10,10 +10,11 @@ import {
   useForm,
   FormProvider,
   useFormContext,
+  UseFieldArrayAppend,
 } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChangeEvent } from "react";
+import { ChangeEvent, useState } from "react";
 import { cn } from "~/app/_utils/cx";
 import {
   closestCenter,
@@ -52,8 +53,32 @@ type FormValues = z.infer<typeof formSchema>;
 let formId = 0;
 
 function getId(): number {
+  console.log("incrementing", formId);
   return formId++;
 }
+
+type UploadStatus =
+  | { type: "loading" }
+  | { type: "error" }
+  | { type: "empty" }
+  | { type: "uploaded"; url: string };
+
+type IdToUploadStatus = {
+  [key: string]: UploadStatus;
+};
+
+const posts = [
+  {
+    id: getId(),
+    title: "",
+    imageMetadata: {
+      name: "",
+      size: 0,
+      mimetype: "",
+    },
+    description: "",
+  },
+];
 
 export function EditMapForm({
   diaryId,
@@ -65,18 +90,7 @@ export function EditMapForm({
   const formMethods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      posts: [
-        {
-          id: getId(),
-          title: "",
-          imageMetadata: {
-            name: "",
-            size: 0,
-            mimetype: "",
-          },
-          description: "",
-        },
-      ],
+      posts: posts,
     },
   });
   const { control, register, setValue, resetField, handleSubmit } = formMethods;
@@ -86,6 +100,15 @@ export function EditMapForm({
     keyName: "_id",
   });
 
+  const e = Object.fromEntries(
+    fields.map((field) => [field.id, { type: "empty" as const }]),
+  );
+
+  const [imgUploadStatuses, setImgUploadStatuses] =
+    useState<IdToUploadStatus>(e);
+
+  console.log(imgUploadStatuses);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -94,8 +117,9 @@ export function EditMapForm({
   );
 
   function addPost() {
+    const id = getId();
     append({
-      id: getId(),
+      id: id,
       title: "",
       description: "",
       imageMetadata: {
@@ -104,10 +128,23 @@ export function EditMapForm({
         name: "",
       },
     });
+    setImgUploadStatuses((prev) => ({ ...prev, [id]: { type: "empty" } }));
+  }
+
+  function removePost(index: number, id: number) {
+    remove(index);
+    setImgUploadStatuses((prev) => {
+      const { [id]: _, ...other } = prev;
+      return other;
+    });
   }
 
   const utils = api.useUtils();
-  async function handleImageUpload(index: number, file: File | null) {
+  async function handleImageUpload(
+    index: number,
+    id: number,
+    file: File | null,
+  ) {
     if (file) {
       const metadata = {
         name: file.name,
@@ -129,9 +166,15 @@ export function EditMapForm({
       setValue(`posts.${index}.imageMetadata`, metadata, {
         shouldValidate: true,
       });
+      setImgUploadStatuses((prev) => {
+        return { ...prev, [id]: { type: "loading" } };
+      });
       return;
     }
     resetField(`posts.${index}`);
+    setImgUploadStatuses((prev) => {
+      return { ...prev, [id]: { type: "empty" } };
+    });
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -167,9 +210,9 @@ export function EditMapForm({
             {fields.map((field, index) => {
               return (
                 <SortableItem key={field.id} id={field.id}>
-                  <fieldset className="relative grid gap-2 bg-gray-100">
+                  <fieldset className="relative grid gap-2 bg-gray-100 [grid-auto-rows:auto_250px_auto]">
                     <button
-                      onClick={() => remove(index)}
+                      onClick={() => removePost(index, field.id)}
                       className="absolute right-0 top-0 -translate-y-1/2 translate-x-1/2"
                     >
                       X
@@ -183,11 +226,21 @@ export function EditMapForm({
                         placeholder="Whistler at Night"
                       />
                     </div>
-                    <ImageUpload
-                      id={field.id}
-                      onChange={handleImageUpload}
-                      index={index}
-                    />
+                    <div>
+                      {imgUploadStatuses[field.id]!.type === "empty" && (
+                        <ImageUpload
+                          id={field.id}
+                          onChange={handleImageUpload}
+                          index={index}
+                        />
+                      )}
+                      {imgUploadStatuses[field.id]!.type === "loading" && (
+                        <div>Loading...</div>
+                      )}
+                      {imgUploadStatuses[field.id]!.type === "uploaded" && (
+                        <img src={imgUploadStatuses[field.id]!.url} />
+                      )}
+                    </div>
                     <div>
                       <Label htmlFor={`${field.id}-description`}>
                         Description
@@ -221,7 +274,7 @@ function ImageUpload({
   index,
   id,
 }: {
-  onChange: (index: number, file: File | null) => void;
+  onChange: (index: number, id: number, file: File | null) => void;
   index: number;
   id: number;
 }) {
@@ -233,17 +286,17 @@ function ImageUpload({
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (files === null) {
-      onChange(index, null);
+      onChange(index, id, null);
       return;
     }
 
     const file = files[0];
     if (file === undefined) {
-      onChange(index, null);
+      onChange(index, id, null);
       return;
     }
 
-    onChange(index, file);
+    onChange(index, id, file);
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -259,7 +312,7 @@ function ImageUpload({
       return;
     }
 
-    onChange(index, file);
+    onChange(index, id, file);
   }
   register(`posts.${index}.imageMetadata`);
   const error = errors.posts?.[index]?.imageMetadata;
