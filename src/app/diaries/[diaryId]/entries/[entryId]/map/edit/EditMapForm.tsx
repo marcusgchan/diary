@@ -9,8 +9,6 @@ import {
   useFieldArray,
   useForm,
   FormProvider,
-  useFormContext,
-  UseFieldArrayAppend,
 } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -93,7 +91,14 @@ export function EditMapForm({
       posts: posts,
     },
   });
-  const { control, register, setValue, resetField, handleSubmit } = formMethods;
+  const {
+    control,
+    register,
+    setValue,
+    formState: { errors },
+    resetField,
+    handleSubmit,
+  } = formMethods;
   const { fields, append, remove, move } = useFieldArray({
     control,
     name: "posts",
@@ -208,6 +213,8 @@ export function EditMapForm({
             strategy={verticalListSortingStrategy}
           >
             {fields.map((field, index) => {
+              // Invariant: field must exist in upload status if it exists in form
+              const uploadStatus = imgUploadStatuses[field.id]!;
               return (
                 <SortableItem key={field.id} id={field.id}>
                   <fieldset className="relative grid gap-2 bg-gray-100 [grid-auto-rows:auto_250px_auto]">
@@ -232,13 +239,61 @@ export function EditMapForm({
                           id={field.id}
                           onChange={handleImageUpload}
                           index={index}
-                        />
+                        >
+                          {({
+                            handleDragOver,
+                            handleDrop,
+                            handleFileChange,
+                          }) => {
+                            register(`posts.${index}.imageMetadata`);
+                            const error = errors.posts?.[index]?.imageMetadata;
+                            const hasError =
+                              !!error?.size?.message ||
+                              !!error?.mimetype?.message;
+                            return (
+                              <Label htmlFor={`${field.id}-image`}>
+                                <div
+                                  className="grid items-center gap-1.5"
+                                  onDrop={handleDrop}
+                                  onDragOver={handleDragOver}
+                                >
+                                  <div className="grid aspect-square w-full max-w-[250px] content-center justify-center gap-2 rounded border-2 border-dashed border-black p-8 text-center [grid-auto-rows:max-content]">
+                                    <ImgLogo />
+                                    <p className="leading-4">
+                                      Click to upload image or drag and drop
+                                    </p>
+                                    <p className="text-sm">Max file size 9mb</p>
+                                    <input
+                                      id={`${field.id}-image`}
+                                      type="file"
+                                      accept="image/*"
+                                      className={cn(
+                                        hasError && "border-red-300",
+                                        "sr-only min-w-0",
+                                      )}
+                                      onChange={handleFileChange}
+                                      multiple={false}
+                                    />
+                                  </div>
+                                  {hasError && (
+                                    <div className="bg-red-300 p-2">
+                                      {error.size?.message && (
+                                        <p>{error.size.message}</p>
+                                      )}
+                                      {error.mimetype?.message && (
+                                        <p>{error.mimetype.message}</p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </Label>
+                            );
+                          }}
+                        </ImageUpload>
                       )}
-                      {imgUploadStatuses[field.id]!.type === "loading" && (
-                        <div>Loading...</div>
-                      )}
-                      {imgUploadStatuses[field.id]!.type === "uploaded" && (
-                        <img src={imgUploadStatuses[field.id]!.url} />
+                      {uploadStatus.type === "loading" && <div>Loading...</div>}
+                      {uploadStatus.type === "uploaded" && (
+                        <img src={uploadStatus.url} alt="" />
                       )}
                     </div>
                     <div>
@@ -273,16 +328,21 @@ function ImageUpload({
   onChange,
   index,
   id,
+  children,
 }: {
   onChange: (index: number, id: number, file: File | null) => void;
   index: number;
   id: number;
+  children: ({
+    handleDrop,
+    handleDragOver,
+    handleFileChange,
+  }: {
+    handleDrop: (e: React.DragEvent) => void;
+    handleDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
+    handleFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  }) => React.ReactNode;
 }) {
-  const {
-    register,
-    formState: { errors },
-  } = useFormContext<FormValues>();
-
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (files === null) {
@@ -314,49 +374,29 @@ function ImageUpload({
 
     onChange(index, id, file);
   }
-  register(`posts.${index}.imageMetadata`);
-  const error = errors.posts?.[index]?.imageMetadata;
-  const hasError = !!error?.size?.message || !!error?.mimetype?.message;
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+  }
+
+  return children({ handleDragOver, handleDrop, handleFileChange });
+}
+
+function ImgLogo() {
   return (
-    <Label htmlFor={`${id}-image`}>
-      <div
-        className="grid items-center gap-1.5"
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-      >
-        <div className="grid aspect-square w-full max-w-[250px] content-center justify-center gap-2 rounded border-2 border-dashed border-black p-8 text-center [grid-auto-rows:max-content]">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            stroke="currentColor"
-            fill="none"
-            viewBox="0 0 48 48"
-            aria-hidden="true"
-          >
-            <path
-              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <p className="leading-4">Click to upload image or drag and drop</p>
-          <p className="text-sm">Max file size 9mb</p>
-          <input
-            id={`${id}-image`}
-            type="file"
-            accept="image/*"
-            className={cn(hasError && "border-red-300", "sr-only min-w-0")}
-            onChange={handleFileChange}
-            multiple={false}
-          />
-        </div>
-        {hasError && (
-          <div className="bg-red-300 p-2">
-            {error.size?.message && <p>{error.size.message}</p>}
-            {error.mimetype?.message && <p>{error.mimetype.message}</p>}
-          </div>
-        )}
-      </div>
-    </Label>
+    <svg
+      className="mx-auto h-12 w-12 text-gray-400"
+      stroke="currentColor"
+      fill="none"
+      viewBox="0 0 48 48"
+      aria-hidden="true"
+    >
+      <path
+        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
