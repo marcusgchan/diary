@@ -118,16 +118,11 @@ export const entries = pgTable("entry", {
 
 export const imageKeys = pgTable("image_key", {
   key: text("key").primaryKey(),
-  entryId: bigint("entryId", { mode: "number" })
-    .references(() => entries.id)
-    .notNull(),
-  linked: boolean("linked").notNull().default(false),
-  receivedWebhook: boolean("receivedWebhook").notNull().default(false),
+  entryId: bigint("entryId", { mode: "number" }).references(() => entries.id),
   lon: doublePrecision("lon"),
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
   deleting: boolean("deleting").notNull().default(false),
-  // uncompressed, compressed
   compressionStatus: text("compressionStatus")
     .default("uncompressed")
     .$type<"uncompressed" | "compressed">()

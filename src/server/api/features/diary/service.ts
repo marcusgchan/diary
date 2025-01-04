@@ -558,11 +558,13 @@ export async function insertImageMetadata({
   entryId,
   key,
   dateTimeTaken,
+  gps,
 }: {
   db: TRPCContext["db"];
   userId: string;
   entryId: number;
   key: string;
+  gps?: { lat: number; lon: number };
   dateTimeTaken?: string | undefined;
 }) {
   const res = await db
@@ -580,6 +582,49 @@ export async function insertImageMetadata({
     .values({
       key,
       entryId,
+      lat: gps?.lat,
+      lon: gps?.lon,
+      datetimeTaken:
+        dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
+    })
+    .onConflictDoNothing();
+}
+
+export async function createMetadataOnImageCallback({
+  db,
+  userId,
+  entryId,
+  key,
+  dateTimeTaken,
+  compressionStatus,
+  gps,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  key: string;
+  gps?: { lat: number; lon: number };
+  compressionStatus: "compressed" | "uncompressed";
+  dateTimeTaken?: string | undefined;
+}) {
+  const res = await db
+    .select({ entryId: entries.id })
+    .from(diariesToUsers)
+    .innerJoin(entries, eq(entries.diaryId, diariesToUsers.diaryId))
+    .where(and(eq(diariesToUsers.userId, userId), eq(entries.id, entryId)));
+
+  if (res.length === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST" });
+  }
+
+  await db
+    .insert(imageKeys)
+    .values({
+      key,
+      entryId,
+      lat: gps?.lat,
+      lon: gps?.lon,
+      compressionStatus: compressionStatus,
       datetimeTaken:
         dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
     })
@@ -674,12 +719,12 @@ export async function getImageUploadStatus({
   db: TRPCContext["db"];
   key: string;
 }) {
-  const [status] = await db
-    .select({ receivedWebhook: imageKeys.receivedWebhook })
+  const res = await db
+    .select({ key: imageKeys.key })
     .from(imageKeys)
     .where(eq(imageKeys.key, key));
 
-  return !!status?.receivedWebhook;
+  return res.length > 0 ? "uploaded" : "pending";
 }
 
 export async function cancelImageUpload({

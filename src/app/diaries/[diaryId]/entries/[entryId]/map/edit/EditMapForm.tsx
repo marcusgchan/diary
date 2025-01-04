@@ -175,6 +175,19 @@ export function EditMapForm({
       setImgUploadStatuses((prev) => {
         return { ...prev, [id]: { type: "loading" } };
       });
+
+      try {
+        const res = await fetch(data.url);
+        if (!res.ok) {
+          throw new Error("Unable to upload image");
+        }
+        // increment ref which will start poll
+      } catch (e) {
+        // unable to upload
+        setImgUploadStatuses((prev) => {
+          return { ...prev, [id]: { type: "error" } };
+        });
+      }
       return;
     }
     resetField(`posts.${index}`);

@@ -335,7 +335,11 @@ export const diaryRouter = createTRPCRouter({
         input.diaryId,
         input.entryId,
         uuid,
-        input.imageMetadata,
+        {
+          name: input.imageMetadata.name,
+          size: input.imageMetadata.size,
+          type: input.imageMetadata.mimetype,
+        },
       );
       return url;
     }),
@@ -456,6 +460,11 @@ export const diaryRouter = createTRPCRouter({
   getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {
     return await getImageSignedUrl(input);
   }),
+  getMultipleImageUploadStatus: protectedProcedure
+    .input(z.object({ key: z.string() }).array())
+    .query(async ({ ctx, input }) => {
+      return { "1": "uploaded" };
+    }),
   getImageUploadStatus: protectedProcedure
     .input(z.object({ key: z.string().or(z.undefined()) }))
     .query(async ({ ctx, input }) => {

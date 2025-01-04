@@ -3,16 +3,20 @@ import { env } from "~/env.mjs";
 import { timingSafeEqual } from "crypto";
 import { db } from "~/server/db";
 import {
+  createMetadataOnImageCallback,
   getEntryIdByEntryAndDiaryId,
   getImageUploadStatus,
+  insertImageMetadata,
   receivedImageWebhook,
   setCompressionStatus,
 } from "~/server/api/features/diary/service";
 import {
+  deleteImage,
   getImage,
   uploadImage,
 } from "~/server/api/features/shared/s3ImagesService";
 import sharp from "sharp";
+import ExifReader from "exifreader";
 
 export async function POST(req: Request) {
   const rawToken = req.headers.get("authorization");
@@ -57,19 +61,10 @@ export async function POST(req: Request) {
   if (!res) {
     return Response.json({}, { status: 401 });
   }
-  const uploaded = await getImageUploadStatus({ db, key });
-  if (uploaded) {
+  const uploadStatus = await getImageUploadStatus({ db, key });
+  if (uploadStatus === "uploaded") {
     console.log("image uploaded already with key", key);
     return Response.json({}, { status: 201 });
-  }
-
-  try {
-    await receivedImageWebhook({
-      db,
-      key,
-    });
-  } catch (e) {
-    console.error(`unable to update image key (${key}) status to received`);
   }
 
   const imgBuf = await getImage(key);
@@ -93,17 +88,47 @@ export async function POST(req: Request) {
 
   try {
     console.log("uploading image");
-    await uploadImage(imgBuf, key);
-    try {
-      await setCompressionStatus({
+    // uncompressed img
+
+    const keySegments = key.split("/");
+
+    const name = keySegments[keySegments.length - 1]!;
+    const indexOfDot = name.lastIndexOf(".");
+    const indexOflastSlash = key.lastIndexOf("/");
+
+    const compressedImageName = `${name.slice(0, indexOfDot)}-compressed.webp`;
+    const compressedImageKey = `${key.slice(0, indexOflastSlash)}/${compressedImageName}`;
+
+    await uploadImage(imgBuf, compressedImageKey);
+
+    const parsedGps = getGpsMetadata(imgBuf);
+    if (!parsedGps.success) {
+      console.log("unable to get gps data", parsedGps.error);
+    } else {
+      let formattedDate = undefined;
+      let dateTimeTaken = parsedGps.data.dateTimeTaken;
+
+      const segments = dateTimeTaken?.split(" ");
+      if (segments) {
+        const date = segments[0]?.replaceAll(":", "/");
+        const time = segments[1];
+        if (date !== undefined && time !== undefined) {
+          formattedDate = `${date} ${time}`;
+        }
+      }
+      await createMetadataOnImageCallback({
         db,
         key,
+        userId,
+        entryId,
+        gps:
+          parsedGps.data.gps?.lon !== undefined &&
+          parsedGps.data.gps.lat !== undefined
+            ? { lat: parsedGps.data.gps.lat, lon: parsedGps.data.gps.lon }
+            : undefined,
         compressionStatus: "compressed",
+        dateTimeTaken: formattedDate,
       });
-    } catch (e) {
-      console.log(
-        "unable to update compression status to compressed even though image is compressed",
-      );
     }
   } catch (e) {
     console.error(`unable to upload compressed image with key ${key}`);
@@ -142,6 +167,41 @@ const hostedInput = z.object({
     // reason: z.string(),
   }),
 });
+
+type GpsMetadataRes =
+  | { success: false; error: string }
+  | {
+      success: true;
+      data: {
+        gps: { lat: number; lon: number } | null;
+        dateTimeTaken: string | null;
+      };
+    };
+function getGpsMetadata(
+  buf: ArrayBuffer | Buffer | SharedArrayBuffer,
+): GpsMetadataRes {
+  let tags: ExifReader.ExpandedTags | undefined;
+  try {
+    tags = ExifReader.load(buf, { expanded: true });
+  } catch (e) {
+    return { success: false, error: e as string };
+  }
+
+  const gps =
+    tags?.gps?.Longitude !== undefined && tags?.gps.Latitude !== undefined
+      ? { lat: tags.gps.Latitude, lon: tags.gps.Longitude }
+      : null;
+
+  const dateTimeTaken = tags?.exif?.DateTimeOriginal?.description ?? null;
+
+  return {
+    success: true as const,
+    data: {
+      gps,
+      dateTimeTaken,
+    },
+  };
+}
 
 async function compressImage(buffer: Buffer): Promise<Buffer | undefined> {
   try {
