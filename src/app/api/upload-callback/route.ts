@@ -88,18 +88,8 @@ export async function POST(req: Request) {
 
   try {
     console.log("uploading image");
-    // uncompressed img
 
-    const keySegments = key.split("/");
-
-    const name = keySegments[keySegments.length - 1]!;
-    const indexOfDot = name.lastIndexOf(".");
-    const indexOflastSlash = key.lastIndexOf("/");
-
-    const compressedImageName = `${name.slice(0, indexOfDot)}-compressed.webp`;
-    const compressedImageKey = `${key.slice(0, indexOflastSlash)}/${compressedImageName}`;
-
-    await uploadImage(imgBuf, compressedImageKey);
+    await uploadImage(imgBuf, key);
 
     const parsedGps = getGpsMetadata(imgBuf);
     if (!parsedGps.success) {

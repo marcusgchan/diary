@@ -31,6 +31,7 @@ import {
   updateDiaryStatusToNotDeleting,
   updateDiaryEntryStatusToDeleting,
   updateDiaryEntryStatusToNotDeleting,
+  getUnlinkedImages,
 } from "./service";
 import {
   createDiarySchema,
@@ -461,8 +462,23 @@ export const diaryRouter = createTRPCRouter({
     return await getImageSignedUrl(input);
   }),
   getMultipleImageUploadStatus: protectedProcedure
-    .input(z.object({ key: z.string() }).array())
+    .input(
+      z.object({
+        keys: z.string().array(),
+        entryId: z.number(),
+        diaryId: z.number(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
+      // for this user find all img with entryId null
+      // filter out the ones that aren't interested with
+      const unlinked = await getUnlinkedImages({
+        db: ctx.db,
+        keys: input.keys,
+        diaryId: 1,
+        entryId: 1,
+        userId: ctx.session.user.id,
+      });
       return { "1": "uploaded" };
     }),
   getImageUploadStatus: protectedProcedure

@@ -124,8 +124,8 @@ export const imageKeys = pgTable("image_key", {
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
   deleting: boolean("deleting").notNull().default(false),
   compressionStatus: text("compressionStatus")
-    .default("uncompressed")
-    .$type<"uncompressed" | "compressed">()
+    .default("success")
+    .$type<"success" | "failure">()
     .notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();

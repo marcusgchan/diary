@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, inArray } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, isNull } from "drizzle-orm";
 import {
   diaries,
   diariesToUsers,
@@ -604,7 +604,7 @@ export async function createMetadataOnImageCallback({
   entryId: number;
   key: string;
   gps?: { lat: number; lon: number };
-  compressionStatus: "compressed" | "uncompressed";
+  compressionStatus: ImageKeys["compressionStatus"];
   dateTimeTaken?: string | undefined;
 }) {
   const res = await db
@@ -629,6 +629,38 @@ export async function createMetadataOnImageCallback({
         dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
     })
     .onConflictDoNothing();
+}
+
+export async function getUnlinkedImages({
+  db,
+  userId,
+  entryId,
+  diaryId,
+  keys,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  diaryId: number;
+  keys: string[];
+}) {
+  return await db
+    .select({
+      key: imageKeys.key,
+      compressionStatus: imageKeys.compressionStatus,
+    })
+    .from(imageKeys)
+    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(
+      and(
+        eq(diariesToUsers.userId, userId),
+        eq(entries.id, entryId),
+        eq(diaries.id, diaryId),
+        isNull(imageKeys.entryId),
+        inArray(imageKeys.key, keys),
+      ),
+    );
 }
 
 export async function receivedImageWebhook({
