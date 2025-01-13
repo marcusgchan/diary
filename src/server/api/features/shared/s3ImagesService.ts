@@ -19,9 +19,10 @@ export async function getPresignedPost(
   imageMetadata: { name: string; type: string; size: number },
 ) {
   const filename = `${uuid}-${imageMetadata.name.slice(0, imageMetadata.name.lastIndexOf("."))}`;
+  const key = `${userId}/${diaryId}/${entryId}/${filename}`;
   const presignedPost = await createPresignedPost(s3Client, {
     Bucket: env.BUCKET_NAME,
-    Key: `${userId}/${diaryId}/${entryId}/${filename}`,
+    Key: key,
     Expires: config.s3.presignedUrlDuration,
     Fields: {
       acl: "private",
@@ -37,6 +38,7 @@ export async function getPresignedPost(
   });
   return {
     userId,
+    key,
     filename,
     url: presignedPost.url,
     fields: presignedPost.fields,

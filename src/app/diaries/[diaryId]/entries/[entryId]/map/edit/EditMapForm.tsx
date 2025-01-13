@@ -13,7 +13,7 @@ import {
 } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { cn } from "~/app/_utils/cx";
 import {
   closestCenter,
@@ -57,13 +57,13 @@ function getId(): number {
 }
 
 type UploadStatus =
-  | { type: "loading" }
-  | { type: "error" }
+  | { type: "loading"; key: string }
+  | { type: "error"; key: string }
   | { type: "empty" }
-  | { type: "uploaded"; url: string };
+  | { type: "uploaded"; url: string; key: string };
 
 type IdToUploadStatus = {
-  [key: string]: UploadStatus;
+  [id: string]: UploadStatus;
 };
 
 const posts = [
@@ -112,6 +112,51 @@ export function EditMapForm({
   const [imgUploadStatuses, setImgUploadStatuses] =
     useState<IdToUploadStatus>(e);
 
+  // Store id to key mapping for uploaded images
+  const imageKeyToIdRef = useRef<Map<string, number>>(new Map());
+
+  const { data: imageUploadStatuses } =
+    api.diary.getMultipleImageUploadStatus.useQuery(
+      {
+        keyToIdMap: imageKeyToIdRef.current,
+        entryId: entryId,
+        diaryId: diaryId,
+        keys: Array.from(imageKeyToIdRef.current.keys()),
+      },
+      {
+        retryDelay: 3,
+        enabled: !!Object.keys(imgUploadStatuses).length,
+      },
+    );
+
+  useEffect(() => {
+    if (imageUploadStatuses === undefined) {
+      return;
+    }
+
+    setImgUploadStatuses((statuses) => {
+      const newStatuses = Array.from(Object.entries(statuses)).map(
+        ([id, value]) => {
+          if (
+            value.type === "empty" ||
+            value.type === "uploaded" ||
+            value.type === "error"
+          ) {
+            return [id, value] as const;
+          }
+
+          const newStatus = imageUploadStatuses.get(Number(id));
+          if (newStatus === undefined) {
+            return [id, value] as const;
+          }
+
+          return [id, { ...value, type: "uploaded" }] as const;
+        },
+      );
+      return new Map(newStatuses);
+    });
+  }, [imageUploadStatuses]);
+
   console.log(imgUploadStatuses);
 
   const sensors = useSensors(
@@ -142,6 +187,9 @@ export function EditMapForm({
       const { [id]: _, ...other } = prev;
       return other;
     });
+    imageKeyToIdRef.current.delete(
+      (imgUploadStatuses[id] as { key: string }).key,
+    );
     // delete from s3
   }
 
@@ -175,6 +223,7 @@ export function EditMapForm({
       setImgUploadStatuses((prev) => {
         return { ...prev, [id]: { type: "loading" } };
       });
+      imageKeyToIdRef.current.set(data.key, id);
 
       try {
         const res = await fetch(data.url);
@@ -194,6 +243,9 @@ export function EditMapForm({
     setImgUploadStatuses((prev) => {
       return { ...prev, [id]: { type: "empty" } };
     });
+    imageKeyToIdRef.current.delete(
+      (imgUploadStatuses[id] as { key: string }).key,
+    );
   };
 
   function handleDragEnd(event: DragEndEvent) {

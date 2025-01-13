@@ -467,6 +467,7 @@ export const diaryRouter = createTRPCRouter({
         keys: z.string().array(),
         entryId: z.number(),
         diaryId: z.number(),
+        keyToIdMap: z.map(z.string(), z.number()),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -479,7 +480,28 @@ export const diaryRouter = createTRPCRouter({
         entryId: 1,
         userId: ctx.session.user.id,
       });
-      return { "1": "uploaded" };
+      const unlinkedTransformed = unlinked.map(async (el) => {
+        try {
+          const url = await getImageSignedUrl(el.key);
+          return [
+            input.keyToIdMap.get(el.key)!,
+            {
+              status: "success",
+              key: el.key,
+              url: url,
+            },
+          ] as const;
+        } catch (e) {
+          return [
+            input.keyToIdMap.get(el.key)!,
+            {
+              status: "failure",
+            },
+          ] as const;
+        }
+      });
+      const res = await Promise.all(unlinkedTransformed);
+      return Object.fromEntries(res);
     }),
   getImageUploadStatus: protectedProcedure
     .input(z.object({ key: z.string().or(z.undefined()) }))
