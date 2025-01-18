@@ -656,8 +656,8 @@ export async function getUnlinkedImages({
       and(
         eq(diariesToUsers.userId, userId),
         eq(entries.id, entryId),
-        eq(diaries.id, diaryId),
-        isNull(imageKeys.entryId),
+        eq(diariesToUsers.diaryId, diaryId),
+        eq(imageKeys.linked, false),
         inArray(imageKeys.key, keys),
       ),
     );
@@ -717,6 +717,12 @@ export async function insertImageMetadataWithGps({
   });
 }
 
+export class DeleteImageMetadataError extends Error {
+  constructor(msg?: string, options?: ErrorOptions) {
+    super(msg, options);
+    this.name = DeleteImageMetadataError.name;
+  }
+}
 export async function deleteImageMetadata({
   db,
   key,
@@ -724,7 +730,13 @@ export async function deleteImageMetadata({
   db: TRPCContext["db"];
   key: string;
 }) {
-  await db.delete(imageKeys).where(eq(imageKeys.key, key));
+  try {
+    await db.delete(imageKeys).where(eq(imageKeys.key, key));
+  } catch (e) {
+    throw new DeleteImageMetadataError("unable to delete image metadata", {
+      cause: e,
+    });
+  }
 }
 
 export async function getKeyByKey({

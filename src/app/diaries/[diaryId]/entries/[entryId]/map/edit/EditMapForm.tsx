@@ -58,7 +58,7 @@ function getId(): number {
 
 type UploadStatus =
   | { type: "loading"; key: string }
-  | { type: "error"; key: string }
+  | { type: "error"; key?: string }
   | { type: "empty" }
   | { type: "uploaded"; url: string; key: string };
 
@@ -115,6 +115,10 @@ export function EditMapForm({
   // Store id to key mapping for uploaded images
   const imageKeyToIdRef = useRef<Map<string, number>>(new Map());
 
+  const retrying = !!Object.values(imgUploadStatuses).filter(
+    (status) => status.type === "loading",
+  ).length;
+  console.log({ retrying });
   const { data: imageUploadStatuses } =
     api.diary.getMultipleImageUploadStatus.useQuery(
       {
@@ -124,8 +128,8 @@ export function EditMapForm({
         keys: Array.from(imageKeyToIdRef.current.keys()),
       },
       {
-        retryDelay: 3,
-        enabled: !!Object.keys(imgUploadStatuses).length,
+        refetchInterval: 3000,
+        enabled: retrying,
       },
     );
 
@@ -137,27 +141,36 @@ export function EditMapForm({
     setImgUploadStatuses((statuses) => {
       const newStatuses = Array.from(Object.entries(statuses)).map(
         ([id, value]) => {
-          if (
-            value.type === "empty" ||
-            value.type === "uploaded" ||
-            value.type === "error"
-          ) {
-            return [id, value] as const;
+          if (value.type === "loading") {
+            const updatedStatus = imageUploadStatuses[Number(id)];
+
+            // still loading
+            if (updatedStatus === undefined) {
+              return [id, value] as const;
+            }
+
+            if (updatedStatus.status === "success") {
+              return [
+                id,
+                {
+                  key: updatedStatus.key,
+                  url: updatedStatus.url,
+                },
+              ] as const;
+            }
+
+            return [id, { type: "error" }] as const;
           }
 
-          const newStatus = imageUploadStatuses.get(Number(id));
-          if (newStatus === undefined) {
-            return [id, value] as const;
-          }
-
-          return [id, { ...value, type: "uploaded" }] as const;
+          return [id, value] as const;
         },
       );
-      return new Map(newStatuses);
+      console.log(Object.fromEntries(newStatuses));
+      return Object.fromEntries(newStatuses);
     });
   }, [imageUploadStatuses]);
 
-  console.log(imgUploadStatuses);
+  // console.log(imgUploadStatuses);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -165,6 +178,8 @@ export function EditMapForm({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  const deletePostMutation = api.diary.deletePost.useMutation();
 
   function addPost() {
     const id = getId();
@@ -182,15 +197,28 @@ export function EditMapForm({
   }
 
   async function removePost(index: number, id: number) {
+    deletePostMutation.mutate({ entryId, diaryId, key: "" });
+    const status = imgUploadStatuses[id];
+    if (status === undefined) {
+      throw Error("status should not be undefined");
+    }
+
+    if (status.type === "loading") {
+      return;
+    }
+
     remove(index);
     setImgUploadStatuses((prev) => {
       const { [id]: _, ...other } = prev;
       return other;
     });
-    imageKeyToIdRef.current.delete(
-      (imgUploadStatuses[id] as { key: string }).key,
-    );
-    // delete from s3
+
+    // If status is error key is optional
+    if (status.type !== "empty" && status.key) {
+      const key = status.key;
+      imageKeyToIdRef.current.delete(key);
+      deletePostMutation.mutate({ entryId, diaryId, key });
+    }
   }
 
   const utils = api.useUtils();
@@ -226,7 +254,10 @@ export function EditMapForm({
       imageKeyToIdRef.current.set(data.key, id);
 
       try {
-        const res = await fetch(data.url);
+        const res = await fetch(data.url, {
+          body: formData,
+          method: "post",
+        });
         if (!res.ok) {
           throw new Error("Unable to upload image");
         }

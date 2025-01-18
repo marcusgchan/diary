@@ -53,13 +53,25 @@ export async function getImageSignedUrl(key: string) {
   return getSignedUrl(s3Client, getCommand);
 }
 
+export class S3DeleteImageError extends Error {
+  constructor(msg?: string, options?: ErrorOptions) {
+    super(msg, options);
+    this.name = S3DeleteImageError.name;
+  }
+}
+
 export async function deleteImage(key: string) {
   const deleteCommand = new DeleteObjectCommand({
     Bucket: env.BUCKET_NAME,
     Key: key,
   });
-
-  await s3Client.send(deleteCommand);
+  try {
+    await s3Client.send(deleteCommand);
+  } catch (e) {
+    throw new S3DeleteImageError("unable to delete image from s3", {
+      cause: e,
+    });
+  }
 }
 
 export async function getImage(key: string): Promise<Buffer | undefined> {

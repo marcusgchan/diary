@@ -116,7 +116,7 @@ export async function POST(req: Request) {
           parsedGps.data.gps.lat !== undefined
             ? { lat: parsedGps.data.gps.lat, lon: parsedGps.data.gps.lon }
             : undefined,
-        compressionStatus: "compressed",
+        compressionStatus: "success",
         dateTimeTaken: formattedDate,
       });
     }

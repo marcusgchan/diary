@@ -32,6 +32,7 @@ import {
   updateDiaryEntryStatusToDeleting,
   updateDiaryEntryStatusToNotDeleting,
   getUnlinkedImages,
+  DeleteImageMetadataError,
 } from "./service";
 import {
   createDiarySchema,
@@ -47,6 +48,7 @@ import {
   deleteImages,
   getImageSignedUrl,
   getPresignedPost,
+  S3DeleteImageError,
 } from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
 
@@ -268,6 +270,24 @@ export const diaryRouter = createTRPCRouter({
   createPost: protectedProcedure
     .input(createPostSchema)
     .mutation(async ({ ctx, input }) => {}),
+  deletePost: protectedProcedure
+    .input(
+      z.object({
+        diaryId: z.number(),
+        entryId: z.number(),
+        key: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await deleteImage(input.key);
+        await deleteImageMetadata({ db: ctx.db, key: input.key });
+      } catch (e) {
+        if (e instanceof DeleteImageMetadataError) {
+        } else if (e instanceof S3DeleteImageError) {
+        }
+      }
+    }),
   saveEditorState: protectedProcedure
     .input(saveEditorStateSchema)
     .mutation(async ({ ctx, input }) => {
@@ -473,35 +493,57 @@ export const diaryRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       // for this user find all img with entryId null
       // filter out the ones that aren't interested with
+      console.log({
+        keys: input.keys,
+        diaryId: input.diaryId,
+        entryId: input.entryId,
+      });
       const unlinked = await getUnlinkedImages({
         db: ctx.db,
         keys: input.keys,
-        diaryId: 1,
-        entryId: 1,
+        diaryId: input.diaryId,
+        entryId: input.entryId,
         userId: ctx.session.user.id,
       });
-      const unlinkedTransformed = unlinked.map(async (el) => {
-        try {
-          const url = await getImageSignedUrl(el.key);
-          return [
-            input.keyToIdMap.get(el.key)!,
-            {
-              status: "success",
-              key: el.key,
-              url: url,
-            },
-          ] as const;
-        } catch (e) {
-          return [
-            input.keyToIdMap.get(el.key)!,
-            {
-              status: "failure",
-            },
-          ] as const;
-        }
-      });
+      console.log({ unlinked });
+
+      const unlinkedTransformed = unlinked
+        .filter((el) => input.keyToIdMap.get(el.key) !== undefined)
+        .map(async (el) => {
+          try {
+            const url = await getImageSignedUrl(el.key);
+            const id = input.keyToIdMap.get(el.key);
+            if (id === undefined) {
+              throw new Error();
+            }
+
+            if (el.compressionStatus === "failure") {
+              return [id, { key: el.key, url, status: "failure" }] as const;
+            }
+
+            return [id, { key: el.key, url, status: "success" }] as const;
+          } catch (e) {
+            return [
+              input.keyToIdMap.get(el.key)!,
+              {
+                status: "failure",
+              },
+            ] as const;
+          }
+        });
       const res = await Promise.all(unlinkedTransformed);
-      return Object.fromEntries(res);
+      const typeSafeObjectFromEntries = <
+        const T extends ReadonlyArray<readonly [PropertyKey, unknown]>,
+      >(
+        entries: T,
+      ): { [K in T[number] as K[0]]: K[1] } => {
+        return Object.fromEntries(entries) as {
+          [K in T[number] as K[0]]: K[1];
+        };
+      };
+      const r = typeSafeObjectFromEntries(res);
+      console.log(r);
+      return r;
     }),
   getImageUploadStatus: protectedProcedure
     .input(z.object({ key: z.string().or(z.undefined()) }))

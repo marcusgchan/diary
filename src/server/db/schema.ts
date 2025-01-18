@@ -118,7 +118,9 @@ export const entries = pgTable("entry", {
 
 export const imageKeys = pgTable("image_key", {
   key: text("key").primaryKey(),
-  entryId: bigint("entryId", { mode: "number" }).references(() => entries.id),
+  entryId: bigint("entryId", { mode: "number" })
+    .notNull()
+    .references(() => entries.id),
   lon: doublePrecision("lon"),
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
@@ -127,6 +129,7 @@ export const imageKeys = pgTable("image_key", {
     .default("success")
     .$type<"success" | "failure">()
     .notNull(),
+  linked: boolean().notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
 
