@@ -10,6 +10,7 @@ import {
   text,
   timestamp,
   doublePrecision,
+  varchar,
 } from "drizzle-orm/pg-core";
 import {
   type SerializedEditorState,
@@ -124,16 +125,25 @@ export const imageKeys = pgTable("image_key", {
   lon: doublePrecision("lon"),
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
-  deleting: boolean("deleting").notNull().default(false),
+  postId: bigint({ mode: "number" }).references(() => posts.id),
   compressionStatus: text("compressionStatus")
     .default("success")
     .$type<"success" | "failure">()
     .notNull(),
-  linked: boolean().notNull().default(false),
+  deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
 
 export type ImageKeys = typeof imageKeys.$inferSelect;
+
+export const posts = pgTable("posts", {
+  id: bigserial({ mode: "number" }).primaryKey(),
+  entryId: bigint({ mode: "number" })
+    .notNull()
+    .references(() => entries.id),
+  name: varchar({ length: 255 }),
+  description: varchar({ length: 2048 }),
+});
 
 export const editorStates = pgTable("editor_state", {
   data: json("editorState").$type<

@@ -7,7 +7,6 @@ import {
   getEntryIdByEntryAndDiaryId,
   getImageUploadStatus,
   insertImageMetadata,
-  receivedImageWebhook,
   setCompressionStatus,
 } from "~/server/api/features/diary/service";
 import {
@@ -75,9 +74,17 @@ export async function POST(req: Request) {
     return Response.json({}, { status: 500 });
   }
 
-  const compressImageBuf = await compressImage(imgBuf);
+  let compressImageBuf = await compressImage(imgBuf);
+  compressImageBuf = undefined;
   if (compressImageBuf === undefined) {
     console.log("unable to compress image");
+    await createMetadataOnImageCallback({
+      db,
+      key,
+      userId,
+      entryId,
+      compressionStatus: "failure",
+    });
     const res = new Response();
 
     // Negative to avoid retry
@@ -95,17 +102,7 @@ export async function POST(req: Request) {
     if (!parsedGps.success) {
       console.log("unable to get gps data", parsedGps.error);
     } else {
-      let formattedDate = undefined;
-      let dateTimeTaken = parsedGps.data.dateTimeTaken;
-
-      const segments = dateTimeTaken?.split(" ");
-      if (segments) {
-        const date = segments[0]?.replaceAll(":", "/");
-        const time = segments[1];
-        if (date !== undefined && time !== undefined) {
-          formattedDate = `${date} ${time}`;
-        }
-      }
+      const formattedDate = formatDate(parsedGps.data.dateTimeTaken);
       await createMetadataOnImageCallback({
         db,
         key,
@@ -203,6 +200,20 @@ async function compressImage(buffer: Buffer): Promise<Buffer | undefined> {
   } catch (e) {
     console.error("unable to compress image", e);
   }
+}
+
+function formatDate(date: string | null): string | undefined {
+  let formattedDate: string | undefined = undefined;
+  const segments = date?.split(" ");
+
+  if (segments) {
+    const date = segments[0]?.replaceAll(":", "/");
+    const time = segments[1];
+    if (date !== undefined && time !== undefined) {
+      formattedDate = `${date} ${time}`;
+    }
+  }
+  return formattedDate;
 }
 
 type WebhookReqBody = {

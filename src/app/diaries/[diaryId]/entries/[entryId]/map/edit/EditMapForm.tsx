@@ -13,7 +13,7 @@ import {
 } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "~/app/_utils/cx";
 import {
   closestCenter,
@@ -31,6 +31,8 @@ import {
 } from "@dnd-kit/sortable";
 import { SortableItem } from "./SortableItem";
 import { api } from "~/trpc/TrpcProvider";
+import { Skeleton } from "~/app/_components/ui/skeleton";
+import { toast } from "~/app/_components/ui/use-toast";
 
 const formSchema = z.object({
   posts: z
@@ -105,20 +107,35 @@ export function EditMapForm({
     keyName: "_id",
   });
 
-  const e = Object.fromEntries(
-    fields.map((field) => [field.id, { type: "empty" as const }]),
-  );
+  const initialStatuses = useMemo(() => {
+    return Object.fromEntries(
+      fields.map((field) => [field.id, { type: "empty" as const }]),
+    );
+  }, [fields]);
 
   const [imgUploadStatuses, setImgUploadStatuses] =
-    useState<IdToUploadStatus>(e);
+    useState<IdToUploadStatus>(initialStatuses);
 
   // Store id to key mapping for uploaded images
   const imageKeyToIdRef = useRef<Map<string, number>>(new Map());
 
+  function resetImage(id: number, key?: string) {
+    setImgUploadStatuses({
+      ...imgUploadStatuses,
+      [id]: { type: "empty" },
+    });
+    if (key !== undefined) {
+      imageKeyToIdRef.current.delete(key);
+    } else {
+      imageKeyToIdRef.current = new Map(
+        [...imageKeyToIdRef.current.entries()].filter(([_, _id]) => _id !== id),
+      );
+    }
+  }
+
   const retrying = !!Object.values(imgUploadStatuses).filter(
     (status) => status.type === "loading",
   ).length;
-  console.log({ retrying });
   const { data: imageUploadStatuses } =
     api.diary.getMultipleImageUploadStatus.useQuery(
       {
@@ -165,12 +182,9 @@ export function EditMapForm({
           return [id, value] as const;
         },
       );
-      console.log(Object.fromEntries(newStatuses));
       return Object.fromEntries(newStatuses);
     });
   }, [imageUploadStatuses]);
-
-  // console.log(imgUploadStatuses);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -179,7 +193,7 @@ export function EditMapForm({
     }),
   );
 
-  const deletePostMutation = api.diary.deletePost.useMutation();
+  const deletePostMutation = api.diary.deleteUnlinkedImage.useMutation();
 
   function addPost() {
     const id = getId();
@@ -291,7 +305,32 @@ export function EditMapForm({
 
   const createPostMutation = api.diary.createPost.useMutation();
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    createPostMutation.mutate(data.posts);
+    const errors = data.posts.some(
+      (post) =>
+        imgUploadStatuses[post.id] === undefined ||
+        imgUploadStatuses[post.id]?.type !== "uploaded",
+    );
+    if (errors) {
+      toast({
+        title: "One or more images have errors",
+        variant: "destructive",
+      });
+      return;
+    }
+    createPostMutation.mutate({
+      entryId,
+      posts: data.posts.map((post) => {
+        const status = imgUploadStatuses[post.id] as {
+          type: "uploaded";
+          key: string;
+        };
+        return {
+          key: status.key,
+          title: post.title,
+          description: post.description,
+        };
+      }),
+    });
   };
 
   return (
@@ -336,6 +375,7 @@ export function EditMapForm({
                         fieldId={field.id}
                         fieldIndex={index}
                         handleImageUpload={handleImageUpload}
+                        resetImage={resetImage}
                       />
                     </div>
                     <div>
@@ -371,11 +411,13 @@ function ImageField({
   fieldIndex,
   imageUploadStatus,
   handleImageUpload,
+  resetImage,
 }: {
   fieldId: number;
   fieldIndex: number;
   imageUploadStatus: UploadStatus;
   handleImageUpload: HandleImageUploadCallabck;
+  resetImage: (id: number, key?: string) => void;
 }) {
   const {
     register,
@@ -424,14 +466,37 @@ function ImageField({
   }
 
   if (imageUploadStatus.type === "loading") {
-    return <div>Loading...</div>;
+    return (
+      <div className="aspect-square max-w-[250px]">
+        <Skeleton className="h-full w-full" />
+      </div>
+    );
   }
 
   if (imageUploadStatus.type === "error") {
-    return <div>something went wrong</div>;
+    return (
+      <div className="space-y-2 p-2">
+        <p>There was an error uploading your image.</p>
+        <Button
+          type="button"
+          onClick={() => resetImage(fieldIndex, imageUploadStatus.key)}
+        >
+          Try again
+        </Button>
+      </div>
+    );
   }
 
-  return <img src={imageUploadStatus.url} alt="" />;
+  return (
+    <div className="aspect-square max-w-[250px]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className="h-full w-full object-cover"
+        src={imageUploadStatus.url}
+        alt=""
+      />
+    </div>
+  );
 }
 
 function FieldSet({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, isNotNull, isNull } from "drizzle-orm";
 import {
   diaries,
   diariesToUsers,
@@ -6,10 +6,12 @@ import {
   entries,
   ImageKeys,
   imageKeys,
+  posts,
 } from "~/server/db/schema";
 import { type TRPCContext } from "../../trpc";
 import {
   CreateEntry,
+  CreatePost,
   DeleteEntryInput,
   EditDiaryName,
   EditEntryDate,
@@ -657,23 +659,60 @@ export async function getUnlinkedImages({
         eq(diariesToUsers.userId, userId),
         eq(entries.id, entryId),
         eq(diariesToUsers.diaryId, diaryId),
-        eq(imageKeys.linked, false),
+        isNull(imageKeys.postId),
         inArray(imageKeys.key, keys),
       ),
     );
 }
 
-export async function receivedImageWebhook({
+export async function createPosts({
   db,
-  key,
+  userId,
+  entryId,
+  posts: postsToInsert,
 }: {
   db: TRPCContext["db"];
-  key: string;
+  userId: string;
+  entryId: number;
+  posts: CreatePost["posts"];
 }) {
-  return db
-    .update(imageKeys)
-    .set({ receivedWebhook: true })
-    .where(eq(imageKeys.key, key));
+  const keys = postsToInsert.map((post) => post.key);
+
+  await db.transaction(async (tx) => {
+    const [post] = await tx
+      .insert(posts)
+      .values(
+        postsToInsert.map((post) => ({
+          name: post.title,
+          description: post.description,
+          entryId: entryId,
+        })),
+      )
+      .returning({ id: posts.id });
+
+    // Link to post
+    const sub = tx.$with("keys").as(
+      tx
+        .select({ key: imageKeys.key })
+        .from(entries)
+        .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+        .innerJoin(imageKeys, eq(imageKeys.entryId, entries.id))
+        .where(
+          and(
+            eq(diariesToUsers.userId, userId),
+            isNull(imageKeys.postId),
+            inArray(imageKeys.key, keys),
+          ),
+        ),
+    );
+
+    await tx
+      .update(imageKeys)
+      .set({
+        postId: post!.id,
+      })
+      .where(inArray(imageKeys.key, sub.key));
+  });
 }
 
 export async function setCompressionStatus({
@@ -766,7 +805,8 @@ export async function getImageUploadStatus({
   const res = await db
     .select({ key: imageKeys.key })
     .from(imageKeys)
-    .where(eq(imageKeys.key, key));
+    .where(eq(imageKeys.key, key))
+    .limit(1);
 
   return res.length > 0 ? "uploaded" : "pending";
 }

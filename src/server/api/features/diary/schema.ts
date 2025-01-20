@@ -47,15 +47,14 @@ export const createDiarySchema = z.object({
 });
 export type CreateDiary = z.infer<typeof createDiarySchema>;
 
-export const createPostSchema = z
-  .object({
-    title: z.string(),
-    imageMetadata: z.object({
-      name: z.string(),
-      size: z.number(),
-      mimetype: z.string(),
-    }),
-    description: z.string(),
-  })
-  .array();
+export const createPostSchema = z.object({
+  entryId: z.number(),
+  posts: z
+    .object({
+      title: z.string(),
+      key: z.string(),
+      description: z.string(),
+    })
+    .array(),
+});
 export type CreatePost = z.infer<typeof createPostSchema>;
