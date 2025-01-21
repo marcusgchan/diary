@@ -691,27 +691,25 @@ export async function createPosts({
       .returning({ id: posts.id });
 
     // Link to post
-    const sub = tx.$with("keys").as(
-      tx
-        .select({ key: imageKeys.key })
-        .from(entries)
-        .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-        .innerJoin(imageKeys, eq(imageKeys.entryId, entries.id))
-        .where(
-          and(
-            eq(diariesToUsers.userId, userId),
-            isNull(imageKeys.postId),
-            inArray(imageKeys.key, keys),
-          ),
+    const sub = tx
+      .select({ key: imageKeys.key })
+      .from(entries)
+      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+      .innerJoin(imageKeys, eq(imageKeys.entryId, entries.id))
+      .where(
+        and(
+          eq(diariesToUsers.userId, userId),
+          isNull(imageKeys.postId),
+          inArray(imageKeys.key, keys),
         ),
-    );
+      );
 
     await tx
       .update(imageKeys)
       .set({
         postId: post!.id,
       })
-      .where(inArray(imageKeys.key, sub.key));
+      .where(inArray(imageKeys.key, sub));
   });
 }
 

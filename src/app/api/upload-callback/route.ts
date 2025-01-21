@@ -75,7 +75,7 @@ export async function POST(req: Request) {
   }
 
   let compressImageBuf = await compressImage(imgBuf);
-  compressImageBuf = undefined;
+  // compressImageBuf = undefined;
   if (compressImageBuf === undefined) {
     console.log("unable to compress image");
     await createMetadataOnImageCallback({

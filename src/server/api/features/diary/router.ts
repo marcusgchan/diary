@@ -33,6 +33,7 @@ import {
   updateDiaryEntryStatusToNotDeleting,
   getUnlinkedImages,
   DeleteImageMetadataError,
+  createPosts,
 } from "./service";
 import {
   createDiarySchema,
@@ -40,6 +41,7 @@ import {
   createPostSchema,
   editDiaryNameSchema,
   editEntryDateSchema,
+  getPostsSchema,
   saveEditorStateSchema,
   updateEntryTitleSchema,
 } from "./schema";
@@ -51,6 +53,7 @@ import {
   S3DeleteImageError,
 } from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
+import { typeSafeObjectFromEntries } from "~/app/_utils/typesafeObjectFromEntries";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -269,8 +272,18 @@ export const diaryRouter = createTRPCRouter({
     }),
   createPost: protectedProcedure
     .input(createPostSchema)
-    .mutation(async ({ ctx, input }) => {}),
-  deletePost: protectedProcedure
+    .mutation(async ({ ctx, input }) => {
+      await createPosts({
+        db: ctx.db,
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+        posts: input.posts,
+      });
+    }),
+  getPosts: protectedProcedure
+    .input(getPostsSchema)
+    .query(async ({ ctx, input }) => {}),
+  deleteUnlinkedImage: protectedProcedure
     .input(
       z.object({
         diaryId: z.number(),
@@ -532,18 +545,7 @@ export const diaryRouter = createTRPCRouter({
           }
         });
       const res = await Promise.all(unlinkedTransformed);
-      const typeSafeObjectFromEntries = <
-        const T extends ReadonlyArray<readonly [PropertyKey, unknown]>,
-      >(
-        entries: T,
-      ): { [K in T[number] as K[0]]: K[1] } => {
-        return Object.fromEntries(entries) as {
-          [K in T[number] as K[0]]: K[1];
-        };
-      };
-      const r = typeSafeObjectFromEntries(res);
-      console.log(r);
-      return r;
+      return typeSafeObjectFromEntries(res);
     }),
   getImageUploadStatus: protectedProcedure
     .input(z.object({ key: z.string().or(z.undefined()) }))

@@ -33,6 +33,8 @@ import { SortableItem } from "./SortableItem";
 import { api } from "~/trpc/TrpcProvider";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { toast } from "~/app/_components/ui/use-toast";
+import { typeSafeObjectFromEntries } from "~/app/_utils/typesafeObjectFromEntries";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   posts: z
@@ -170,6 +172,7 @@ export function EditMapForm({
               return [
                 id,
                 {
+                  type: "uploaded",
                   key: updatedStatus.key,
                   url: updatedStatus.url,
                 },
@@ -182,7 +185,7 @@ export function EditMapForm({
           return [id, value] as const;
         },
       );
-      return Object.fromEntries(newStatuses);
+      return typeSafeObjectFromEntries(newStatuses);
     });
   }, [imageUploadStatuses]);
 
@@ -303,13 +306,21 @@ export function EditMapForm({
     }
   }
 
-  const createPostMutation = api.diary.createPost.useMutation();
+  const router = useRouter();
+  const createPostMutation = api.diary.createPost.useMutation({
+    onSuccess() {
+      router.push(`/diaries/${diaryId}/entries/${entryId}`);
+    },
+  });
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    const errors = data.posts.some(
-      (post) =>
+    console.log({ imgUploadStatuses, posts: data.posts });
+    const errors = data.posts.some((post) => {
+      console.log(imgUploadStatuses[post.id], imgUploadStatuses[post.id]?.type);
+      return (
         imgUploadStatuses[post.id] === undefined ||
-        imgUploadStatuses[post.id]?.type !== "uploaded",
-    );
+        imgUploadStatuses[post.id]?.type !== "uploaded"
+      );
+    });
     if (errors) {
       toast({
         title: "One or more images have errors",
