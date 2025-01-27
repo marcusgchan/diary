@@ -227,10 +227,14 @@ export const diaryRouter = createTRPCRouter({
       });
 
       try {
+        console.log("deleting imgs");
         await deleteImages(keysToDelete);
+        console.log("delete iamges");
         try {
           await deleteEntry({ db: ctx.db, input });
-        } catch (_) {
+        } catch (e) {
+          console.log("error");
+          console.log(e);
           ctx.session.log(
             "delete_entry",
             "error",
@@ -286,6 +290,16 @@ export const diaryRouter = createTRPCRouter({
   getEntryMap: protectedProcedure
     .input(z.object({ entryId: z.number() }))
     .query(async ({ ctx, input }) => {
+      const [header] = await getEntryHeader({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      if (!header) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
       const posts = await getPosts({
         db: ctx.db,
         userId: ctx.session.user.id,
@@ -302,12 +316,6 @@ export const diaryRouter = createTRPCRouter({
           return { success: false };
         }
       }
-
-      const [header] = await getEntryHeader({
-        db: ctx.db,
-        userId: ctx.session.user.id,
-        entryId: input.entryId,
-      });
 
       const postWithImage = await Promise.all(
         posts.map(async (post) => {

@@ -120,5 +120,9 @@ export async function deleteImages(keys: { Key: string }[]) {
     },
   });
 
-  await s3Client.send(deleteCommand);
+  try {
+    await s3Client.send(deleteCommand);
+  } catch (e) {
+    console.log(e);
+  }
 }

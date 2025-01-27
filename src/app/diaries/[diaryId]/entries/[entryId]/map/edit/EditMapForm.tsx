@@ -33,7 +33,7 @@ import { SortableItem } from "./SortableItem";
 import { api } from "~/trpc/TrpcProvider";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { toast } from "~/app/_components/ui/use-toast";
-import { typeSafeObjectFromEntries } from "~/app/_utils/typesafeObjectFromEntries";
+import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
 import { useRouter } from "next/navigation";
 
 const formSchema = z.object({

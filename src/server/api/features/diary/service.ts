@@ -162,6 +162,8 @@ export async function deleteEntry({
 
     await tx.delete(imageKeys).where(eq(imageKeys.entryId, input.entryId));
 
+    await tx.delete(posts).where(eq(posts.entryId, input.entryId));
+
     await tx.delete(entries).where(eq(entries.id, input.entryId));
   });
 }
@@ -520,6 +522,18 @@ export async function deleteDiaryById({
         ),
       );
 
+    await tx
+      .delete(posts)
+      .where(
+        inArray(
+          posts.entryId,
+          tx
+            .select({ id: entries.id })
+            .from(entries)
+            .where(eq(entries.diaryId, diaryId)),
+        ),
+      );
+
     await tx.delete(entries).where(eq(entries.diaryId, diaryId));
 
     await tx.delete(diaries).where(eq(diaries.id, diaryId));
@@ -730,7 +744,7 @@ export async function getPosts({
       imageKey: imageKeys.key,
     })
     .from(posts)
-    .innerJoin(imageKeys, eq(imageKeys.entryId, posts.entryId))
+    .innerJoin(imageKeys, eq(imageKeys.postId, posts.id))
     .innerJoin(entries, eq(entries.id, imageKeys.entryId))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
     .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
