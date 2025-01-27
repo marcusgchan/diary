@@ -683,7 +683,7 @@ export async function createPosts({
       .insert(posts)
       .values(
         postsToInsert.map((post) => ({
-          name: post.title,
+          title: post.title,
           description: post.description,
           entryId: entryId,
         })),
@@ -711,6 +711,49 @@ export async function createPosts({
       })
       .where(inArray(imageKeys.key, sub));
   });
+}
+
+export async function getPosts({
+  db,
+  entryId,
+  userId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+  userId: string;
+}) {
+  return await db
+    .select({
+      id: posts.id,
+      title: posts.title,
+      description: posts.description,
+      imageKey: imageKeys.key,
+    })
+    .from(posts)
+    .innerJoin(imageKeys, eq(imageKeys.entryId, posts.entryId))
+    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
+}
+
+export async function getEntryHeader({
+  db,
+  userId,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+}) {
+  return await db
+    .select({
+      day: entries.day,
+      title: entries.title,
+    })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)))
+    .limit(1);
 }
 
 export async function setCompressionStatus({

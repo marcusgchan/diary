@@ -111,7 +111,7 @@ export const entries = pgTable("entry", {
     .notNull()
     .references(() => diaries.id),
   day: date("day", { mode: "string" }).notNull(),
-  title: text("title"),
+  title: text("title").notNull().default(""),
   deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
@@ -141,8 +141,8 @@ export const posts = pgTable("posts", {
   entryId: bigint({ mode: "number" })
     .notNull()
     .references(() => entries.id),
-  name: varchar({ length: 255 }),
-  description: varchar({ length: 2048 }),
+  title: varchar({ length: 255 }).notNull(),
+  description: varchar({ length: 2048 }).notNull(),
 });
 
 export const editorStates = pgTable("editor_state", {

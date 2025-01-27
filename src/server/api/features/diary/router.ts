@@ -34,6 +34,8 @@ import {
   getUnlinkedImages,
   DeleteImageMetadataError,
   createPosts,
+  getPosts,
+  getEntryHeader,
 } from "./service";
 import {
   createDiarySchema,
@@ -53,7 +55,8 @@ import {
   S3DeleteImageError,
 } from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
-import { typeSafeObjectFromEntries } from "~/app/_utils/typesafeObjectFromEntries";
+import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
+import { unique } from "drizzle-orm/pg-core";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -270,7 +273,7 @@ export const diaryRouter = createTRPCRouter({
 
       return input.entryId;
     }),
-  createPost: protectedProcedure
+  createPosts: protectedProcedure
     .input(createPostSchema)
     .mutation(async ({ ctx, input }) => {
       await createPosts({
@@ -280,9 +283,48 @@ export const diaryRouter = createTRPCRouter({
         posts: input.posts,
       });
     }),
-  getPosts: protectedProcedure
-    .input(getPostsSchema)
-    .query(async ({ ctx, input }) => {}),
+  getEntryMap: protectedProcedure
+    .input(z.object({ entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const posts = await getPosts({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      async function handleSignedUrl(
+        key: string,
+      ): Promise<{ success: true; url: string } | { success: false }> {
+        try {
+          const url = await getImageSignedUrl(key);
+          return { success: true, url };
+        } catch (e) {
+          return { success: false };
+        }
+      }
+
+      const [header] = await getEntryHeader({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      const postWithImage = await Promise.all(
+        posts.map(async (post) => {
+          const image = await handleSignedUrl(post.imageKey);
+          const { imageKey: _, ...restOfPost } = post;
+          return {
+            ...restOfPost,
+            image: image,
+          };
+        }),
+      );
+
+      return {
+        header,
+        posts: postWithImage,
+      };
+    }),
   deleteUnlinkedImage: protectedProcedure
     .input(
       z.object({

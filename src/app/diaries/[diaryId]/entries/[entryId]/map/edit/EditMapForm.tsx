@@ -307,7 +307,7 @@ export function EditMapForm({
   }
 
   const router = useRouter();
-  const createPostMutation = api.diary.createPost.useMutation({
+  const createPostMutation = api.diary.createPosts.useMutation({
     onSuccess() {
       router.push(`/diaries/${diaryId}/entries/${entryId}`);
     },

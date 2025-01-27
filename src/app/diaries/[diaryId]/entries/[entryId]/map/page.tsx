@@ -9,6 +9,8 @@ import { getEntryTitleDayById } from "~/server/api/features/diary/service";
 import { db } from "~/server/db";
 import { cn } from "~/app/_utils/cx";
 import { CSSProperties } from "react";
+import { api, HydrateClient } from "~/trpc/server";
+import { PostsContent } from "./Posts";
 
 type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 
@@ -40,82 +42,20 @@ const posts = [
 ];
 
 export default async function Entry({
-  params: { diaryId, entryId },
+  params: { entryId },
 }: {
   params: { diaryId: string; entryId: string };
 }) {
-  const auth = await getServerAuthSession();
-
-  const data = await getEntryTitleDayById({
-    db,
-    userId: auth?.user.id!,
-    diaryId: Number(diaryId),
+  await api.diary.getEntryMap.prefetch({
     entryId: Number(entryId),
   });
 
   return (
     <div className="grid gap-2">
       <EntryMapHeader />
-      <TitleInput title={data!.title} />
-      <DatePicker day={data!.day} />
-      <div className="grid grid-cols-[max-content_100px_max-content] [grid-auto-rows:50px_auto_auto]">
-        {posts.map((post, i) => {
-          return (
-            <Post
-              className={cn(
-                "[grid-row-end:span_3]",
-                i % 2 == 0 && "col-start-1 col-end-2 bg-red-400",
-                i % 2 == 1 && "col-start-3 col-end-4",
-              )}
-              styles={{ gridRowStart: 1 + i * 3 }}
-              key={post.id}
-              post={post}
-            />
-          );
-        })}
-        {posts.length > 1 &&
-          Array.from({ length: posts.length - 1 }).map((_, i) => {
-            return (
-              <>
-                <div
-                  style={{ gridRowStart: 3 + i * 3 }}
-                  key={i}
-                  className={cn(
-                    i % 2 == 1 && "[rotate:y_180deg]",
-                    "col-start-2 col-end-3 [grid-row-end:span_3]",
-                  )}
-                >
-                  <SexyCurve
-                    style={{
-                      strokeDasharray: 10,
-                      strokeDashoffset: 0,
-                    }}
-                  />
-                </div>
-                <div
-                  style={{ gridRowStart: 3 + i * 3 }}
-                  key={i}
-                  className={cn(
-                    i % 2 == 1 && "[rotate:y_180deg]",
-                    "col-start-2 col-end-3 [grid-row-end:span_3]",
-                  )}
-                >
-                  <SexyCurve
-                    style={{
-                      animationName: "path",
-                      strokeDasharray: 200,
-                      strokeDashoffset: 200,
-                      strokeWidth: "2px",
-                      animationDelay: `${0.5 + i}s`,
-                      animationFillMode: "forwards",
-                      animationDuration: "1s",
-                    }}
-                  />
-                </div>
-              </>
-            );
-          })}
-      </div>
+      <HydrateClient>
+        <PostsContent />
+      </HydrateClient>
     </div>
   );
 }
