@@ -1,11 +1,5 @@
-import { RouterOutputs } from "~/server/api/trpc";
-import EntryMapHeader from "./EntryMapHeader";
-import { cn } from "~/app/_utils/cx";
-import { CSSProperties } from "react";
 import { api, HydrateClient } from "~/trpc/server";
-import { PostsContent } from "./Posts";
-
-type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
+import { PostsSection } from "./Posts";
 
 export default async function Entry({
   params: { entryId },
@@ -17,11 +11,8 @@ export default async function Entry({
   });
 
   return (
-    <div className="grid gap-2">
-      <EntryMapHeader />
-      <HydrateClient>
-        <PostsContent />
-      </HydrateClient>
-    </div>
+    <HydrateClient>
+      <PostsSection />
+    </HydrateClient>
   );
 }

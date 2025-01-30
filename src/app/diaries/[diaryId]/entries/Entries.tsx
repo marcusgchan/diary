@@ -25,7 +25,11 @@ export function Entries() {
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const router = useRouter();
-  const entriesQuery = api.diary.getEntries.useQuery(
+  const {
+    data: entries,
+    isPending,
+    isError,
+  } = api.diary.getEntries.useQuery(
     { diaryId: Number(diaryId) },
     {
       enabled: !!diaryId,
@@ -54,64 +58,58 @@ export function Entries() {
       diaryId: diaryId,
       entryId: entryId,
     });
-  return (
-    <FetchResolver
-      {...entriesQuery}
-      loadingComponent={
-        <ul className="flex flex-col gap-1">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <li key={i}>
-              <Skeleton key={i} className="h-8 w-full" />
+
+  if (entries) {
+    return (
+      <ul className="grid gap-1">
+        {entries.map((entry) => {
+          return (
+            <li key={entry.id}>
+              <Link
+                className={cn(
+                  "hidden justify-between rounded bg-secondary p-1 sm:flex",
+                  entryId && Number(entryId) === entry.id && "bg-secondary/60",
+                )}
+                href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
+              >
+                {entry.day}
+                <DeleteEntryDialog
+                  handleDelete={handleDelete}
+                  entryId={entry.id}
+                  diaryId={diaryId}
+                />
+              </Link>
+              <Link
+                className={cn(
+                  "flex justify-between rounded bg-secondary p-1 sm:hidden",
+                  entryId && Number(entryId) === entry.id && "bg-secondary/60",
+                )}
+                href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
+              >
+                {entry.day}
+                <DeleteEntryDialog
+                  handleDelete={handleDelete}
+                  entryId={entry.id}
+                  diaryId={diaryId}
+                />
+              </Link>
             </li>
-          ))}
-        </ul>
-      }
-    >
-      {(data) => {
-        return (
-          <ul className="grid gap-1">
-            {data.map((entry) => {
-              return (
-                <li key={entry.id}>
-                  <Link
-                    className={cn(
-                      "hidden justify-between rounded bg-secondary p-1 sm:flex",
-                      entryId &&
-                        Number(entryId) === entry.id &&
-                        "bg-secondary/60",
-                    )}
-                    href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
-                  >
-                    {entry.day}
-                    <DeleteEntryDialog
-                      handleDelete={handleDelete}
-                      entryId={entry.id}
-                      diaryId={diaryId}
-                    />
-                  </Link>
-                  <Link
-                    className={cn(
-                      "flex justify-between rounded bg-secondary p-1 sm:hidden",
-                      entryId &&
-                        Number(entryId) === entry.id &&
-                        "bg-secondary/60",
-                    )}
-                    href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
-                  >
-                    {entry.day}
-                    <DeleteEntryDialog
-                      handleDelete={handleDelete}
-                      entryId={entry.id}
-                      diaryId={diaryId}
-                    />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        );
-      }}
-    </FetchResolver>
+          );
+        })}
+      </ul>
+    );
+  }
+  if (isError) {
+    return <p>Unable to load entries</p>;
+  }
+  return (
+    <ul className="flex flex-col gap-1">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <li key={i}>
+          <Skeleton key={i} className="h-8 w-full" />
+        </li>
+      ))}
+    </ul>
   );
 }
 

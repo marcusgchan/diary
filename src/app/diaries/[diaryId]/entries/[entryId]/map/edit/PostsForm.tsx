@@ -13,7 +13,15 @@ import {
 } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { cn } from "~/app/_utils/cx";
 import {
   closestCenter,
@@ -34,7 +42,7 @@ import { api } from "~/trpc/TrpcProvider";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { toast } from "~/app/_components/ui/use-toast";
 import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
-import { useRouter } from "next/navigation";
+import { RouterInputs, RouterOutputs } from "~/server/api/trpc";
 
 const formSchema = z.object({
   posts: z
@@ -89,13 +97,18 @@ type HandleImageUploadCallabck = (
   file: File | null,
 ) => void;
 
-export function EditMapForm({
-  diaryId,
-  entryId,
-}: {
-  diaryId: number;
-  entryId: number;
-}) {
+export const PostsForm = forwardRef(function PostsForm(
+  {
+    diaryId,
+    entryId,
+    mutate,
+  }: {
+    diaryId: number;
+    entryId: number;
+    mutate(data: RouterInputs["diary"]["createPosts"]): void;
+  },
+  ref,
+) {
   const formMethods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -115,15 +128,27 @@ export function EditMapForm({
     );
   }, [fields]);
 
-  const [imgUploadStatuses, setImgUploadStatuses] =
+  const [formImageUploadStatuses, setImgUploadStatuses] =
     useState<IdToUploadStatus>(initialStatuses);
 
   // Store id to key mapping for uploaded images
   const imageKeyToIdRef = useRef<Map<string, number>>(new Map());
 
+  useImperativeHandle(ref, () => {
+    return {
+      reset(data: RouterOutputs["diary"]["getEntryMap"]) {
+        // formMethods.reset(data);
+        // init map
+        // init formimageuploadstatuses
+        // change id to uuid
+        // add key to data
+      },
+    };
+  });
+
   function resetImage(id: number, key?: string) {
     setImgUploadStatuses({
-      ...imgUploadStatuses,
+      ...formImageUploadStatuses,
       [id]: { type: "empty" },
     });
     if (key !== undefined) {
@@ -135,7 +160,7 @@ export function EditMapForm({
     }
   }
 
-  const retrying = !!Object.values(imgUploadStatuses).filter(
+  const retrying = !!Object.values(formImageUploadStatuses).filter(
     (status) => status.type === "loading",
   ).length;
   const { data: imageUploadStatuses } =
@@ -215,7 +240,7 @@ export function EditMapForm({
 
   async function removePost(index: number, id: number) {
     deletePostMutation.mutate({ entryId, diaryId, key: "" });
-    const status = imgUploadStatuses[id];
+    const status = formImageUploadStatuses[id];
     if (status === undefined) {
       throw Error("status should not be undefined");
     }
@@ -250,11 +275,14 @@ export function EditMapForm({
         size: file.size,
         mimetype: file.type,
       };
-      const data = await utils.diary.createPresignedPostUrl.fetch({
-        diaryId,
-        entryId,
-        imageMetadata: metadata,
-      });
+      const data = await utils.diary.createPresignedPostUrl.fetch(
+        {
+          diaryId,
+          entryId,
+          imageMetadata: metadata,
+        },
+        { staleTime: 0 },
+      );
 
       const formData = new FormData();
       for (const [key, value] of Object.entries(data.fields)) {
@@ -292,7 +320,7 @@ export function EditMapForm({
       return { ...prev, [id]: { type: "empty" } };
     });
     imageKeyToIdRef.current.delete(
-      (imgUploadStatuses[id] as { key: string }).key,
+      (formImageUploadStatuses[id] as { key: string }).key,
     );
   };
 
@@ -306,19 +334,11 @@ export function EditMapForm({
     }
   }
 
-  const router = useRouter();
-  const createPostMutation = api.diary.createPosts.useMutation({
-    onSuccess() {
-      router.push(`/diaries/${diaryId}/entries/${entryId}`);
-    },
-  });
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log({ imgUploadStatuses, posts: data.posts });
     const errors = data.posts.some((post) => {
-      console.log(imgUploadStatuses[post.id], imgUploadStatuses[post.id]?.type);
       return (
-        imgUploadStatuses[post.id] === undefined ||
-        imgUploadStatuses[post.id]?.type !== "uploaded"
+        formImageUploadStatuses[post.id] === undefined ||
+        formImageUploadStatuses[post.id]?.type !== "uploaded"
       );
     });
     if (errors) {
@@ -328,10 +348,10 @@ export function EditMapForm({
       });
       return;
     }
-    createPostMutation.mutate({
+    mutate({
       entryId,
       posts: data.posts.map((post) => {
-        const status = imgUploadStatuses[post.id] as {
+        const status = formImageUploadStatuses[post.id] as {
           type: "uploaded";
           key: string;
         };
@@ -361,7 +381,7 @@ export function EditMapForm({
           >
             {fields.map((field, index) => {
               // Invariant: field must exist in upload status if it exists in form
-              const uploadStatus = imgUploadStatuses[field.id]!;
+              const uploadStatus = formImageUploadStatuses[field.id]!;
               return (
                 <SortableItem key={field.id} id={field.id}>
                   <FieldSet>
@@ -415,7 +435,7 @@ export function EditMapForm({
       </form>
     </FormProvider>
   );
-}
+});
 
 function ImageField({
   fieldId,

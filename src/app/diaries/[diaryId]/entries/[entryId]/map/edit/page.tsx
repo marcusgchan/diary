@@ -1,4 +1,5 @@
-import { EditMapForm } from "./EditMapForm";
+"use client";
+import { PostsForm } from "./PostsForm";
 
 export default function EditMapPage({
   params,
@@ -6,7 +7,7 @@ export default function EditMapPage({
   params: { diaryId: string; entryId: string };
 }) {
   return (
-    <EditMapForm
+    <PostsForm
       diaryId={Number(params.diaryId)}
       entryId={Number(params.entryId)}
     />

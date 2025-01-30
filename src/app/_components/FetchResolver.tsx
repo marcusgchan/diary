@@ -13,13 +13,13 @@ type Props<TData> = UseTRPCQueryResult<
 
 export default function FetchResolver<TData>({
   data,
-  isLoading,
+  isPending,
   isError,
   loadingComponent = <div>Loading...</div>,
   errorComponent = <p>Something went wrong</p>,
   children,
 }: Props<TData>) {
-  if (isLoading) {
+  if (isPending) {
     return loadingComponent;
   } else if (isError) {
     return errorComponent;
