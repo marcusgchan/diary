@@ -44,6 +44,12 @@ import { toast } from "~/app/_components/ui/use-toast";
 import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
 import { RouterInputs, RouterOutputs } from "~/server/api/trpc";
 
+type Post = RouterOutputs["diary"]["getPostsForForm"][number];
+
+export type PostFormHandle = {
+  reset(posts: Post[]): void;
+};
+
 const formSchema = z.object({
   posts: z
     .object({
@@ -136,10 +142,47 @@ export const PostsForm = forwardRef(function PostsForm(
 
   useImperativeHandle(ref, () => {
     return {
-      reset(data: RouterOutputs["diary"]["getEntryMap"]) {
-        // formMethods.reset(data);
-        // init map
-        // init formimageuploadstatuses
+      reset(data: Post[]) {
+        const fields = data.map(
+          ({ title, description, image: { name, size, mimetype } }) => {
+            return {
+              title,
+              description,
+              image: {
+                name,
+                size,
+                mimetype,
+              },
+            };
+          },
+        );
+        formMethods.reset({
+          posts: fields,
+        });
+        const postToImageUploadStatus = (
+          post: Post,
+        ): [Post["id"], UploadStatus] => {
+          const statusData: UploadStatus = post.image.success
+            ? {
+                type: "uploaded",
+                key: post.image.key,
+                url: post.image.url,
+              }
+            : {
+                type: "error",
+                key: post.image.key,
+              };
+          return [post.id, statusData] as const;
+        };
+        const postToKeyIdMap = (
+          post: Post,
+        ): [Post["image"]["key"], Post["id"]] => {
+          return [post.image.key, post.id];
+        };
+        setImgUploadStatuses(
+          typeSafeObjectFromEntries(data.map(postToImageUploadStatus)),
+        );
+        imageKeyToIdRef.current = new Map(data.map(postToKeyIdMap));
         // change id to uuid
         // add key to data
       },

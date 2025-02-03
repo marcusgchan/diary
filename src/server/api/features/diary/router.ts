@@ -36,6 +36,9 @@ import {
   createPosts,
   getPosts,
   getEntryHeader,
+  getPostsForForm,
+  getEntryTitle,
+  getEntryDay,
 } from "./service";
 import {
   createDiarySchema,
@@ -332,6 +335,95 @@ export const diaryRouter = createTRPCRouter({
         header,
         posts: postWithImage,
       };
+    }),
+  getPostsForForm: protectedProcedure
+    .input(z.object({ entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [header] = await getEntryHeader({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      if (!header) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
+      const posts = await getPostsForForm({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      async function handleSignedUrl(
+        key: string,
+      ): Promise<{ success: true; url: string } | { success: false }> {
+        try {
+          const url = await getImageSignedUrl(key);
+          return { success: true, url };
+        } catch (e) {
+          return { success: false };
+        }
+      }
+
+      const postWithImage = await Promise.all(
+        posts.map(async (post) => {
+          const image = await handleSignedUrl(post.imageKey);
+          const {
+            id,
+            title,
+            imageKey: key,
+            description,
+            name,
+            size,
+            mimetype,
+          } = post;
+          return {
+            id,
+            title,
+            description,
+            image: {
+              key,
+              name,
+              size,
+              mimetype,
+              ...image,
+            },
+          };
+        }),
+      );
+
+      return postWithImage;
+    }),
+  getEntryTitle: protectedProcedure
+    .input(z.object({ entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [title] = await getEntryTitle({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      if (title === undefined) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      return title.title;
+    }),
+  getEntryDay: protectedProcedure
+    .input(z.object({ entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [day] = await getEntryDay({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      if (day === undefined) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      return day.day;
     }),
   deleteUnlinkedImage: protectedProcedure
     .input(

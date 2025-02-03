@@ -1,15 +1,25 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RouterOutputs } from "~/server/api/trpc";
 import { api } from "~/trpc/TrpcProvider";
 
 type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 
-export function TitleInput(props: { title: Entry["title"] }) {
+export function TitleInput() {
   const { diaryId, entryId } = useParams();
-  const [title, setTitle] = useState(props.title ?? "");
+
+  const { data } = api.diary.getEntryTitle.useQuery({
+    entryId: Number(entryId),
+  });
+  const [title, setTitle] = useState(data ?? "");
+  useEffect(() => {
+    if (data) {
+      setTitle(data);
+    }
+  }, [data]);
+
   const queryUtils = api.useUtils();
   const saveTitleMutation = api.diary.updateTitle.useMutation({
     onSuccess(data) {
@@ -21,6 +31,11 @@ export function TitleInput(props: { title: Entry["title"] }) {
           }
           return old;
         },
+      );
+
+      queryUtils.diary.getEntryTitle.setData(
+        { entryId: Number(entryId) },
+        data,
       );
     },
   });

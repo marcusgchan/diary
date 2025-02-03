@@ -1,21 +1,29 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { CSSProperties } from "react";
+import { CSSProperties, useEffect, useRef } from "react";
 import { cn } from "~/app/_utils/cx";
 import { RouterInputs, RouterOutputs } from "~/server/api/trpc";
 import { api } from "~/trpc/TrpcProvider";
 import { TitleInput } from "../TitleInput";
 import { DatePicker } from "../DatePicker";
-import { PostsForm } from "./edit/PostsForm";
+import { PostFormHandle as PostsFormHandle, PostsForm } from "./edit/PostsForm";
 
 export function PostsSection() {
   const params = useParams();
-  const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
 
   const { data, isError } = api.diary.getEntryMap.useQuery({
     entryId: Number(params.entryId),
   });
+
+  const postsFormRef = useRef<PostsFormHandle>(null);
+  // const { data } =
+
+  useEffect(() => {
+    if (!postsFormRef.current) {
+      return;
+    }
+  }, []);
 
   const router = useRouter();
   const queryUtils = api.useUtils();
@@ -33,9 +41,10 @@ export function PostsSection() {
   if (data && data.posts.length === 0) {
     return (
       <section className="grid gap-3">
-        <TitleInput title={data.header.title} />
-        <DatePicker day={data.header.day} />
+        <TitleInput />
+        <DatePicker />
         <PostsForm
+          ref={postsFormRef}
           diaryId={Number(params.diaryId)}
           entryId={Number(params.entryId)}
           mutate={mutate}

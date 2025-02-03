@@ -3,7 +3,7 @@
 import { format, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "~/app/_components/ui/button";
 import { Calendar } from "~/app/_components/ui/calendar";
 import {
@@ -15,11 +15,18 @@ import { useToast } from "~/app/_components/ui/use-toast";
 import { cn } from "~/app/_utils/cx";
 import { api } from "~/trpc/TrpcProvider";
 
-export function DatePicker({ day }: { day: string }) {
+export function DatePicker() {
   const params = useParams();
   const diaryId = params.diaryId;
-  const entryId = params.entryId;
-  const [date, setDate] = useState(parseISO(day));
+  const entryId = Number(params.entryId);
+  const { data } = api.diary.getEntryDay.useQuery({ entryId });
+  const [date, setDate] = useState(data ? parseISO(data) : undefined);
+  useEffect(() => {
+    if (data) {
+      setDate(parseISO(data));
+    }
+  }, [data]);
+
   const { toast } = useToast();
   const queryUtils = api.useUtils();
   const updateEntryDateMutation = api.diary.updateEntryDate.useMutation({
@@ -38,20 +45,24 @@ export function DatePicker({ day }: { day: string }) {
     },
   });
   function handleChangeDate(date: Date | undefined) {
-    const updatedDate = date ?? parseISO(day);
+    setIsOpen(false);
+    if (!date) {
+      return;
+    }
+    const updatedDate = date;
     updateEntryDateMutation.mutate({
       diaryId: Number(diaryId),
       entryId: Number(entryId),
       day: updatedDate.toLocaleDateString("en-CA"),
     });
-    setIsOpen(false);
   }
   const [isOpen, setIsOpen] = useState(false);
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          disabled={updateEntryDateMutation.isLoading}
+          disabled={updateEntryDateMutation.isPending}
           variant={"outline"}
           onClick={() => setIsOpen((prev) => !prev)}
           className={cn(
