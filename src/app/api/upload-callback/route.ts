@@ -13,6 +13,7 @@ import {
 } from "~/server/api/features/shared/s3ImagesService";
 import sharp from "sharp";
 import ExifReader from "exifreader";
+import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";
 
 export async function POST(req: Request) {
   const rawToken = req.headers.get("authorization");
@@ -100,11 +101,7 @@ export async function POST(req: Request) {
   try {
     console.log("uploading image");
 
-    const indexOfDot = key.lastIndexOf(".");
-    const nameWithoutExt = key.slice(0, indexOfDot);
-    const compressedImageName = `${nameWithoutExt}-compressed.webp`;
-    console.log({ compressedImageName });
-    await uploadImage(image.buffer, compressedImageName, {
+    await uploadImage(image.buffer, getCompressedImageKey(key), {
       Compressed: "true",
     });
 
