@@ -611,6 +611,8 @@ export async function createMetadataOnImageCallback({
   userId,
   entryId,
   key,
+  mimetype,
+  size, // bytes
   dateTimeTaken,
   compressionStatus,
   gps,
@@ -619,6 +621,8 @@ export async function createMetadataOnImageCallback({
   userId: string;
   entryId: number;
   key: string;
+  mimetype: string;
+  size: number;
   gps?: { lat: number; lon: number };
   compressionStatus: ImageKeys["compressionStatus"];
   dateTimeTaken?: string | undefined;
@@ -637,6 +641,8 @@ export async function createMetadataOnImageCallback({
     .insert(imageKeys)
     .values({
       key,
+      mimetype,
+      size,
       entryId,
       lat: gps?.lat,
       lon: gps?.lon,

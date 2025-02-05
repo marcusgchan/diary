@@ -18,7 +18,7 @@ export async function getPresignedPost(
   uuid: string,
   imageMetadata: { name: string; type: string; size: number },
 ) {
-  const filename = `${uuid}-${imageMetadata.name.slice(0, imageMetadata.name.lastIndexOf("."))}`;
+  const filename = `${uuid}-${imageMetadata.name}`;
   const key = `${userId}/${diaryId}/${entryId}/${filename}`;
   const presignedPost = await createPresignedPost(s3Client, {
     Bucket: env.BUCKET_NAME,
@@ -74,30 +74,42 @@ export async function deleteImage(key: string) {
   }
 }
 
-export async function getImage(key: string): Promise<Buffer | undefined> {
+export async function getImage(
+  key: string,
+): Promise<
+  { buffer: Buffer; mimetype: string; compressed?: string } | undefined
+> {
   const getCommand = new GetObjectCommand({
     Bucket: env.BUCKET_NAME,
     Key: key,
   });
   try {
-    let buf: Buffer;
     const data = await s3Client.send(getCommand);
     if (!data.Body) {
       throw new Error("cannot get image");
     }
 
-    buf = await streamToBuffer(data.Body as Readable);
-    return buf;
+    const mimetype = data.ContentType;
+    if (mimetype === undefined) {
+      throw new Error("mimetype is missing");
+    }
+    const buf = await streamToBuffer(data.Body as Readable);
+    return { buffer: buf, mimetype, compressed: data?.Metadata?.compressed };
   } catch (e) {
     console.log(e);
   }
 }
 
-export async function uploadImage(buffer: Buffer, key: string) {
+export async function uploadImage(
+  buffer: Buffer,
+  key: string,
+  metadata?: Record<string, string>,
+) {
   const uploadCommand = new PutObjectCommand({
     Bucket: env.BUCKET_NAME,
     Key: key,
     Body: buffer,
+    Metadata: metadata,
   });
   try {
     await s3Client.send(uploadCommand);

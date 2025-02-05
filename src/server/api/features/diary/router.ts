@@ -60,6 +60,7 @@ import {
 import { randomUUID } from "crypto";
 import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
 import { unique } from "drizzle-orm/pg-core";
+import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -435,7 +436,10 @@ export const diaryRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        await deleteImage(input.key);
+        await deleteImages([
+          { Key: input.key },
+          { Key: getCompressedImageKey(input.key) },
+        ]);
         await deleteImageMetadata({ db: ctx.db, key: input.key });
       } catch (e) {
         if (e instanceof DeleteImageMetadataError) {

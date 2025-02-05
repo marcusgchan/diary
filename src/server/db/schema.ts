@@ -120,8 +120,7 @@ export const entries = pgTable("entry", {
 export const imageKeys = pgTable("image_key", {
   key: text("key").primaryKey(),
 
-  // name, mimetype, size are for populating edit form image field
-  name: text().notNull(),
+  // mimetype, size are for populating edit form image field
   mimetype: text().notNull(),
   size: integer().notNull(),
 

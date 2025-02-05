@@ -6,11 +6,8 @@ import {
   createMetadataOnImageCallback,
   getEntryIdByEntryAndDiaryId,
   getImageUploadStatus,
-  insertImageMetadata,
-  setCompressionStatus,
 } from "~/server/api/features/diary/service";
 import {
-  deleteImage,
   getImage,
   uploadImage,
 } from "~/server/api/features/shared/s3ImagesService";
@@ -49,7 +46,6 @@ export async function POST(req: Request) {
   }
 
   const { key, userId, diaryId, entryId } = content;
-
   const res = await getEntryIdByEntryAndDiaryId({
     db,
     userId,
@@ -60,28 +56,36 @@ export async function POST(req: Request) {
   if (!res) {
     return Response.json({}, { status: 401 });
   }
-  const uploadStatus = await getImageUploadStatus({ db, key });
-  if (uploadStatus === "uploaded") {
-    console.log("image uploaded already with key", key);
-    return Response.json({}, { status: 201 });
-  }
 
-  const imgBuf = await getImage(key);
-  if (imgBuf === undefined) {
+  const image = await getImage(key);
+  if (image === undefined) {
     console.log("unable to retrieve image from s3");
     const res = new Response();
     res.headers.set("Retry-After", "-1");
     return Response.json({}, { status: 500 });
   }
 
-  let compressImageBuf = await compressImage(imgBuf);
-  // compressImageBuf = undefined;
+  if (image.compressed !== undefined) {
+    return Response.json({}, { status: 201 });
+  }
+
+  const originalImageSize = image.buffer.buffer.byteLength;
+  if (originalImageSize > 16000000) {
+    const res = new Response();
+    res.headers.set("Retry-After", "-1");
+    return Response.json({}, { status: 400 });
+  }
+
+  let compressImageBuf = await compressImage(image.buffer);
+
   if (compressImageBuf === undefined) {
     console.log("unable to compress image");
     await createMetadataOnImageCallback({
       db,
       key,
       userId,
+      mimetype: image.mimetype,
+      size: originalImageSize,
       entryId,
       compressionStatus: "failure",
     });
@@ -96,11 +100,26 @@ export async function POST(req: Request) {
   try {
     console.log("uploading image");
 
-    await uploadImage(imgBuf, key);
+    const indexOfDot = key.lastIndexOf(".");
+    const nameWithoutExt = key.slice(0, indexOfDot);
+    const compressedImageName = `${nameWithoutExt}-compressed.webp`;
+    console.log({ compressedImageName });
+    await uploadImage(image.buffer, compressedImageName, {
+      Compressed: "true",
+    });
 
-    const parsedGps = getGpsMetadata(imgBuf);
+    const parsedGps = getGpsMetadata(image.buffer);
     if (!parsedGps.success) {
       console.log("unable to get gps data", parsedGps.error);
+      await createMetadataOnImageCallback({
+        db,
+        key,
+        userId,
+        entryId,
+        mimetype: image.mimetype,
+        size: originalImageSize,
+        compressionStatus: "success",
+      });
     } else {
       const formattedDate = formatDate(parsedGps.data.dateTimeTaken);
       await createMetadataOnImageCallback({
@@ -108,6 +127,8 @@ export async function POST(req: Request) {
         key,
         userId,
         entryId,
+        mimetype: image.mimetype,
+        size: originalImageSize,
         gps:
           parsedGps.data.gps?.lon !== undefined &&
           parsedGps.data.gps.lat !== undefined
