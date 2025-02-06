@@ -429,6 +429,7 @@ export const PostsForm = forwardRef(function PostsForm(
                 <SortableItem key={field.id} id={field.id}>
                   <FieldSet>
                     <button
+                      type="button"
                       onClick={() => removePost(index, field.id)}
                       className="absolute right-0 top-0 -translate-y-1/2 translate-x-1/2"
                     >
