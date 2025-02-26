@@ -121,6 +121,7 @@ export const imageKeys = pgTable("image_key", {
   key: text("key").primaryKey(),
 
   // name, mimetype, size are for populating edit form image field
+  name: text().notNull(),
   mimetype: text().notNull(),
   size: integer().notNull(),
 
@@ -130,7 +131,6 @@ export const imageKeys = pgTable("image_key", {
   lon: doublePrecision("lon"),
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
-  postId: bigint({ mode: "number" }).references(() => posts.id),
   compressionStatus: text("compressionStatus")
     .default("success")
     .$type<"success" | "failure">()
@@ -148,7 +148,10 @@ export const posts = pgTable("posts", {
     .references(() => entries.id),
   title: varchar({ length: 255 }).notNull(),
   description: varchar({ length: 2048 }).notNull(),
-});
+  imageKey: text()
+    .references(() => imageKeys.key)
+    .notNull(),
+}).enableRLS();
 
 export const editorStates = pgTable("editor_state", {
   data: json("editorState").$type<

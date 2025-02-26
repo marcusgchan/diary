@@ -160,9 +160,9 @@ export async function deleteEntry({
       .delete(editorStates)
       .where(eq(editorStates.entryId, input.entryId));
 
-    await tx.delete(imageKeys).where(eq(imageKeys.entryId, input.entryId));
-
     await tx.delete(posts).where(eq(posts.entryId, input.entryId));
+
+    await tx.delete(imageKeys).where(eq(imageKeys.entryId, input.entryId));
 
     await tx.delete(entries).where(eq(entries.id, input.entryId));
   });
@@ -511,10 +511,10 @@ export async function deleteDiaryById({
       );
 
     await tx
-      .delete(imageKeys)
+      .delete(posts)
       .where(
         inArray(
-          imageKeys.entryId,
+          posts.entryId,
           tx
             .select({ id: entries.id })
             .from(entries)
@@ -523,10 +523,10 @@ export async function deleteDiaryById({
       );
 
     await tx
-      .delete(posts)
+      .delete(imageKeys)
       .where(
         inArray(
-          posts.entryId,
+          imageKeys.entryId,
           tx
             .select({ id: entries.id })
             .from(entries)
@@ -611,6 +611,7 @@ export async function createMetadataOnImageCallback({
   userId,
   entryId,
   key,
+  name,
   mimetype,
   size, // bytes
   dateTimeTaken,
@@ -621,6 +622,7 @@ export async function createMetadataOnImageCallback({
   userId: string;
   entryId: number;
   key: string;
+  name: string;
   mimetype: string;
   size: number;
   gps?: { lat: number; lon: number };
@@ -641,6 +643,7 @@ export async function createMetadataOnImageCallback({
     .insert(imageKeys)
     .values({
       key,
+      name,
       mimetype,
       size,
       entryId,
@@ -674,12 +677,13 @@ export async function getUnlinkedImages({
     .from(imageKeys)
     .innerJoin(entries, eq(entries.id, imageKeys.entryId))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .leftJoin(posts, eq(posts.entryId, imageKeys.entryId))
     .where(
       and(
         eq(diariesToUsers.userId, userId),
         eq(entries.id, entryId),
         eq(diariesToUsers.diaryId, diaryId),
-        isNull(imageKeys.postId),
+        isNull(posts.imageKey),
         inArray(imageKeys.key, keys),
       ),
     );
@@ -687,7 +691,6 @@ export async function getUnlinkedImages({
 
 export async function createPosts({
   db,
-  userId,
   entryId,
   posts: postsToInsert,
 }: {
@@ -696,41 +699,17 @@ export async function createPosts({
   entryId: number;
   posts: CreatePost["posts"];
 }) {
-  const keys = postsToInsert.map((post) => post.key);
-
-  await db.transaction(async (tx) => {
-    const [post] = await tx
-      .insert(posts)
-      .values(
-        postsToInsert.map((post) => ({
-          title: post.title,
-          description: post.description,
-          entryId: entryId,
-        })),
-      )
-      .returning({ id: posts.id });
-
-    // Link to post
-    const sub = tx
-      .select({ key: imageKeys.key })
-      .from(entries)
-      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-      .innerJoin(imageKeys, eq(imageKeys.entryId, entries.id))
-      .where(
-        and(
-          eq(diariesToUsers.userId, userId),
-          isNull(imageKeys.postId),
-          inArray(imageKeys.key, keys),
-        ),
-      );
-
-    await tx
-      .update(imageKeys)
-      .set({
-        postId: post!.id,
-      })
-      .where(inArray(imageKeys.key, sub));
-  });
+  const [post] = await db
+    .insert(posts)
+    .values(
+      postsToInsert.map((post) => ({
+        entryId: entryId,
+        title: post.title,
+        description: post.description,
+        imageKey: post.key,
+      })),
+    )
+    .returning({ id: posts.id });
 }
 
 export async function getPosts({
@@ -747,13 +726,24 @@ export async function getPosts({
       id: posts.id,
       title: posts.title,
       description: posts.description,
-      imageKey: imageKeys.key,
+      imageKey: posts.imageKey,
     })
     .from(posts)
-    .innerJoin(imageKeys, eq(imageKeys.postId, posts.id))
-    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+    .innerJoin(entries, eq(entries.id, posts.entryId))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
+    .where(and(eq(posts.entryId, entryId), eq(diariesToUsers.userId, userId)));
+  // return await db
+  //   .select({
+  //     id: posts.id,
+  //     title: posts.title,
+  //     description: posts.description,
+  //     imageKey: imageKeys.key,
+  //   })
+  //   .from(posts)
+  //   .innerJoin(imageKeys, eq(imageKeys.postId, posts.id))
+  //   .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+  //   .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+  //   .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
 }
 
 export async function getPostsForForm({
@@ -776,7 +766,7 @@ export async function getPostsForForm({
       size: imageKeys.size,
     })
     .from(posts)
-    .innerJoin(imageKeys, eq(imageKeys.postId, posts.id))
+    .innerJoin(imageKeys, eq(imageKeys.key, posts.imageKey))
     .innerJoin(entries, eq(entries.id, imageKeys.entryId))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
     .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));

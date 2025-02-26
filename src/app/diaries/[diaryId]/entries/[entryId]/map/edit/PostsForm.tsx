@@ -203,7 +203,7 @@ export const PostsForm = forwardRef(function PostsForm(
     }
   }
 
-  const retrying = !!Object.values(formImageUploadStatuses).filter(
+  const uploadingImages = !!Object.values(formImageUploadStatuses).filter(
     (status) => status.type === "loading",
   ).length;
   const { data: imageUploadStatuses } =
@@ -216,7 +216,7 @@ export const PostsForm = forwardRef(function PostsForm(
       },
       {
         refetchInterval: 3000,
-        enabled: retrying,
+        enabled: uploadingImages,
       },
     );
 
@@ -475,7 +475,9 @@ export const PostsForm = forwardRef(function PostsForm(
         >
           +
         </button>
-        <Button className="col-start-1 col-end-2">Save</Button>
+        <Button disabled={uploadingImages} className="col-start-1 col-end-2">
+          Save
+        </Button>
       </form>
     </FormProvider>
   );

@@ -284,6 +284,15 @@ export const diaryRouter = createTRPCRouter({
   createPosts: protectedProcedure
     .input(createPostSchema)
     .mutation(async ({ ctx, input }) => {
+      const entry = await getEntryIdById({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+      if (!entry) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
       await createPosts({
         db: ctx.db,
         entryId: input.entryId,

@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { CSSProperties, useEffect, useRef } from "react";
+import { CSSProperties, Fragment, useEffect, useRef } from "react";
 import { cn } from "~/app/_utils/cx";
 import { RouterInputs, RouterOutputs } from "~/server/api/trpc";
 import { api } from "~/trpc/TrpcProvider";
@@ -15,9 +15,8 @@ export function PostsSection() {
   const { data, isError } = api.diary.getEntryMap.useQuery({
     entryId: Number(params.entryId),
   });
-
+  console.log({ data });
   const postsFormRef = useRef<PostsFormHandle>(null);
-  // const { data } =
 
   useEffect(() => {
     if (!postsFormRef.current) {
@@ -25,11 +24,9 @@ export function PostsSection() {
     }
   }, []);
 
-  const router = useRouter();
   const queryUtils = api.useUtils();
   const createPostMutation = api.diary.createPosts.useMutation({
     async onSuccess() {
-      // router.push(`/diaries/${diaryId}/entries/${entryId}`);
       await queryUtils.diary.getEntryMap.invalidate({ entryId });
     },
   });
@@ -56,9 +53,9 @@ export function PostsSection() {
   if (data) {
     return (
       <section className="grid gap-3">
-        <TitleInput title={data.header.title} />
-        <DatePicker day={data.header.day} />
-        <div className="grid grid-cols-[max-content_100px_max-content] [grid-auto-rows:50px_auto_auto]">
+        <TitleInput />
+        <DatePicker />
+        <div className="grid grid-cols-[1fr_100px_1fr] [grid-auto-rows:50px_auto_auto]">
           <Posts posts={data.posts} />
           <Curves postsLength={data.posts.length} />
         </div>
@@ -80,21 +77,31 @@ type Post = Posts[number];
 function Posts({ posts }: { posts: Posts }) {
   return posts.map((post, i) => {
     return (
-      <Post
-        className={cn(
-          "[grid-row-end:span_3]",
-          i % 2 == 0 && "col-start-1 col-end-2 bg-red-400",
-          i % 2 == 1 && "col-start-3 col-end-4",
-        )}
-        styles={{ gridRowStart: 1 + i * 3 }}
-        key={post.id}
-        post={post}
-      />
+      <Fragment key={post.id}>
+        <PostImage
+          className={cn(
+            "[grid-row-end:span_3]",
+            i % 2 == 0 && "col-start-1 col-end-2 bg-red-400",
+            i % 2 == 1 && "col-start-3 col-end-4",
+          )}
+          styles={{ gridRowStart: 1 + i * 3 }}
+          post={post}
+        />
+        <PostContent
+          className={cn(
+            "[grid-row-end:span_3]",
+            i % 2 == 1 && "col-start-1 col-end-2",
+            i % 2 == 0 && "col-start-3 col-end-4",
+          )}
+          styles={{ gridRowStart: 1 + i * 3 }}
+          post={post}
+        />
+      </Fragment>
     );
   });
 }
 
-function Post({
+function PostImage({
   post,
   className,
   styles,
@@ -106,13 +113,36 @@ function Post({
   return (
     <div
       style={styles}
-      className={cn("grid w-fit gap-2 bg-gray-400 p-2", className)}
+      className={cn("grid w-full gap-2 bg-gray-400 p-2", className)}
     >
-      <h3 className="text-lg">{post.title}</h3>
-      <div className="aspect-square w-[250px] bg-gray-500">
-        {post.image.success ? <img src={post.image.url} alt="" /> : <p>:(</p>}
-      </div>
-      <p>{post.description}</p>
+      {post.image.success ? (
+        <img
+          className="aspect-square w-full object-cover"
+          alt=""
+          src={post.image.url}
+        />
+      ) : (
+        <p>:(</p>
+      )}
+    </div>
+  );
+}
+
+function PostContent({
+  post,
+  className,
+  styles,
+}: {
+  post: Post;
+  className?: string;
+  styles?: CSSProperties | undefined;
+}) {
+  return (
+    <div style={styles} className={cn("grid place-content-center", className)}>
+      {!!post.title.length && (
+        <h3 className="text-lg font-bold">{post.title}</h3>
+      )}
+      {!!post.description.length && <p>{post.description}</p>}
     </div>
   );
 }

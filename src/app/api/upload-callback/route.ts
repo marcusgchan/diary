@@ -5,7 +5,6 @@ import { db } from "~/server/db";
 import {
   createMetadataOnImageCallback,
   getEntryIdByEntryAndDiaryId,
-  getImageUploadStatus,
 } from "~/server/api/features/diary/service";
 import {
   getImage,
@@ -46,7 +45,7 @@ export async function POST(req: Request) {
     return Response.json({ message: content.message }, { status: 400 });
   }
 
-  const { key, userId, diaryId, entryId } = content;
+  const { key, userId, diaryId, entryId, name } = content;
   const res = await getEntryIdByEntryAndDiaryId({
     db,
     userId,
@@ -87,6 +86,7 @@ export async function POST(req: Request) {
       userId,
       mimetype: image.mimetype,
       size: originalImageSize,
+      name,
       entryId,
       compressionStatus: "failure",
     });
@@ -114,6 +114,7 @@ export async function POST(req: Request) {
         userId,
         entryId,
         mimetype: image.mimetype,
+        name,
         size: originalImageSize,
         compressionStatus: "success",
       });
@@ -125,6 +126,7 @@ export async function POST(req: Request) {
         userId,
         entryId,
         mimetype: image.mimetype,
+        name,
         size: originalImageSize,
         gps:
           parsedGps.data.gps?.lon !== undefined &&
@@ -240,6 +242,7 @@ type WebhookReqBody = {
   userId: string;
   diaryId: number;
   entryId: number;
+  name: string;
 };
 
 type ParsingError = {
@@ -278,6 +281,7 @@ function getInfoFromBody(
       userId,
       diaryId,
       entryId,
+      name: imageName,
     };
   } else {
     const parsed = localInput.safeParse(body);
@@ -308,6 +312,7 @@ function getInfoFromBody(
       userId,
       diaryId,
       entryId,
+      name: imageName,
     };
   }
 }
