@@ -7,7 +7,7 @@ export function SortableItem({
   id,
   children,
 }: {
-  id: number;
+  id: string;
   children: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =

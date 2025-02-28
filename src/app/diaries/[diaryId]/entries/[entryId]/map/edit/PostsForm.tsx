@@ -53,7 +53,7 @@ export type PostFormHandle = {
 const formSchema = z.object({
   posts: z
     .object({
-      id: z.number(),
+      id: z.string(),
       title: z.string(),
       imageMetadata: z.object({
         name: z.string(),
@@ -67,15 +67,8 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-let formId = 0;
-
-function getId(): number {
-  console.log("incrementing", formId);
-  return formId++;
-}
-
 type UploadStatus =
-  | { type: "loading"; key: string }
+  | { type: "loading" }
   | { type: "error"; key?: string }
   | { type: "empty" }
   | { type: "uploaded"; url: string; key: string };
@@ -84,9 +77,12 @@ type IdToUploadStatus = {
   [id: string]: UploadStatus;
 };
 
+function getUUID() {
+  return crypto.randomUUID();
+}
 const posts = [
   {
-    id: getId(),
+    id: getUUID(),
     title: "",
     imageMetadata: {
       name: "",
@@ -99,7 +95,7 @@ const posts = [
 
 type HandleImageUploadCallabck = (
   index: number,
-  id: number,
+  id: string,
   file: File | null,
 ) => void;
 
@@ -140,7 +136,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     useState<IdToUploadStatus>(initialStatuses);
 
   // Store id to key mapping for uploaded images
-  const imageKeyToIdRef = useRef<Map<string, number>>(new Map());
+  const imageKeyToIdRef = useRef<Map<string, string>>(new Map());
 
   useImperativeHandle(ref, () => {
     return {
@@ -197,7 +193,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     };
   });
 
-  function resetImage(id: number, key?: string) {
+  function resetImage(id: string, key?: string) {
     setImgUploadStatuses({
       ...imgUploadStatuses,
       [id]: { type: "empty" },
@@ -214,7 +210,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
   const uploadingImages = !!Object.values(imgUploadStatuses).filter(
     (status) => status.type === "loading",
   ).length;
-  const { data: imageUploadStatuses } =
+  const { data: newImgUploadStatuses } =
     api.diary.getMultipleImageUploadStatus.useQuery(
       {
         keyToIdMap: imageKeyToIdRef.current,
@@ -229,15 +225,16 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     );
 
   useEffect(() => {
-    if (imageUploadStatuses === undefined) {
+    if (newImgUploadStatuses === undefined) {
       return;
     }
 
     setImgUploadStatuses((statuses) => {
+      console.log(statuses);
       const newStatuses = Array.from(Object.entries(statuses)).map(
         ([id, value]) => {
           if (value.type === "loading") {
-            const updatedStatus = imageUploadStatuses[Number(id)];
+            const updatedStatus = newImgUploadStatuses[id];
 
             // still loading
             if (updatedStatus === undefined) {
@@ -263,7 +260,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
       );
       return typeSafeObjectFromEntries(newStatuses);
     });
-  }, [imageUploadStatuses]);
+  }, [newImgUploadStatuses]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -275,7 +272,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
   const deletePostMutation = api.diary.deleteUnlinkedImage.useMutation();
 
   function addPost() {
-    const id = getId();
+    const id = getUUID();
     append({
       id: id,
       title: "",
@@ -289,7 +286,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     setImgUploadStatuses((prev) => ({ ...prev, [id]: { type: "empty" } }));
   }
 
-  async function removePost(index: number, id: number) {
+  async function removePost(index: number, id: string) {
     deletePostMutation.mutate({ entryId, diaryId, key: "" });
     const status = imgUploadStatuses[id];
     if (status === undefined) {
@@ -317,7 +314,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
   const utils = api.useUtils();
   const handleImageUpload: HandleImageUploadCallabck = async (
     index: number,
-    id: number,
+    id: string,
     file: File | null,
   ) => {
     if (file) {
@@ -498,11 +495,11 @@ function ImageField({
   handleImageUpload,
   resetImage,
 }: {
-  fieldId: number;
+  fieldId: string;
   fieldIndex: number;
   imageUploadStatus: UploadStatus;
   handleImageUpload: HandleImageUploadCallabck;
-  resetImage: (id: number, key?: string) => void;
+  resetImage: (id: string, key?: string) => void;
 }) {
   const {
     register,
@@ -564,7 +561,7 @@ function ImageField({
         <p>There was an error uploading your image.</p>
         <Button
           type="button"
-          onClick={() => resetImage(fieldIndex, imageUploadStatus.key)}
+          onClick={() => resetImage(fieldId, imageUploadStatus.key)}
         >
           Try again
         </Button>
@@ -626,9 +623,9 @@ function ImageUpload({
   id,
   children,
 }: {
-  onChange: (index: number, id: number, file: File | null) => void;
+  onChange: (index: number, id: string, file: File | null) => void;
   index: number;
-  id: number;
+  id: string;
   children: ({
     handleDrop,
     handleDragOver,

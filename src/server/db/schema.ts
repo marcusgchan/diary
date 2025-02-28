@@ -11,6 +11,7 @@ import {
   timestamp,
   doublePrecision,
   varchar,
+  uuid,
 } from "drizzle-orm/pg-core";
 import {
   type SerializedEditorState,
@@ -142,7 +143,7 @@ export const imageKeys = pgTable("image_key", {
 export type ImageKeys = typeof imageKeys.$inferSelect;
 
 export const posts = pgTable("posts", {
-  id: bigserial({ mode: "number" }).primaryKey(),
+  id: uuid().primaryKey().defaultRandom(),
   entryId: bigint({ mode: "number" })
     .notNull()
     .references(() => entries.id),

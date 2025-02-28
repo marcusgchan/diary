@@ -59,7 +59,6 @@ import {
 } from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
 import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
-import { unique } from "drizzle-orm/pg-core";
 import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";
 
 export const diaryRouter = createTRPCRouter({
@@ -405,6 +404,7 @@ export const diaryRouter = createTRPCRouter({
 
       return postWithImage;
     }),
+  // updatePosts: protectedProcedure.input().mutation(),
   getEntryTitle: protectedProcedure
     .input(z.object({ entryId: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -655,7 +655,7 @@ export const diaryRouter = createTRPCRouter({
         keys: z.string().array(),
         entryId: z.number(),
         diaryId: z.number(),
-        keyToIdMap: z.map(z.string(), z.number()),
+        keyToIdMap: z.map(z.string(), z.string()),
       }),
     )
     .query(async ({ ctx, input }) => {
