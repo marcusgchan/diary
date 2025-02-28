@@ -103,16 +103,18 @@ type HandleImageUploadCallabck = (
   file: File | null,
 ) => void;
 
-export const PostsForm = forwardRef(function PostsForm(
-  {
-    diaryId,
-    entryId,
-    mutate,
-  }: {
-    diaryId: number;
-    entryId: number;
-    mutate(data: RouterInputs["diary"]["createPosts"]): void;
-  },
+export type PostsFormHandle = {
+  reset(data: Post[]): void;
+};
+
+type Props = {
+  diaryId: number;
+  entryId: number;
+  mutate(data: RouterInputs["diary"]["createPosts"]): void;
+};
+
+export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
+  { diaryId, entryId, mutate }: Props,
   ref,
 ) {
   const formMethods = useForm<FormValues>({
@@ -134,7 +136,7 @@ export const PostsForm = forwardRef(function PostsForm(
     );
   }, [fields]);
 
-  const [formImageUploadStatuses, setImgUploadStatuses] =
+  const [imgUploadStatuses, setImgUploadStatuses] =
     useState<IdToUploadStatus>(initialStatuses);
 
   // Store id to key mapping for uploaded images
@@ -143,9 +145,11 @@ export const PostsForm = forwardRef(function PostsForm(
   useImperativeHandle(ref, () => {
     return {
       reset(data: Post[]) {
+        console.log("in reset");
         const fields = data.map(
-          ({ title, description, image: { name, size, mimetype } }) => {
+          ({ id, title, description, image: { name, size, mimetype } }) => {
             return {
+              id,
               title,
               description,
               image: {
@@ -156,6 +160,7 @@ export const PostsForm = forwardRef(function PostsForm(
             };
           },
         );
+        console.log({ fields });
         formMethods.reset({
           posts: fields,
         });
@@ -179,9 +184,12 @@ export const PostsForm = forwardRef(function PostsForm(
         ): [Post["image"]["key"], Post["id"]] => {
           return [post.image.key, post.id];
         };
-        setImgUploadStatuses(
-          typeSafeObjectFromEntries(data.map(postToImageUploadStatus)),
+
+        const newImgUploadStatuses = typeSafeObjectFromEntries(
+          data.map(postToImageUploadStatus),
         );
+        console.log({ newImgUploadStatuses });
+        setImgUploadStatuses(newImgUploadStatuses);
         imageKeyToIdRef.current = new Map(data.map(postToKeyIdMap));
         // change id to uuid
         // add key to data
@@ -191,7 +199,7 @@ export const PostsForm = forwardRef(function PostsForm(
 
   function resetImage(id: number, key?: string) {
     setImgUploadStatuses({
-      ...formImageUploadStatuses,
+      ...imgUploadStatuses,
       [id]: { type: "empty" },
     });
     if (key !== undefined) {
@@ -203,7 +211,7 @@ export const PostsForm = forwardRef(function PostsForm(
     }
   }
 
-  const uploadingImages = !!Object.values(formImageUploadStatuses).filter(
+  const uploadingImages = !!Object.values(imgUploadStatuses).filter(
     (status) => status.type === "loading",
   ).length;
   const { data: imageUploadStatuses } =
@@ -283,7 +291,7 @@ export const PostsForm = forwardRef(function PostsForm(
 
   async function removePost(index: number, id: number) {
     deletePostMutation.mutate({ entryId, diaryId, key: "" });
-    const status = formImageUploadStatuses[id];
+    const status = imgUploadStatuses[id];
     if (status === undefined) {
       throw Error("status should not be undefined");
     }
@@ -363,7 +371,7 @@ export const PostsForm = forwardRef(function PostsForm(
       return { ...prev, [id]: { type: "empty" } };
     });
     imageKeyToIdRef.current.delete(
-      (formImageUploadStatuses[id] as { key: string }).key,
+      (imgUploadStatuses[id] as { key: string }).key,
     );
   };
 
@@ -380,8 +388,8 @@ export const PostsForm = forwardRef(function PostsForm(
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     const errors = data.posts.some((post) => {
       return (
-        formImageUploadStatuses[post.id] === undefined ||
-        formImageUploadStatuses[post.id]?.type !== "uploaded"
+        imgUploadStatuses[post.id] === undefined ||
+        imgUploadStatuses[post.id]?.type !== "uploaded"
       );
     });
     if (errors) {
@@ -394,7 +402,7 @@ export const PostsForm = forwardRef(function PostsForm(
     mutate({
       entryId,
       posts: data.posts.map((post) => {
-        const status = formImageUploadStatuses[post.id] as {
+        const status = imgUploadStatuses[post.id] as {
           type: "uploaded";
           key: string;
         };
@@ -424,7 +432,7 @@ export const PostsForm = forwardRef(function PostsForm(
           >
             {fields.map((field, index) => {
               // Invariant: field must exist in upload status if it exists in form
-              const uploadStatus = formImageUploadStatuses[field.id]!;
+              const uploadStatus = imgUploadStatuses[field.id]!;
               return (
                 <SortableItem key={field.id} id={field.id}>
                   <FieldSet>

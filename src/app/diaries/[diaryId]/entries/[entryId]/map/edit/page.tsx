@@ -1,15 +1,12 @@
-"use client";
-import { PostsForm } from "./PostsForm";
+import { api } from "~/trpc/server";
+import { FormWrapper } from "./FormWrapper";
 
-export default function EditMapPage({
+export default async function EditMapPage({
   params,
 }: {
   params: { diaryId: string; entryId: string };
 }) {
-  return (
-    <PostsForm
-      diaryId={Number(params.diaryId)}
-      entryId={Number(params.entryId)}
-    />
-  );
+  await api.diary.getPostsForForm.prefetch({ entryId: Number(params.entryId) });
+
+  return <FormWrapper />;
 }
