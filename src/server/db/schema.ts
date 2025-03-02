@@ -10,6 +10,8 @@ import {
   text,
   timestamp,
   doublePrecision,
+  varchar,
+  uuid,
 } from "drizzle-orm/pg-core";
 import {
   type SerializedEditorState,
@@ -110,7 +112,7 @@ export const entries = pgTable("entry", {
     .notNull()
     .references(() => diaries.id),
   day: date("day", { mode: "string" }).notNull(),
-  title: text("title"),
+  title: text("title").notNull().default(""),
   deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
@@ -118,24 +120,39 @@ export const entries = pgTable("entry", {
 
 export const imageKeys = pgTable("image_key", {
   key: text("key").primaryKey(),
+
+  // name, mimetype, size are for populating edit form image field
+  name: text().notNull(),
+  mimetype: text().notNull(),
+  size: integer().notNull(),
+
   entryId: bigint("entryId", { mode: "number" })
-    .references(() => entries.id)
-    .notNull(),
-  linked: boolean("linked").notNull().default(false),
-  receivedWebhook: boolean("receivedWebhook").notNull().default(false),
+    .notNull()
+    .references(() => entries.id),
   lon: doublePrecision("lon"),
   lat: doublePrecision("lat"),
   datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
-  deleting: boolean("deleting").notNull().default(false),
-  // uncompressed, compressed
   compressionStatus: text("compressionStatus")
-    .default("uncompressed")
-    .$type<"uncompressed" | "compressed">()
+    .default("success")
+    .$type<"success" | "failure">()
     .notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
 
 export type ImageKeys = typeof imageKeys.$inferSelect;
+
+export const posts = pgTable("posts", {
+  id: uuid().primaryKey().defaultRandom(),
+  entryId: bigint({ mode: "number" })
+    .notNull()
+    .references(() => entries.id),
+  title: varchar({ length: 255 }).notNull(),
+  description: varchar({ length: 2048 }).notNull(),
+  imageKey: text()
+    .references(() => imageKeys.key)
+    .notNull(),
+  deleting: boolean("deleting").notNull().default(false),
+}).enableRLS();
 
 export const editorStates = pgTable("editor_state", {
   data: json("editorState").$type<

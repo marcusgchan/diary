@@ -2,11 +2,11 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "~/app/_components/ui/button";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 
 export function Header() {
   const params = useParams();
-  const queryUtils = api.useContext();
+  const queryUtils = api.useUtils();
   const router = useRouter();
   const goToEditDiary = () => router.push(`/diaries/${params.diaryId}/edit`);
   const { data: diary } = api.diary.getDiary.useQuery(

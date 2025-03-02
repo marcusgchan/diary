@@ -1,16 +1,27 @@
+import { HydrateClient } from "~/trpc/server";
 import { Entries } from "./Entries";
 import { Header } from "./Header";
+import { api } from "~/trpc/server";
 
-export default function Page() {
+export default async function Page({
+  params,
+}: {
+  params: { diaryId: string; entryId: string };
+}) {
+  await api.diary.getEntry.prefetch({
+    diaryId: Number(params.diaryId),
+    entryId: Number(params.entryId),
+  });
   return (
     <div className="flex h-full flex-col gap-4">
       <Header />
       <div className="grid h-full min-h-0 flex-1 gap-2 sm:grid-cols-[220px_1fr]">
         <aside className="">
           <h3 className="mb-2 text-2xl">Diary Entries</h3>
-          <Entries />
+          <HydrateClient>
+            <Entries />
+          </HydrateClient>
         </aside>
-        <div className="h-full min-h-0"></div>
       </div>
     </div>
   );

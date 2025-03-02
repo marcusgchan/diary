@@ -10,46 +10,53 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { FormEvent, useState } from "react";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 import Link from "next/link";
 import { cn } from "@/app/_utils/cx";
 import { Button } from "@/components/ui/button";
-import FetchResolver from "../_components/FetchResolver";
 import { Skeleton } from "../_components/ui/skeleton";
 
 export default function Diaries() {
-  const diariesQueryState = api.diary.getDiaries.useQuery();
   return (
     <div className="grid grid-cols-1 gap-5">
       <Header />
       <main className="h-full">
         <ul className="grid h-full grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))]">
-          <FetchResolver
-            {...diariesQueryState}
-            loadingComponent={Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[3/4]" />
-            ))}
-          >
-            {(diaries) =>
-              diaries.map(({ id, name }) => (
-                <li key={id} className="h-full">
-                  <Link
-                    href={`${"/diaries"}/${id.toString()}/entries`}
-                    className={cn(
-                      "grid aspect-[3/4] w-full place-items-center rounded-md border-2 border-primary p-4",
-                      isOptimistic(id) && "opacity-70",
-                    )}
-                  >
-                    {name}
-                  </Link>
-                </li>
-              ))
-            }
-          </FetchResolver>
+          <DiaryList />
         </ul>
       </main>
     </div>
   );
+}
+
+function DiaryList() {
+  const { isLoading, isError, data } = api.diary.getDiaries.useQuery();
+
+  if (isLoading) {
+    return Array.from({ length: 4 }).map((_, i) => (
+      <Skeleton key={i} className="aspect-[3/4]" />
+    ));
+  }
+
+  if (isError) {
+    return <p>Something went wrong!</p>;
+  }
+
+  const diaries = data ?? [];
+  console.log(diaries);
+  return diaries.map(({ id, name }) => (
+    <li key={id} className="h-full">
+      <Link
+        href={`${"/diaries"}/${id.toString()}/entries`}
+        className={cn(
+          "grid aspect-[3/4] w-full place-items-center rounded-md border-2 border-primary p-4",
+          isOptimistic(id) && "opacity-70",
+        )}
+      >
+        {name}
+      </Link>
+    </li>
+  ));
 }
 
 function Header() {

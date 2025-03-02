@@ -3,16 +3,16 @@ import { env } from "~/env.mjs";
 import { timingSafeEqual } from "crypto";
 import { db } from "~/server/db";
 import {
+  createMetadataOnImageCallback,
   getEntryIdByEntryAndDiaryId,
-  getImageUploadStatus,
-  receivedImageWebhook,
-  setCompressionStatus,
 } from "~/server/api/features/diary/service";
 import {
   getImage,
   uploadImage,
 } from "~/server/api/features/shared/s3ImagesService";
 import sharp from "sharp";
+import ExifReader from "exifreader";
+import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";
 
 export async function POST(req: Request) {
   const rawToken = req.headers.get("authorization");
@@ -45,8 +45,7 @@ export async function POST(req: Request) {
     return Response.json({ message: content.message }, { status: 400 });
   }
 
-  const { key, userId, diaryId, entryId } = content;
-
+  const { key, userId, diaryId, entryId, name } = content;
   const res = await getEntryIdByEntryAndDiaryId({
     db,
     userId,
@@ -57,32 +56,40 @@ export async function POST(req: Request) {
   if (!res) {
     return Response.json({}, { status: 401 });
   }
-  const uploaded = await getImageUploadStatus({ db, key });
-  if (uploaded) {
-    console.log("image uploaded already with key", key);
-    return Response.json({}, { status: 201 });
-  }
 
-  try {
-    await receivedImageWebhook({
-      db,
-      key,
-    });
-  } catch (e) {
-    console.error(`unable to update image key (${key}) status to received`);
-  }
-
-  const imgBuf = await getImage(key);
-  if (imgBuf === undefined) {
+  const image = await getImage(key);
+  if (image === undefined) {
     console.log("unable to retrieve image from s3");
     const res = new Response();
     res.headers.set("Retry-After", "-1");
     return Response.json({}, { status: 500 });
   }
 
-  const compressImageBuf = await compressImage(imgBuf);
+  if (image.compressed !== undefined) {
+    return Response.json({}, { status: 201 });
+  }
+
+  const originalImageSize = image.buffer.buffer.byteLength;
+  if (originalImageSize > 16000000) {
+    const res = new Response();
+    res.headers.set("Retry-After", "-1");
+    return Response.json({}, { status: 400 });
+  }
+
+  let compressImageBuf = await compressImage(image.buffer);
+
   if (compressImageBuf === undefined) {
     console.log("unable to compress image");
+    await createMetadataOnImageCallback({
+      db,
+      key,
+      userId,
+      mimetype: image.mimetype,
+      size: originalImageSize,
+      name,
+      entryId,
+      compressionStatus: "failure",
+    });
     const res = new Response();
 
     // Negative to avoid retry
@@ -93,17 +100,42 @@ export async function POST(req: Request) {
 
   try {
     console.log("uploading image");
-    await uploadImage(imgBuf, key);
-    try {
-      await setCompressionStatus({
+
+    await uploadImage(image.buffer, getCompressedImageKey(key), {
+      Compressed: "true",
+    });
+
+    const parsedGps = getGpsMetadata(image.buffer);
+    if (!parsedGps.success) {
+      console.log("unable to get gps data", parsedGps.error);
+      await createMetadataOnImageCallback({
         db,
         key,
-        compressionStatus: "compressed",
+        userId,
+        entryId,
+        mimetype: image.mimetype,
+        name,
+        size: originalImageSize,
+        compressionStatus: "success",
       });
-    } catch (e) {
-      console.log(
-        "unable to update compression status to compressed even though image is compressed",
-      );
+    } else {
+      const formattedDate = formatDate(parsedGps.data.dateTimeTaken);
+      await createMetadataOnImageCallback({
+        db,
+        key,
+        userId,
+        entryId,
+        mimetype: image.mimetype,
+        name,
+        size: originalImageSize,
+        gps:
+          parsedGps.data.gps?.lon !== undefined &&
+          parsedGps.data.gps.lat !== undefined
+            ? { lat: parsedGps.data.gps.lat, lon: parsedGps.data.gps.lon }
+            : undefined,
+        compressionStatus: "success",
+        dateTimeTaken: formattedDate,
+      });
     }
   } catch (e) {
     console.error(`unable to upload compressed image with key ${key}`);
@@ -143,6 +175,41 @@ const hostedInput = z.object({
   }),
 });
 
+type GpsMetadataRes =
+  | { success: false; error: string }
+  | {
+      success: true;
+      data: {
+        gps: { lat: number; lon: number } | null;
+        dateTimeTaken: string | null;
+      };
+    };
+function getGpsMetadata(
+  buf: ArrayBuffer | Buffer | SharedArrayBuffer,
+): GpsMetadataRes {
+  let tags: ExifReader.ExpandedTags | undefined;
+  try {
+    tags = ExifReader.load(buf, { expanded: true });
+  } catch (e) {
+    return { success: false, error: e as string };
+  }
+
+  const gps =
+    tags?.gps?.Longitude !== undefined && tags?.gps.Latitude !== undefined
+      ? { lat: tags.gps.Latitude, lon: tags.gps.Longitude }
+      : null;
+
+  const dateTimeTaken = tags?.exif?.DateTimeOriginal?.description ?? null;
+
+  return {
+    success: true as const,
+    data: {
+      gps,
+      dateTimeTaken,
+    },
+  };
+}
+
 async function compressImage(buffer: Buffer): Promise<Buffer | undefined> {
   try {
     const compressed = await sharp(buffer)
@@ -155,12 +222,27 @@ async function compressImage(buffer: Buffer): Promise<Buffer | undefined> {
   }
 }
 
+function formatDate(date: string | null): string | undefined {
+  let formattedDate: string | undefined = undefined;
+  const segments = date?.split(" ");
+
+  if (segments) {
+    const date = segments[0]?.replaceAll(":", "/");
+    const time = segments[1];
+    if (date !== undefined && time !== undefined) {
+      formattedDate = `${date} ${time}`;
+    }
+  }
+  return formattedDate;
+}
+
 type WebhookReqBody = {
   success: true;
   key: string;
   userId: string;
   diaryId: number;
   entryId: number;
+  name: string;
 };
 
 type ParsingError = {
@@ -199,6 +281,7 @@ function getInfoFromBody(
       userId,
       diaryId,
       entryId,
+      name: imageName,
     };
   } else {
     const parsed = localInput.safeParse(body);
@@ -229,6 +312,7 @@ function getInfoFromBody(
       userId,
       diaryId,
       entryId,
+      name: imageName,
     };
   }
 }

@@ -22,7 +22,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Input } from "~/app/_components/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "~/app/_components/ui/use-toast";
 import * as ExifReader from "exifreader";
@@ -276,7 +276,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            disabled={startPolling || !imageKey || confirmUpload.isLoading}
+            disabled={startPolling || !imageKey || confirmUpload.isPending}
           >
             Continue
           </AlertDialogAction>

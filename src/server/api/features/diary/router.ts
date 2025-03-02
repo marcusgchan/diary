@@ -31,22 +31,39 @@ import {
   updateDiaryStatusToNotDeleting,
   updateDiaryEntryStatusToDeleting,
   updateDiaryEntryStatusToNotDeleting,
+  getUnlinkedImages,
+  DeleteImageMetadataError,
+  createPosts,
+  getPosts,
+  getEntryHeader,
+  getPostsForForm,
+  getEntryTitle,
+  getEntryDay,
+  updatePostsToDeleting,
+  deleteImageKeys,
+  getLinkedImageKeys,
 } from "./service";
 import {
   createDiarySchema,
   createEntrySchema,
+  createPostSchema,
   editDiaryNameSchema,
   editEntryDateSchema,
+  getPostsSchema,
   saveEditorStateSchema,
   updateEntryTitleSchema,
+  updatePostSchema,
 } from "./schema";
 import {
   deleteImage,
   deleteImages,
   getImageSignedUrl,
   getPresignedPost,
+  S3DeleteImageError,
 } from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
+import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
+import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -217,10 +234,14 @@ export const diaryRouter = createTRPCRouter({
       });
 
       try {
+        console.log("deleting imgs");
         await deleteImages(keysToDelete);
+        console.log("delete iamges");
         try {
           await deleteEntry({ db: ctx.db, input });
-        } catch (_) {
+        } catch (e) {
+          console.log("error");
+          console.log(e);
           ctx.session.log(
             "delete_entry",
             "error",
@@ -263,6 +284,235 @@ export const diaryRouter = createTRPCRouter({
 
       return input.entryId;
     }),
+  createPosts: protectedProcedure
+    .input(createPostSchema)
+    .mutation(async ({ ctx, input }) => {
+      const entry = await getEntryIdById({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+      if (!entry) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
+      await createPosts({
+        db: ctx.db,
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+        posts: input.posts,
+      });
+    }),
+  getEntryMap: protectedProcedure
+    .input(z.object({ entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [header] = await getEntryHeader({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      if (!header) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
+      const posts = await getPosts({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      async function handleSignedUrl(
+        key: string,
+      ): Promise<{ success: true; url: string } | { success: false }> {
+        try {
+          const url = await getImageSignedUrl(key);
+          return { success: true, url };
+        } catch (e) {
+          return { success: false };
+        }
+      }
+
+      const postWithImage = await Promise.all(
+        posts.map(async (post) => {
+          const image = await handleSignedUrl(post.imageKey);
+          const { imageKey: _, ...restOfPost } = post;
+          return {
+            ...restOfPost,
+            image: image,
+          };
+        }),
+      );
+
+      return {
+        header,
+        posts: postWithImage,
+      };
+    }),
+  getPostsForForm: protectedProcedure
+    .input(z.object({ entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [header] = await getEntryHeader({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      if (!header) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
+      const posts = await getPostsForForm({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      async function handleSignedUrl(
+        key: string,
+      ): Promise<{ success: true; url: string } | { success: false }> {
+        try {
+          const url = await getImageSignedUrl(key);
+          return { success: true, url };
+        } catch (e) {
+          return { success: false };
+        }
+      }
+
+      const postWithImage = await Promise.all(
+        posts.map(async (post) => {
+          const image = await handleSignedUrl(post.imageKey);
+          const {
+            id,
+            title,
+            imageKey: key,
+            description,
+            name,
+            size,
+            mimetype,
+          } = post;
+          return {
+            id,
+            title,
+            description,
+            image: {
+              key,
+              name,
+              size,
+              mimetype,
+              ...image,
+            },
+          };
+        }),
+      );
+
+      return postWithImage;
+    }),
+  updatePosts: protectedProcedure
+    .input(updatePostSchema)
+    .mutation(async ({ ctx, input }) => {
+      const entryId = getEntryIdById({
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+        db: ctx.db,
+      });
+      if (entryId === undefined) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
+      const keysToKeep = input.posts.map(({ key }) => key);
+
+      const s3KeysToDelete = (
+        await getImageKeysByEntryId({
+          db: ctx.db,
+          entryId: input.entryId,
+        })
+      ).filter((a) => !keysToKeep.includes(a.Key));
+      const keysToDelete = (
+        await getLinkedImageKeys({
+          db: ctx.db,
+          entryId: input.entryId,
+        })
+      )
+        .map(({ key }) => key)
+        .filter((key) => !keysToKeep.includes(key));
+
+      await updatePostsToDeleting({ db: ctx.db, entryId: input.entryId });
+      await deleteImages(s3KeysToDelete);
+
+      try {
+        await deleteImageKeys({
+          db: ctx.db,
+          entryId: input.entryId,
+          keys: keysToDelete,
+        });
+      } catch (e) {
+        console.log("1");
+        throw e;
+      }
+      try {
+        await createPosts({
+          db: ctx.db,
+          entryId: input.entryId,
+          userId: ctx.session.user.id,
+          posts: input.posts,
+        });
+      } catch (e) {
+        console.log("2");
+        throw e;
+      }
+    }),
+  getEntryTitle: protectedProcedure
+    .input(z.object({ entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [title] = await getEntryTitle({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      if (title === undefined) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      return title.title;
+    }),
+  getEntryDay: protectedProcedure
+    .input(z.object({ entryId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const [day] = await getEntryDay({
+        db: ctx.db,
+        userId: ctx.session.user.id,
+        entryId: input.entryId,
+      });
+
+      if (day === undefined) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      return day.day;
+    }),
+  deleteUnlinkedImage: protectedProcedure
+    .input(
+      z.object({
+        diaryId: z.number(),
+        entryId: z.number(),
+        key: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await deleteImages([
+          { Key: input.key },
+          { Key: getCompressedImageKey(input.key) },
+        ]);
+        await deleteImageMetadata({ db: ctx.db, key: input.key });
+      } catch (e) {
+        if (e instanceof DeleteImageMetadataError) {
+        } else if (e instanceof S3DeleteImageError) {
+        }
+      }
+    }),
   saveEditorState: protectedProcedure
     .input(saveEditorStateSchema)
     .mutation(async ({ ctx, input }) => {
@@ -299,6 +549,45 @@ export const diaryRouter = createTRPCRouter({
         input,
       });
       return { diaryId: input.diaryId, entryId: input.entryId, day: input.day };
+    }),
+  createPresignedPostUrl: protectedProcedure
+    .input(
+      z.object({
+        diaryId: z.number(),
+        entryId: z.number(),
+        imageMetadata: z.object({
+          name: z.string(),
+          mimetype: z.string(),
+          size: z.number(),
+        }),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const entry = await getEntryIdByEntryAndDiaryId({
+        db: ctx.db,
+        entryId: input.entryId,
+        diaryId: input.diaryId,
+        userId: ctx.session.user.id,
+      });
+      if (!entry) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Entry does not exist",
+        });
+      }
+      const uuid = randomUUID();
+      const url = await getPresignedPost(
+        ctx.session.user.id,
+        input.diaryId,
+        input.entryId,
+        uuid,
+        {
+          name: input.imageMetadata.name,
+          size: input.imageMetadata.size,
+          type: input.imageMetadata.mimetype,
+        },
+      );
+      return url;
     }),
   getPresignedUrl: protectedProcedure
     .input(
@@ -417,6 +706,69 @@ export const diaryRouter = createTRPCRouter({
   getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {
     return await getImageSignedUrl(input);
   }),
+  getMultipleImageUploadStatus: protectedProcedure
+    .input(
+      z.object({
+        keys: z.string().array(),
+        entryId: z.number(),
+        diaryId: z.number(),
+        keyToIdMap: z.map(z.string(), z.string()),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // for this user find all img with entryId null
+      // filter out the ones that aren't interested with
+
+      const entry = await getEntryIdById({
+        db: ctx.db,
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+      });
+
+      if (!entry) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      console.log({
+        keys: input.keys,
+        diaryId: input.diaryId,
+        entryId: input.entryId,
+      });
+
+      const unlinked = await getUnlinkedImages({
+        db: ctx.db,
+        keys: input.keys,
+        entryId: input.entryId,
+      });
+      console.log({ unlinked });
+
+      const unlinkedTransformed = unlinked
+        .filter((el) => input.keyToIdMap.get(el.key) !== undefined)
+        .map(async (el) => {
+          try {
+            const url = await getImageSignedUrl(el.key);
+            const id = input.keyToIdMap.get(el.key);
+            if (id === undefined) {
+              throw new Error();
+            }
+
+            if (el.compressionStatus === "failure") {
+              return [id, { key: el.key, url, status: "failure" }] as const;
+            }
+
+            return [id, { key: el.key, url, status: "success" }] as const;
+          } catch (e) {
+            return [
+              input.keyToIdMap.get(el.key)!,
+              {
+                status: "failure",
+              },
+            ] as const;
+          }
+        });
+      const res = await Promise.all(unlinkedTransformed);
+      return typeSafeObjectFromEntries(res);
+    }),
   getImageUploadStatus: protectedProcedure
     .input(z.object({ key: z.string().or(z.undefined()) }))
     .query(async ({ ctx, input }) => {

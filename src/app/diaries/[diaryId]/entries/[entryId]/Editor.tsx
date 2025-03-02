@@ -1,4 +1,4 @@
-import { api } from "~/trpc/client";
+import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -30,7 +30,7 @@ import { ImageNode } from "./image-node";
 import { DragDropPastePlugin } from "./DragDropPastePlugin";
 
 const theme = {
-  root: "h-full p-4 border-white border-2 rounded-md overflow-y-auto",
+  root: "h-full p-4 border-border border-2 rounded-md overflow-y-auto",
   heading: {
     h1: "text-2xl font-bold",
     h2: "text-xl font-semibold",

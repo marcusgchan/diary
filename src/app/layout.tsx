@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { TrpcProvider } from "~/trpc/TrpcProvider";
+import { TRPCProvider } from "~/trpc/TrpcProvider";
 import Link from "next/link";
 import { getServerAuthSession } from "~/server/auth";
 import { headers } from "next/headers";
@@ -48,7 +48,7 @@ export default async function RootLayout({
           </nav>
         </header>
         <div className="h-full min-h-0 flex-1">
-          <TrpcProvider headers={headers()}>{children}</TrpcProvider>
+          <TRPCProvider>{children}</TRPCProvider>
         </div>
       </div>
       <Toaster />
@@ -58,7 +58,7 @@ export default async function RootLayout({
 
 function Base({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" style={{ colorScheme: "dark" }} className="dark h-full">
+    <html lang="en" className="h-full">
       <body className={`${inter.className} h-full`}>
         <div className="mx-auto h-full max-w-7xl">{children}</div>
       </body>

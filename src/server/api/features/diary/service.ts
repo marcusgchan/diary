@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, inArray } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, isNotNull, isNull } from "drizzle-orm";
 import {
   diaries,
   diariesToUsers,
@@ -6,10 +6,12 @@ import {
   entries,
   ImageKeys,
   imageKeys,
+  posts,
 } from "~/server/db/schema";
 import { type TRPCContext } from "../../trpc";
 import {
   CreateEntry,
+  CreatePost,
   DeleteEntryInput,
   EditDiaryName,
   EditEntryDate,
@@ -115,6 +117,37 @@ export async function getEntryIdByEntryAndDiaryId({
   return entry;
 }
 
+export async function getEntryTitleDayById({
+  db,
+  userId,
+  entryId,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  diaryId: number;
+}) {
+  const [entry] = await db
+    .select({ title: entries.title, day: entries.day })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(
+      and(
+        eq(diariesToUsers.diaryId, diaryId),
+        eq(entries.id, entryId),
+        eq(diariesToUsers.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  if (!entry) {
+    return null;
+  }
+
+  return { title: entry.title ?? null, day: entry.day };
+}
+
 export async function deleteEntry({
   db,
   input,
@@ -127,9 +160,53 @@ export async function deleteEntry({
       .delete(editorStates)
       .where(eq(editorStates.entryId, input.entryId));
 
+    await tx.delete(posts).where(eq(posts.entryId, input.entryId));
+
     await tx.delete(imageKeys).where(eq(imageKeys.entryId, input.entryId));
 
     await tx.delete(entries).where(eq(entries.id, input.entryId));
+  });
+}
+
+export async function updatePostsToDeleting({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  await db
+    .update(posts)
+    .set({ deleting: true })
+    .where(eq(posts.entryId, entryId));
+}
+
+export async function getLinkedImageKeys({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  return await db
+    .select({ key: imageKeys.key })
+    .from(imageKeys)
+    .leftJoin(posts, eq(posts.imageKey, imageKeys.key))
+    .where(and(eq(imageKeys.entryId, entryId), isNotNull(posts.imageKey)));
+}
+
+export async function deleteImageKeys({
+  db,
+  entryId,
+  keys,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+  keys: string[];
+}) {
+  await db.transaction(async (tx) => {
+    await tx.delete(posts).where(and(eq(posts.entryId, entryId)));
+    await tx.delete(imageKeys).where(inArray(imageKeys.key, keys));
   });
 }
 
@@ -476,6 +553,18 @@ export async function deleteDiaryById({
       );
 
     await tx
+      .delete(posts)
+      .where(
+        inArray(
+          posts.entryId,
+          tx
+            .select({ id: entries.id })
+            .from(entries)
+            .where(eq(entries.diaryId, diaryId)),
+        ),
+      );
+
+    await tx
       .delete(imageKeys)
       .where(
         inArray(
@@ -527,11 +616,13 @@ export async function insertImageMetadata({
   entryId,
   key,
   dateTimeTaken,
+  gps,
 }: {
   db: TRPCContext["db"];
   userId: string;
   entryId: number;
   key: string;
+  gps?: { lat: number; lon: number };
   dateTimeTaken?: string | undefined;
 }) {
   const res = await db
@@ -549,23 +640,235 @@ export async function insertImageMetadata({
     .values({
       key,
       entryId,
+      name: "",
+      mimetype: "",
+      size: 0,
+      lat: gps?.lat,
+      lon: gps?.lon,
       datetimeTaken:
         dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
     })
     .onConflictDoNothing();
 }
 
-export async function receivedImageWebhook({
+export async function createMetadataOnImageCallback({
   db,
+  userId,
+  entryId,
   key,
+  name,
+  mimetype,
+  size, // bytes
+  dateTimeTaken,
+  compressionStatus,
+  gps,
 }: {
   db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
   key: string;
+  name: string;
+  mimetype: string;
+  size: number;
+  gps?: { lat: number; lon: number };
+  compressionStatus: ImageKeys["compressionStatus"];
+  dateTimeTaken?: string | undefined;
 }) {
-  return db
-    .update(imageKeys)
-    .set({ receivedWebhook: true })
-    .where(eq(imageKeys.key, key));
+  const res = await db
+    .select({ entryId: entries.id })
+    .from(diariesToUsers)
+    .innerJoin(entries, eq(entries.diaryId, diariesToUsers.diaryId))
+    .where(and(eq(diariesToUsers.userId, userId), eq(entries.id, entryId)));
+
+  if (res.length === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST" });
+  }
+
+  await db
+    .insert(imageKeys)
+    .values({
+      key,
+      name,
+      mimetype,
+      size,
+      entryId,
+      lat: gps?.lat,
+      lon: gps?.lon,
+      compressionStatus: compressionStatus,
+      datetimeTaken:
+        dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
+    })
+    .onConflictDoNothing();
+}
+
+export async function getUnlinkedImages({
+  db,
+  entryId,
+  keys,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+  keys: string[];
+}) {
+  return await db
+    .select({
+      key: imageKeys.key,
+      compressionStatus: imageKeys.compressionStatus,
+    })
+    .from(imageKeys)
+    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+    .leftJoin(posts, eq(posts.imageKey, imageKeys.key))
+    .where(
+      and(
+        eq(entries.id, entryId),
+        isNull(posts.imageKey),
+        inArray(imageKeys.key, keys),
+      ),
+    );
+}
+
+export async function createPosts({
+  db,
+  entryId,
+  posts: postsToInsert,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  posts: CreatePost["posts"];
+}) {
+  const [post] = await db
+    .insert(posts)
+    .values(
+      postsToInsert.map((post) => ({
+        entryId: entryId,
+        title: post.title,
+        description: post.description,
+        imageKey: post.key,
+      })),
+    )
+    .returning({ id: posts.id });
+}
+
+export async function setPostsToDeleting() {}
+
+export async function deletePosts({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  await db.transaction(async (tx) => {
+    await tx.delete(posts).where(eq(posts.entryId, entryId));
+    await tx.delete(imageKeys).where(eq(imageKeys.entryId, entryId));
+  });
+}
+
+export async function getPosts({
+  db,
+  entryId,
+  userId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+  userId: string;
+}) {
+  return await db
+    .select({
+      id: posts.id,
+      title: posts.title,
+      description: posts.description,
+      imageKey: posts.imageKey,
+    })
+    .from(posts)
+    .innerJoin(entries, eq(entries.id, posts.entryId))
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(and(eq(posts.entryId, entryId), eq(diariesToUsers.userId, userId)));
+}
+
+export async function getPostsForForm({
+  db,
+  entryId,
+  userId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+  userId: string;
+}) {
+  return await db
+    .select({
+      id: posts.id,
+      title: posts.title,
+      description: posts.description,
+      imageKey: imageKeys.key,
+      name: imageKeys.name,
+      mimetype: imageKeys.mimetype,
+      size: imageKeys.size,
+    })
+    .from(posts)
+    .innerJoin(imageKeys, eq(imageKeys.key, posts.imageKey))
+    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
+}
+
+export async function getEntryHeader({
+  db,
+  userId,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+}) {
+  return await db
+    .select({
+      day: entries.day,
+      title: entries.title,
+    })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)))
+    .limit(1);
+}
+
+export async function getEntryTitle({
+  db,
+  userId,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+}) {
+  return await db
+    .select({
+      title: entries.title,
+    })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)))
+    .limit(1);
+}
+
+export async function getEntryDay({
+  db,
+  userId,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+}) {
+  return await db
+    .select({
+      day: entries.day,
+    })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)))
+    .limit(1);
 }
 
 export async function setCompressionStatus({
@@ -601,6 +904,9 @@ export async function insertImageMetadataWithGps({
 }) {
   return db.insert(imageKeys).values({
     key,
+    name: "",
+    mimetype: "",
+    size: 0,
     entryId,
     lat,
     lon,
@@ -609,6 +915,12 @@ export async function insertImageMetadataWithGps({
   });
 }
 
+export class DeleteImageMetadataError extends Error {
+  constructor(msg?: string, options?: ErrorOptions) {
+    super(msg, options);
+    this.name = DeleteImageMetadataError.name;
+  }
+}
 export async function deleteImageMetadata({
   db,
   key,
@@ -616,7 +928,13 @@ export async function deleteImageMetadata({
   db: TRPCContext["db"];
   key: string;
 }) {
-  await db.delete(imageKeys).where(eq(imageKeys.key, key));
+  try {
+    await db.delete(imageKeys).where(eq(imageKeys.key, key));
+  } catch (e) {
+    throw new DeleteImageMetadataError("unable to delete image metadata", {
+      cause: e,
+    });
+  }
 }
 
 export async function getKeyByKey({
@@ -643,12 +961,13 @@ export async function getImageUploadStatus({
   db: TRPCContext["db"];
   key: string;
 }) {
-  const [status] = await db
-    .select({ receivedWebhook: imageKeys.receivedWebhook })
+  const res = await db
+    .select({ key: imageKeys.key })
     .from(imageKeys)
-    .where(eq(imageKeys.key, key));
+    .where(eq(imageKeys.key, key))
+    .limit(1);
 
-  return !!status?.receivedWebhook;
+  return res.length > 0 ? "uploaded" : "pending";
 }
 
 export async function cancelImageUpload({
@@ -661,6 +980,7 @@ export async function cancelImageUpload({
   return db.delete(imageKeys).where(eq(imageKeys.key, key));
 }
 
+// TODO: need to refactor upload for journal
 export async function confirmImageUpload({
   db,
   key,
@@ -668,8 +988,9 @@ export async function confirmImageUpload({
   db: TRPCContext["db"];
   key: string;
 }) {
-  return await db
-    .update(imageKeys)
-    .set({ linked: true })
-    .where(eq(imageKeys.key, key));
+  return;
+  // return await db
+  //   .update(imageKeys)
+  //   .set({ linked: true })
+  //   .where(eq(imageKeys.key, key));
 }
