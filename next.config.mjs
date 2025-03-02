@@ -12,7 +12,7 @@ const nextConfig = {
       },
       {
         source: "/diaries/:diaryId/entries/:entryId",
-        destination: "/diaries/:diaryId/entries/:entryId/map",
+        destination: "/diaries/:diaryId/entries/:entryId/posts",
         permanent: true,
       },
     ];

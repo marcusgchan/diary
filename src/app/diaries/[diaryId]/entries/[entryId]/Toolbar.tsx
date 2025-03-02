@@ -276,7 +276,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            disabled={startPolling || !imageKey || confirmUpload.isLoading}
+            disabled={startPolling || !imageKey || confirmUpload.isPending}
           >
             Continue
           </AlertDialogAction>

@@ -14,10 +14,10 @@ export function EntryTab() {
     <ul className="inline-flex items-start self-start rounded bg-muted p-1">
       <li>
         <Link
-          href={`/diaries/${diaryId}/entries/${entryId}/map`}
+          href={`/diaries/${diaryId}/entries/${entryId}/posts`}
           className={cn(
-            "block whitespace-nowrap rounded bg-muted px-4 py-1",
-            currentPath("map") && "bg-black",
+            "block whitespace-nowrap rounded px-4 py-1 text-foreground",
+            currentPath("/posts") && "bg-background",
           )}
         >
           Map Entry
@@ -27,8 +27,8 @@ export function EntryTab() {
         <Link
           href={`/diaries/${diaryId}/entries/${entryId}/journal`}
           className={cn(
-            "block whitespace-nowrap rounded bg-muted px-4 py-1",
-            currentPath("journal") && "bg-black",
+            "block whitespace-nowrap rounded px-4 py-1 text-foreground",
+            currentPath("/journal") && "bg-background",
           )}
         >
           Journal

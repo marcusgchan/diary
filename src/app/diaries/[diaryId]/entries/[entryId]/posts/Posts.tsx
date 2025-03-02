@@ -1,11 +1,9 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { CSSProperties, Fragment, useEffect, useRef } from "react";
 import { cn } from "~/app/_utils/cx";
 import { RouterInputs, RouterOutputs } from "~/server/api/trpc";
 import { api } from "~/trpc/TrpcProvider";
-import { TitleInput } from "../TitleInput";
-import { DatePicker } from "../DatePicker";
 import { PostFormHandle as PostsFormHandle, PostsForm } from "./edit/PostsForm";
 
 export function PostsSection() {
@@ -15,7 +13,7 @@ export function PostsSection() {
   const { data, isError } = api.diary.getEntryMap.useQuery({
     entryId: Number(params.entryId),
   });
-  console.log({ data });
+
   const postsFormRef = useRef<PostsFormHandle>(null);
 
   useEffect(() => {
@@ -38,8 +36,6 @@ export function PostsSection() {
   if (data && data.posts.length === 0) {
     return (
       <section className="grid gap-3">
-        <TitleInput />
-        <DatePicker />
         <PostsForm
           ref={postsFormRef}
           diaryId={Number(params.diaryId)}
@@ -52,14 +48,12 @@ export function PostsSection() {
 
   if (data) {
     return (
-      <section className="grid gap-3">
-        <TitleInput />
-        <DatePicker />
+      <PostsSectionContainer>
         <div className="grid grid-cols-[1fr_100px_1fr] [grid-auto-rows:50px_auto_auto]">
           <Posts posts={data.posts} />
           <Curves postsLength={data.posts.length} />
         </div>
-      </section>
+      </PostsSectionContainer>
     );
   }
 
@@ -68,6 +62,14 @@ export function PostsSection() {
   }
 
   return "Loading";
+}
+
+function PostsSectionContainer({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="grid h-full gap-3 overflow-y-auto rounded border-2 border-border p-2">
+      {children}
+    </section>
+  );
 }
 
 type Posts = RouterOutputs["diary"]["getEntryMap"]["posts"];
@@ -152,10 +154,9 @@ function Curves({ postsLength }: { postsLength: number }) {
     postsLength > 1 &&
     Array.from({ length: postsLength - 1 }).map((_, i) => {
       return (
-        <>
+        <Fragment key={i}>
           <div
             style={{ gridRowStart: 3 + i * 3 }}
-            key={i}
             className={cn(
               i % 2 == 1 && "[rotate:y_180deg]",
               "col-start-2 col-end-3 [grid-row-end:span_3]",
@@ -170,7 +171,6 @@ function Curves({ postsLength }: { postsLength: number }) {
           </div>
           <div
             style={{ gridRowStart: 3 + i * 3 }}
-            key={i}
             className={cn(
               i % 2 == 1 && "[rotate:y_180deg]",
               "col-start-2 col-end-3 [grid-row-end:span_3]",
@@ -188,7 +188,7 @@ function Curves({ postsLength }: { postsLength: number }) {
               }}
             />
           </div>
-        </>
+        </Fragment>
       );
     })
   );

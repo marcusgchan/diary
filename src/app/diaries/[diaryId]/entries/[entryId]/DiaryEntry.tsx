@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import FetchResolver from "~/app/_components/FetchResolver";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { api } from "~/trpc/TrpcProvider";
 
@@ -24,22 +23,22 @@ export function DiaryEntry() {
       refetchOnWindowFocus: false,
     },
   );
-  return (
-    <FetchResolver
-      {...entryQuery}
-      loadingComponent={
-        <main className="flex h-full flex-col gap-2">
-          <Skeleton className="h-full w-full" />
-        </main>
-      }
-    >
-      {(data) => {
-        return !data ? (
-          <div>Doesn&#39;t exist</div>
-        ) : (
-          <Editor initialEditorState={data.editorState} />
-        );
-      }}
-    </FetchResolver>
-  );
+
+  if (entryQuery.isPending) {
+    return (
+      <main className="flex h-full flex-col gap-2">
+        <Skeleton className="h-full w-full" />
+      </main>
+    );
+  }
+
+  if (entryQuery.isError) {
+    <p>Something went wrong</p>;
+  }
+
+  if (entryQuery.data) {
+    return <Editor initialEditorState={entryQuery.data.editorState} />;
+  }
+
+  return <p>Doesn&#39;t exist</p>;
 }

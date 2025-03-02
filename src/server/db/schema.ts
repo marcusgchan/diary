@@ -136,7 +136,6 @@ export const imageKeys = pgTable("image_key", {
     .default("success")
     .$type<"success" | "failure">()
     .notNull(),
-  deleting: boolean("deleting").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
 
@@ -152,6 +151,7 @@ export const posts = pgTable("posts", {
   imageKey: text()
     .references(() => imageKeys.key)
     .notNull(),
+  deleting: boolean("deleting").notNull().default(false),
 }).enableRLS();
 
 export const editorStates = pgTable("editor_state", {

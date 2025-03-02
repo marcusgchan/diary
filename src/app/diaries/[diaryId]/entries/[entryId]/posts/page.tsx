@@ -9,12 +9,6 @@ export default async function Entry({
   await api.diary.getEntryMap.prefetch({
     entryId: Number(entryId),
   });
-  await api.diary.getEntryTitle.prefetch({
-    entryId: Number(entryId),
-  });
-  await api.diary.getEntryDay.prefetch({
-    entryId: Number(entryId),
-  });
 
   return (
     <HydrateClient>

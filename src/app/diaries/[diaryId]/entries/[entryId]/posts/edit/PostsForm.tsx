@@ -57,7 +57,7 @@ const formSchema = z.object({
       title: z.string(),
       imageMetadata: z.object({
         name: z.string(),
-        size: z.number().max(8920, { message: "Max image size is 8.9MB" }),
+        size: z.number().max(17840, { message: "Max image size is 17.840MB" }),
         mimetype: z.string().min(1, { message: "Image Required" }),
       }),
       description: z.string(),
@@ -106,7 +106,11 @@ export type PostsFormHandle = {
 type Props = {
   diaryId: number;
   entryId: number;
-  mutate(data: RouterInputs["diary"]["createPosts"]): void;
+  mutate(
+    data:
+      | RouterInputs["diary"]["createPosts"]
+      | RouterInputs["diary"]["updatePosts"],
+  ): void;
 };
 
 export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
@@ -125,7 +129,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     name: "posts",
     keyName: "_id",
   });
-
+  console.log(formMethods.formState.errors);
   const initialStatuses = useMemo(() => {
     return Object.fromEntries(
       fields.map((field) => [field.id, { type: "empty" as const }]),
@@ -141,14 +145,13 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
   useImperativeHandle(ref, () => {
     return {
       reset(data: Post[]) {
-        console.log("in reset");
         const fields = data.map(
           ({ id, title, description, image: { name, size, mimetype } }) => {
             return {
               id,
               title,
               description,
-              image: {
+              imageMetadata: {
                 name,
                 size,
                 mimetype,
@@ -156,7 +159,6 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
             };
           },
         );
-        console.log({ fields });
         formMethods.reset({
           posts: fields,
         });
@@ -184,11 +186,12 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
         const newImgUploadStatuses = typeSafeObjectFromEntries(
           data.map(postToImageUploadStatus),
         );
-        console.log({ newImgUploadStatuses });
         setImgUploadStatuses(newImgUploadStatuses);
         imageKeyToIdRef.current = new Map(data.map(postToKeyIdMap));
-        // change id to uuid
-        // add key to data
+        console.log({
+          newImgUploadStatuses,
+          imageKeyToIdRef: imageKeyToIdRef.current,
+        });
       },
     };
   });
@@ -230,7 +233,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     }
 
     setImgUploadStatuses((statuses) => {
-      console.log(statuses);
+      console.log({ statuses, newImgUploadStatuses });
       const newStatuses = Array.from(Object.entries(statuses)).map(
         ([id, value]) => {
           if (value.type === "loading") {

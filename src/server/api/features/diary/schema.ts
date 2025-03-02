@@ -59,6 +59,18 @@ export const createPostSchema = z.object({
 });
 export type CreatePost = z.infer<typeof createPostSchema>;
 
+export const updatePostSchema = z.object({
+  entryId: z.number(),
+  posts: z
+    .object({
+      title: z.string(),
+      key: z.string(),
+      description: z.string(),
+    })
+    .array(),
+});
+export type UpdatePost = z.infer<typeof updatePostSchema>;
+
 export const getPostsSchema = z.object({
   diaryId: z.number(),
   entryId: z.number(),

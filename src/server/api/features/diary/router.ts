@@ -39,6 +39,9 @@ import {
   getPostsForForm,
   getEntryTitle,
   getEntryDay,
+  updatePostsToDeleting,
+  deleteImageKeys,
+  getLinkedImageKeys,
 } from "./service";
 import {
   createDiarySchema,
@@ -49,6 +52,7 @@ import {
   getPostsSchema,
   saveEditorStateSchema,
   updateEntryTitleSchema,
+  updatePostSchema,
 } from "./schema";
 import {
   deleteImage,
@@ -404,7 +408,60 @@ export const diaryRouter = createTRPCRouter({
 
       return postWithImage;
     }),
-  // updatePosts: protectedProcedure.input().mutation(),
+  updatePosts: protectedProcedure
+    .input(updatePostSchema)
+    .mutation(async ({ ctx, input }) => {
+      const entryId = getEntryIdById({
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+        db: ctx.db,
+      });
+      if (entryId === undefined) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
+      const keysToKeep = input.posts.map(({ key }) => key);
+
+      const s3KeysToDelete = (
+        await getImageKeysByEntryId({
+          db: ctx.db,
+          entryId: input.entryId,
+        })
+      ).filter((a) => !keysToKeep.includes(a.Key));
+      const keysToDelete = (
+        await getLinkedImageKeys({
+          db: ctx.db,
+          entryId: input.entryId,
+        })
+      )
+        .map(({ key }) => key)
+        .filter((key) => !keysToKeep.includes(key));
+
+      await updatePostsToDeleting({ db: ctx.db, entryId: input.entryId });
+      await deleteImages(s3KeysToDelete);
+
+      try {
+        await deleteImageKeys({
+          db: ctx.db,
+          entryId: input.entryId,
+          keys: keysToDelete,
+        });
+      } catch (e) {
+        console.log("1");
+        throw e;
+      }
+      try {
+        await createPosts({
+          db: ctx.db,
+          entryId: input.entryId,
+          userId: ctx.session.user.id,
+          posts: input.posts,
+        });
+      } catch (e) {
+        console.log("2");
+        throw e;
+      }
+    }),
   getEntryTitle: protectedProcedure
     .input(z.object({ entryId: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -661,17 +718,27 @@ export const diaryRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       // for this user find all img with entryId null
       // filter out the ones that aren't interested with
+
+      const entry = await getEntryIdById({
+        db: ctx.db,
+        entryId: input.entryId,
+        userId: ctx.session.user.id,
+      });
+
+      if (!entry) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
       console.log({
         keys: input.keys,
         diaryId: input.diaryId,
         entryId: input.entryId,
       });
+
       const unlinked = await getUnlinkedImages({
         db: ctx.db,
         keys: input.keys,
-        diaryId: input.diaryId,
         entryId: input.entryId,
-        userId: ctx.session.user.id,
       });
       console.log({ unlinked });
 

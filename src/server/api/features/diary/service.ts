@@ -168,6 +168,48 @@ export async function deleteEntry({
   });
 }
 
+export async function updatePostsToDeleting({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  await db
+    .update(posts)
+    .set({ deleting: true })
+    .where(eq(posts.entryId, entryId));
+}
+
+export async function getLinkedImageKeys({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  return await db
+    .select({ key: imageKeys.key })
+    .from(imageKeys)
+    .leftJoin(posts, eq(posts.imageKey, imageKeys.key))
+    .where(and(eq(imageKeys.entryId, entryId), isNotNull(posts.imageKey)));
+}
+
+export async function deleteImageKeys({
+  db,
+  entryId,
+  keys,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+  keys: string[];
+}) {
+  await db.transaction(async (tx) => {
+    await tx.delete(posts).where(and(eq(posts.entryId, entryId)));
+    await tx.delete(imageKeys).where(inArray(imageKeys.key, keys));
+  });
+}
+
 export async function updateDiaryEntryStatusToDeleting({
   db,
   entryId,
@@ -598,6 +640,9 @@ export async function insertImageMetadata({
     .values({
       key,
       entryId,
+      name: "",
+      mimetype: "",
+      size: 0,
       lat: gps?.lat,
       lon: gps?.lon,
       datetimeTaken:
@@ -658,15 +703,11 @@ export async function createMetadataOnImageCallback({
 
 export async function getUnlinkedImages({
   db,
-  userId,
   entryId,
-  diaryId,
   keys,
 }: {
   db: TRPCContext["db"];
-  userId: string;
   entryId: number;
-  diaryId: number;
   keys: string[];
 }) {
   return await db
@@ -676,13 +717,10 @@ export async function getUnlinkedImages({
     })
     .from(imageKeys)
     .innerJoin(entries, eq(entries.id, imageKeys.entryId))
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .leftJoin(posts, eq(posts.entryId, imageKeys.entryId))
+    .leftJoin(posts, eq(posts.imageKey, imageKeys.key))
     .where(
       and(
-        eq(diariesToUsers.userId, userId),
         eq(entries.id, entryId),
-        eq(diariesToUsers.diaryId, diaryId),
         isNull(posts.imageKey),
         inArray(imageKeys.key, keys),
       ),
@@ -712,6 +750,21 @@ export async function createPosts({
     .returning({ id: posts.id });
 }
 
+export async function setPostsToDeleting() {}
+
+export async function deletePosts({
+  db,
+  entryId,
+}: {
+  db: TRPCContext["db"];
+  entryId: number;
+}) {
+  await db.transaction(async (tx) => {
+    await tx.delete(posts).where(eq(posts.entryId, entryId));
+    await tx.delete(imageKeys).where(eq(imageKeys.entryId, entryId));
+  });
+}
+
 export async function getPosts({
   db,
   entryId,
@@ -732,18 +785,6 @@ export async function getPosts({
     .innerJoin(entries, eq(entries.id, posts.entryId))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
     .where(and(eq(posts.entryId, entryId), eq(diariesToUsers.userId, userId)));
-  // return await db
-  //   .select({
-  //     id: posts.id,
-  //     title: posts.title,
-  //     description: posts.description,
-  //     imageKey: imageKeys.key,
-  //   })
-  //   .from(posts)
-  //   .innerJoin(imageKeys, eq(imageKeys.postId, posts.id))
-  //   .innerJoin(entries, eq(entries.id, imageKeys.entryId))
-  //   .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-  //   .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
 }
 
 export async function getPostsForForm({
@@ -863,6 +904,9 @@ export async function insertImageMetadataWithGps({
 }) {
   return db.insert(imageKeys).values({
     key,
+    name: "",
+    mimetype: "",
+    size: 0,
     entryId,
     lat,
     lon,
@@ -936,6 +980,7 @@ export async function cancelImageUpload({
   return db.delete(imageKeys).where(eq(imageKeys.key, key));
 }
 
+// TODO: need to refactor upload for journal
 export async function confirmImageUpload({
   db,
   key,
@@ -943,8 +988,9 @@ export async function confirmImageUpload({
   db: TRPCContext["db"];
   key: string;
 }) {
-  return await db
-    .update(imageKeys)
-    .set({ linked: true })
-    .where(eq(imageKeys.key, key));
+  return;
+  // return await db
+  //   .update(imageKeys)
+  //   .set({ linked: true })
+  //   .where(eq(imageKeys.key, key));
 }

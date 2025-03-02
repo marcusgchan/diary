@@ -4,7 +4,6 @@ import { Trash } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import FetchResolver from "~/app/_components/FetchResolver";
 import {
   AlertDialog,
   AlertDialogAction,
