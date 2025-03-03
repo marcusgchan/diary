@@ -9,14 +9,28 @@ The goal of this app is to remember/document traveling destinations and places v
 - The diary entry text editor is created with lexical and supports image uploads (WYSIWYG editor)
 - Currently working on the image upload and google maps integration
 
+## Dependencies
+
+- docker (docker desktop is probably the easiest)
+- node
+- pnpm
+
 ## How to run
 
-Ensure you have docker and pnpm installed. Run:
+Run to startup the database and minio (s3) containers:
+
 ```bash
 docker compose up
 ```
 
-Once the containers are running, run this to sync the schema with database:
+Start the Nextjs server:
+
+```bash
+pnpm run dev
+```
+
+Once the containers are running, run this to sync the schema with database. This only needs to be done initially when the database has no tables or if any changes are made to the schema:
+
 ```bash
 pnpm run push
 ```
