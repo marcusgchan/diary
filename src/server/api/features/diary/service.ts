@@ -3,12 +3,14 @@ import {
   diaries,
   diariesToUsers,
   editorStates,
+  Entries,
   entries,
   ImageKeys,
   imageKeys,
   posts,
+  Users,
 } from "~/server/db/schema";
-import { type TRPCContext } from "../../trpc";
+import { ProtectedContext, type TRPCContext } from "../../trpc";
 import {
   CreateEntry,
   CreatePost,
@@ -19,6 +21,7 @@ import {
   UpdateEntryTitle,
 } from "./schema";
 import { TRPCError } from "@trpc/server";
+import { db } from "~/server/db";
 
 export async function getDiaries({
   db,
@@ -221,6 +224,33 @@ export async function updateDiaryEntryStatusToDeleting({
     .update(entries)
     .set({ deleting: true })
     .where(eq(entries.id, entryId));
+}
+
+export class DiaryServiceRepo {
+  private userId: Users["id"];
+  private db: typeof db;
+
+  constructor(context: ProtectedContext) {
+    this.userId = context.session.user.id;
+    this.db = context.db;
+  }
+
+  public async flagEntryForDeletion(entryId: Entries["id"]) {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(entries)
+        .set({ deleting: true })
+        .where(eq(entries.id, entryId));
+      await tx
+        .update(imageKeys)
+        .set({ deleting: true })
+        .where(eq(imageKeys.entryId, entryId));
+    });
+  }
+
+  public async deleteImageKeys(entryId: Entries["id"]) {
+    await this.db.delete(imageKeys).where(eq(imageKeys.entryId, entryId));
+  }
 }
 
 export async function updateDiaryEntryStatusToNotDeleting({

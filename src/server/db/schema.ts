@@ -37,6 +37,8 @@ export const users = pgTable("user", {
   image: text("image"),
 }).enableRLS();
 
+export type Users = typeof users.$inferSelect;
+
 export const accounts = pgTable(
   "account",
   {
@@ -118,6 +120,8 @@ export const entries = pgTable("entry", {
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 }).enableRLS();
 
+export type Entries = typeof entries.$inferSelect;
+
 export const imageKeys = pgTable("image_key", {
   key: text("key").primaryKey(),
 
@@ -136,6 +140,7 @@ export const imageKeys = pgTable("image_key", {
     .default("success")
     .$type<"success" | "failure">()
     .notNull(),
+  deleting: boolean().notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
 

@@ -5,6 +5,7 @@ import {
   GetObjectCommand,
   DeleteObjectsCommand,
   PutObjectCommand,
+  S3ServiceException,
 } from "@aws-sdk/client-s3";
 import { env } from "~/env.mjs";
 import { config } from "~/server/config";
@@ -124,6 +125,23 @@ async function streamToBuffer(stream: Readable) {
   return Buffer.concat(await stream.toArray());
 }
 
+export class S3DeleteImagesError extends Error {
+  public failedKeys?: string[];
+  constructor({
+    msg,
+    options,
+    failedKeys,
+  }: {
+    msg?: string;
+    options?: ErrorOptions;
+    failedKeys?: string[];
+  }) {
+    super(msg, options);
+    this.name = S3DeleteImagesError.name;
+    this.failedKeys = failedKeys;
+  }
+}
+
 export async function deleteImages(keys: { Key: string }[]) {
   const deleteCommand = new DeleteObjectsCommand({
     Bucket: env.BUCKET_NAME,
@@ -133,8 +151,23 @@ export async function deleteImages(keys: { Key: string }[]) {
   });
 
   try {
-    await s3Client.send(deleteCommand);
+    const res = await s3Client.send(deleteCommand);
+    const errors = res.Errors;
+    if (!errors) {
+      return;
+    }
+
+    const failedKeys = errors
+      .filter((error) => error.Key !== undefined)
+      .map((error) => error.Key!);
+
+    throw new S3DeleteImagesError({ failedKeys: failedKeys });
   } catch (e) {
-    console.log(e);
+    if (!(e instanceof S3ServiceException)) {
+      throw new S3DeleteImagesError({ options: { cause: e } });
+    }
+    if (e.$retryable !== undefined) {
+      // retry
+    }
   }
 }
