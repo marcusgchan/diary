@@ -11,6 +11,7 @@ import { env } from "~/env.mjs";
 import { config } from "~/server/config";
 import { s3Client } from "~/server/s3Client";
 import { Readable } from "stream";
+import { ProtectedContext } from "../../trpc";
 
 export async function getPresignedPost(
   userId: string,
@@ -55,23 +56,19 @@ export async function getImageSignedUrl(key: string) {
 }
 
 export class S3DeleteImageError extends Error {
-  constructor(msg?: string, options?: ErrorOptions) {
+  public retryable: boolean;
+  constructor({
+    msg,
+    options,
+    retryable,
+  }: {
+    msg?: string;
+    options?: ErrorOptions;
+    retryable: boolean;
+  }) {
     super(msg, options);
-    this.name = S3DeleteImageError.name;
-  }
-}
-
-export async function deleteImage(key: string) {
-  const deleteCommand = new DeleteObjectCommand({
-    Bucket: env.BUCKET_NAME,
-    Key: key,
-  });
-  try {
-    await s3Client.send(deleteCommand);
-  } catch (e) {
-    throw new S3DeleteImageError("unable to delete image from s3", {
-      cause: e,
-    });
+    this.name = S3DeleteImagesError.name;
+    this.retryable = retryable;
   }
 }
 
@@ -127,47 +124,122 @@ async function streamToBuffer(stream: Readable) {
 
 export class S3DeleteImagesError extends Error {
   public failedKeys?: string[];
+  public retryable: boolean;
   constructor({
     msg,
     options,
     failedKeys,
+    retryable,
   }: {
     msg?: string;
     options?: ErrorOptions;
     failedKeys?: string[];
+    retryable: boolean;
   }) {
     super(msg, options);
     this.name = S3DeleteImagesError.name;
     this.failedKeys = failedKeys;
+    this.retryable = retryable;
   }
 }
 
-export async function deleteImages(keys: { Key: string }[]) {
-  const deleteCommand = new DeleteObjectsCommand({
-    Bucket: env.BUCKET_NAME,
-    Delete: {
-      Objects: keys,
-    },
-  });
+type S3Client = typeof s3Client;
 
-  try {
-    const res = await s3Client.send(deleteCommand);
-    const errors = res.Errors;
-    if (!errors) {
-      return;
+export class S3ImageService {
+  private ctx: ProtectedContext;
+  private s3Client: S3Client;
+
+  constructor(ctx: ProtectedContext, _s3Client: S3Client = s3Client) {
+    this.ctx = ctx;
+    this.s3Client = _s3Client;
+  }
+
+  public async deleteImages(keys: { Key: string }[]) {
+    const deleteCommand = new DeleteObjectsCommand({
+      Bucket: env.BUCKET_NAME,
+      Delete: {
+        Objects: keys,
+      },
+    });
+
+    try {
+      const res = await this.s3Client.send(deleteCommand);
+      const errors = res.Errors;
+      if (!errors) {
+        return;
+      }
+
+      const failedKeys = errors
+        .filter((error) => error.Key !== undefined)
+        .map((error) => error.Key!);
+
+      this.ctx.log("deleteImages", "warn", "could not delete some keys", {
+        failedKeys,
+      });
+    } catch (e) {
+      if (!(e instanceof S3ServiceException)) {
+        this.ctx.log("deleteImages", "error", "unexpected error occured");
+        throw new S3DeleteImagesError({
+          options: { cause: e },
+          retryable: false,
+        });
+      }
+      if (e.$retryable !== undefined) {
+        this.ctx.log(
+          "deleteImages",
+          "warn",
+          "failed a retryable request to s3",
+        );
+        throw new S3DeleteImagesError({
+          options: { cause: e },
+          retryable: true,
+        });
+      }
+
+      this.ctx.log(
+        "deleteImages",
+        "warn",
+        "failed a non-retryable request to s3",
+      );
+      throw new S3DeleteImagesError({
+        options: { cause: e },
+        retryable: false,
+      });
     }
+  }
 
-    const failedKeys = errors
-      .filter((error) => error.Key !== undefined)
-      .map((error) => error.Key!);
+  public async deleteImage(key: string) {
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: env.BUCKET_NAME,
+      Key: key,
+    });
+    try {
+      await s3Client.send(deleteCommand);
+    } catch (e) {
+      if (!(e instanceof S3ServiceException)) {
+        this.ctx.log("deleteImage", "error", "unexpected error occured");
+        throw new S3DeleteImageError({
+          options: { cause: e },
+          retryable: false,
+        });
+      }
+      if (e.$retryable !== undefined) {
+        this.ctx.log("deleteImage", "warn", "failed a retryable request to s3");
+        throw new S3DeleteImageError({
+          options: { cause: e },
+          retryable: true,
+        });
+      }
 
-    throw new S3DeleteImagesError({ failedKeys: failedKeys });
-  } catch (e) {
-    if (!(e instanceof S3ServiceException)) {
-      throw new S3DeleteImagesError({ options: { cause: e } });
-    }
-    if (e.$retryable !== undefined) {
-      // retry
+      this.ctx.log(
+        "deleteImage",
+        "warn",
+        "failed a non-retryable request to s3",
+      );
+      throw new S3DeleteImageError({
+        options: { cause: e },
+        retryable: false,
+      });
     }
   }
 }

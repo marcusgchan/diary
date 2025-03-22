@@ -107,6 +107,7 @@ export const diaries = pgTable("diary", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 }).enableRLS();
+export type Diaries = typeof diaries.$inferSelect;
 
 export const entries = pgTable("entry", {
   id: bigserial("id", { mode: "number" }).primaryKey(),

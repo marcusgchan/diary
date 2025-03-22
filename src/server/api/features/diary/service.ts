@@ -1,5 +1,6 @@
 import { and, desc, eq, exists, inArray, isNotNull, isNull } from "drizzle-orm";
 import {
+  Diaries,
   diaries,
   diariesToUsers,
   editorStates,
@@ -171,19 +172,6 @@ export async function deleteEntry({
   });
 }
 
-export async function updatePostsToDeleting({
-  db,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-}) {
-  await db
-    .update(posts)
-    .set({ deleting: true })
-    .where(eq(posts.entryId, entryId));
-}
-
 export async function getLinkedImageKeys({
   db,
   entryId,
@@ -196,21 +184,6 @@ export async function getLinkedImageKeys({
     .from(imageKeys)
     .leftJoin(posts, eq(posts.imageKey, imageKeys.key))
     .where(and(eq(imageKeys.entryId, entryId), isNotNull(posts.imageKey)));
-}
-
-export async function deleteImageKeys({
-  db,
-  entryId,
-  keys,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-  keys: string[];
-}) {
-  await db.transaction(async (tx) => {
-    await tx.delete(posts).where(and(eq(posts.entryId, entryId)));
-    await tx.delete(imageKeys).where(inArray(imageKeys.key, keys));
-  });
 }
 
 export async function updateDiaryEntryStatusToDeleting({
@@ -248,8 +221,92 @@ export class DiaryServiceRepo {
     });
   }
 
-  public async deleteImageKeys(entryId: Entries["id"]) {
-    await this.db.delete(imageKeys).where(eq(imageKeys.entryId, entryId));
+  public async flagDiaryForDeletion(diaryId: Diaries["id"]) {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(diaries)
+        .set({ deleting: true })
+        .where(eq(diaries.id, diaryId));
+      await tx
+        .update(entries)
+        .set({ deleting: true })
+        .where(eq(entries.diaryId, diaryId));
+      const keys = tx
+        .select({ key: imageKeys.key })
+        .from(diaries)
+        .innerJoin(entries, eq(entries.diaryId, diaries.id))
+        .innerJoin(imageKeys, eq(entries.id, imageKeys.entryId));
+      await tx
+        .update(imageKeys)
+        .set({ deleting: true })
+        .where(inArray(imageKeys.key, keys));
+    });
+  }
+
+  public async deletePosts(entryId: Entries["id"], keys: string[]) {
+    await db.transaction(async (tx) => {
+      await tx.delete(posts).where(and(eq(posts.entryId, entryId)));
+      await tx.delete(imageKeys).where(inArray(imageKeys.key, keys));
+    });
+  }
+
+  public async deleteDiary(diaryId: Diaries["id"]) {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .delete(editorStates)
+        .where(
+          inArray(
+            editorStates.entryId,
+            tx
+              .select({ entryId: entries.id })
+              .from(entries)
+              .where(eq(entries.diaryId, diaryId)),
+          ),
+        );
+      await tx
+        .delete(diariesToUsers)
+        .where(
+          and(
+            eq(diariesToUsers.diaryId, diaryId),
+            eq(diariesToUsers.userId, this.userId),
+          ),
+        );
+
+      await tx
+        .delete(posts)
+        .where(
+          inArray(
+            posts.entryId,
+            tx
+              .select({ id: entries.id })
+              .from(entries)
+              .where(eq(entries.diaryId, diaryId)),
+          ),
+        );
+
+      await tx
+        .delete(imageKeys)
+        .where(
+          inArray(
+            imageKeys.entryId,
+            tx
+              .select({ id: entries.id })
+              .from(entries)
+              .where(eq(entries.diaryId, diaryId)),
+          ),
+        );
+
+      await tx.delete(entries).where(eq(entries.diaryId, diaryId));
+
+      await tx.delete(diaries).where(eq(diaries.id, diaryId));
+    });
+  }
+
+  public async updatePostsToDeleting(entryId: Entries["id"]) {
+    await this.db
+      .update(posts)
+      .set({ deleting: true })
+      .where(eq(posts.entryId, entryId));
   }
 }
 
@@ -526,19 +583,6 @@ export async function getDiaryIdById({
   return diary;
 }
 
-export async function updateDiaryStatusToDeleting({
-  db,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  diaryId: number;
-}) {
-  return db
-    .update(diaries)
-    .set({ deleting: true })
-    .where(eq(diaries.id, diaryId));
-}
-
 export async function updateDiaryStatusToNotDeleting({
   db,
   diaryId,
@@ -550,66 +594,6 @@ export async function updateDiaryStatusToNotDeleting({
     .update(diaries)
     .set({ deleting: false })
     .where(eq(diaries.id, diaryId));
-}
-
-export async function deleteDiaryById({
-  db,
-  userId,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  diaryId: number;
-}) {
-  await db.transaction(async (tx) => {
-    await tx
-      .delete(editorStates)
-      .where(
-        inArray(
-          editorStates.entryId,
-          tx
-            .select({ entryId: entries.id })
-            .from(entries)
-            .where(eq(entries.diaryId, diaryId)),
-        ),
-      );
-    await tx
-      .delete(diariesToUsers)
-      .where(
-        and(
-          eq(diariesToUsers.diaryId, diaryId),
-          eq(diariesToUsers.userId, userId),
-        ),
-      );
-
-    await tx
-      .delete(posts)
-      .where(
-        inArray(
-          posts.entryId,
-          tx
-            .select({ id: entries.id })
-            .from(entries)
-            .where(eq(entries.diaryId, diaryId)),
-        ),
-      );
-
-    await tx
-      .delete(imageKeys)
-      .where(
-        inArray(
-          imageKeys.entryId,
-          tx
-            .select({ id: entries.id })
-            .from(entries)
-            .where(eq(entries.diaryId, diaryId)),
-        ),
-      );
-
-    await tx.delete(entries).where(eq(entries.diaryId, diaryId));
-
-    await tx.delete(diaries).where(eq(diaries.id, diaryId));
-  });
 }
 
 export function getImageKeysByDiaryId({

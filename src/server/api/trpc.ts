@@ -57,7 +57,7 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 
 const log = (
   name: string,
-  level: "ERROR" | "WARN" | "LOG",
+  level: "error" | "warn" | "log",
   message: string,
   opts?: { [key: string]: string | number | string[] | number[] },
 ) => {

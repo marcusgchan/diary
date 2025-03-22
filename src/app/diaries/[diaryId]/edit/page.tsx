@@ -33,8 +33,13 @@ export default function EditDiary() {
     },
   );
   const router = useRouter();
+  const queryUtils = api.useUtils();
   const deleteDiaryMutation = api.diary.deleteDiary.useMutation({
-    onSuccess() {
+    onSuccess(diaryId) {
+      queryUtils.diary.getDiary.setData({ diaryId }, null);
+      queryUtils.diary.getDiaries.setData(undefined, (diaries = []) => {
+        return diaries.filter((diary) => diary.id !== diaryId);
+      });
       router.push(`/diaries`);
     },
   });
