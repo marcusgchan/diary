@@ -63,6 +63,7 @@ export const updatePostSchema = z.object({
   entryId: z.number(),
   posts: z
     .object({
+      id: z.string(),
       title: z.string(),
       key: z.string(),
       description: z.string(),

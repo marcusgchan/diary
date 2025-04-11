@@ -1,4 +1,14 @@
-import { and, desc, eq, exists, inArray, isNotNull, isNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  inArray,
+  isNotNull,
+  isNull,
+  sql,
+} from "drizzle-orm";
 import {
   Diaries,
   diaries,
@@ -8,6 +18,7 @@ import {
   entries,
   ImageKeys,
   imageKeys,
+  Posts,
   posts,
   Users,
 } from "~/server/db/schema";
@@ -23,6 +34,8 @@ import {
 } from "./schema";
 import { TRPCError } from "@trpc/server";
 import { db } from "~/server/db";
+import { tryCatch } from "~/app/_utils/tryCatch";
+import { randomUUID } from "crypto";
 
 export async function getDiaries({
   db,
@@ -35,7 +48,7 @@ export async function getDiaries({
     .select({ id: diaries.id, name: diaries.name })
     .from(diariesToUsers)
     .innerJoin(diaries, eq(diaries.id, diariesToUsers.diaryId))
-    .where(eq(diariesToUsers.userId, userId));
+    .where(and(eq(diariesToUsers.userId, userId), eq(diaries.deleting, false)));
   return diariesList;
 }
 
@@ -202,10 +215,12 @@ export async function updateDiaryEntryStatusToDeleting({
 export class DiaryServiceRepo {
   private userId: Users["id"];
   private db: typeof db;
+  private ctx: ProtectedContext;
 
   constructor(context: ProtectedContext) {
     this.userId = context.session.user.id;
     this.db = context.db;
+    this.ctx = context;
   }
 
   public async flagEntryForDeletion(entryId: Entries["id"]) {
@@ -244,10 +259,64 @@ export class DiaryServiceRepo {
   }
 
   public async deletePosts(entryId: Entries["id"], keys: string[]) {
-    await db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       await tx.delete(posts).where(and(eq(posts.entryId, entryId)));
       await tx.delete(imageKeys).where(inArray(imageKeys.key, keys));
     });
+  }
+
+  public async getPosts(entryId: Entries["id"]) {
+    return await this.db
+      .select({
+        id: posts.id,
+        title: posts.title,
+        description: posts.description,
+        imageKey: posts.imageKey,
+      })
+      .from(posts)
+      .innerJoin(entries, eq(entries.id, posts.entryId))
+      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+      .where(
+        and(
+          eq(posts.entryId, entryId),
+          eq(diariesToUsers.userId, this.userId),
+          eq(posts.deleting, false),
+        ),
+      )
+      .orderBy(asc(posts.order));
+  }
+
+  public async getPostById(postId: Posts["id"]) {
+    const [p] = await this.db
+      .select({ postId: posts.id })
+      .from(posts)
+      .innerJoin(entries, eq(entries.id, posts.entryId))
+      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+      .where(and(eq(posts.id, postId), eq(diariesToUsers.userId, this.userId)))
+      .limit(1);
+    return p?.postId;
+  }
+
+  public async flagPostForDeletion(postId: Posts["id"]) {
+    await this.db
+      .update(posts)
+      .set({ deleting: true })
+      .where(eq(posts.id, postId));
+  }
+
+  public async deletePostById(postId: Posts["id"]) {
+    await this.db.delete(posts).where(eq(posts.id, postId));
+  }
+
+  public async flagPostsToDeleteByIds(postIds: Posts["id"][]) {
+    await this.db
+      .update(posts)
+      .set({ deleting: true })
+      .where(inArray(posts.id, postIds));
+  }
+
+  public async deletePostsByIds(postIds: Posts["id"][]) {
+    await this.db.delete(posts).where(inArray(posts.id, postIds));
   }
 
   public async deleteDiary(diaryId: Diaries["id"]) {
@@ -307,6 +376,64 @@ export class DiaryServiceRepo {
       .update(posts)
       .set({ deleting: true })
       .where(eq(posts.entryId, entryId));
+  }
+
+  public async deleteFileByKey(key: string) {
+    const [err] = await tryCatch(
+      this.db.transaction(async (tx) => {
+        await tx
+          .update(posts)
+          .set({ imageKey: null })
+          .where(eq(posts.imageKey, key));
+        await tx.delete(imageKeys).where(eq(imageKeys.key, key));
+      }),
+    );
+    console.log(err);
+    if (err) {
+      this.ctx.log(
+        "deleteFileByKey",
+        "warn",
+        "unable to delete file by key: " + err.message,
+      );
+      throw new Error("unable to delete file by key", { cause: err });
+    }
+  }
+
+  public async upsertPosts(
+    entryId: Entries["id"],
+    postsToInsert: (CreatePost["posts"][number] & { id?: Posts["id"] })[],
+  ) {
+    const query = this.db
+      .insert(posts)
+      .values(
+        postsToInsert.map((post, index) => {
+          return {
+            ...(post.id && { id: post.id }),
+            entryId: entryId,
+            title: post.title,
+            description: post.description,
+            imageKey: post.key,
+            order: index,
+          };
+        }),
+      )
+      .onConflictDoUpdate({
+        target: posts.id,
+        set: {
+          title: sql.raw(`excluded.${posts.title.name}`),
+          imageKey: sql.raw(`excluded."${posts.imageKey.name}"`),
+          description: sql.raw(`excluded.${posts.description.name}`),
+          order: sql.raw(`excluded.${posts.order.name}`),
+        },
+      })
+      .returning({ id: posts.id });
+    const [err] = await tryCatch(query);
+    if (err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create posts",
+      });
+    }
   }
 }
 
@@ -369,7 +496,11 @@ export async function getEntries({
     .innerJoin(diaries, eq(diaries.id, entries.diaryId))
     .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
     .where(
-      and(eq(entries.diaryId, diaryId), eq(diariesToUsers.userId, userId)),
+      and(
+        eq(entries.diaryId, diaryId),
+        eq(diariesToUsers.userId, userId),
+        eq(entries.deleting, false),
+      ),
     );
   return entriesList;
 }
@@ -507,7 +638,7 @@ export async function createEntry({
   // Turn into transaction
   return await db.transaction(async (tx) => {
     const res = await tx
-      .selectDistinct({ date: entries.day })
+      .select({ date: entries.day })
       .from(entries)
       .where(eq(entries.diaryId, input.diaryId))
       .innerJoin(
@@ -516,8 +647,10 @@ export async function createEntry({
           eq(diariesToUsers.diaryId, entries.diaryId),
           eq(diariesToUsers.userId, userId),
           eq(entries.day, input.day),
+          eq(entries.deleting, false),
         ),
-      );
+      )
+      .limit(1);
     // Only can have 1 entry per day
     if (res.length) {
       throw new TRPCError({
@@ -596,32 +729,36 @@ export async function updateDiaryStatusToNotDeleting({
     .where(eq(diaries.id, diaryId));
 }
 
-export function getImageKeysByDiaryId({
+export async function getImageKeysByDiaryId({
   db,
   diaryId,
 }: {
   db: TRPCContext["db"];
   diaryId: number;
 }) {
-  return db
-    .select({ Key: imageKeys.key })
+  const query = await db
+    .select({ key: imageKeys.key })
     .from(imageKeys)
     .innerJoin(entries, eq(imageKeys.entryId, entries.id))
     .innerJoin(diaries, eq(entries.diaryId, diaries.id))
     .where(eq(diaries.id, diaryId));
+
+  return query.map(({ key }) => key);
 }
 
-export function getImageKeysByEntryId({
+export async function getImageKeysByEntryId({
   db,
   entryId,
 }: {
   db: TRPCContext["db"];
   entryId: number;
 }) {
-  return db
-    .select({ Key: imageKeys.key })
+  const query = await db
+    .select({ key: imageKeys.key })
     .from(imageKeys)
     .where(eq(imageKeys.entryId, entryId));
+
+  return query.map(({ key }) => key);
 }
 
 export async function insertImageMetadata({
@@ -741,29 +878,6 @@ export async function getUnlinkedImages({
     );
 }
 
-export async function createPosts({
-  db,
-  entryId,
-  posts: postsToInsert,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
-  posts: CreatePost["posts"];
-}) {
-  const [post] = await db
-    .insert(posts)
-    .values(
-      postsToInsert.map((post) => ({
-        entryId: entryId,
-        title: post.title,
-        description: post.description,
-        imageKey: post.key,
-      })),
-    )
-    .returning({ id: posts.id });
-}
-
 export async function setPostsToDeleting() {}
 
 export async function deletePosts({
@@ -798,7 +912,14 @@ export async function getPosts({
     .from(posts)
     .innerJoin(entries, eq(entries.id, posts.entryId))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(and(eq(posts.entryId, entryId), eq(diariesToUsers.userId, userId)));
+    .where(
+      and(
+        eq(posts.entryId, entryId),
+        eq(diariesToUsers.userId, userId),
+        eq(posts.deleting, false),
+      ),
+    )
+    .orderBy(asc(posts.order));
 }
 
 export async function getPostsForForm({
@@ -821,10 +942,16 @@ export async function getPostsForForm({
       size: imageKeys.size,
     })
     .from(posts)
-    .innerJoin(imageKeys, eq(imageKeys.key, posts.imageKey))
-    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+    .leftJoin(imageKeys, eq(imageKeys.key, posts.imageKey))
+    .innerJoin(entries, eq(entries.id, posts.entryId))
     .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
+    .where(
+      and(
+        eq(entries.id, entryId),
+        eq(diariesToUsers.userId, userId),
+        eq(posts.deleting, false),
+      ),
+    );
 }
 
 export async function getEntryHeader({

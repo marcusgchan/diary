@@ -1,8 +1,8 @@
 type Success<Data> = [null, Data];
 
-type Error = [Error, null];
+type TError = [Error, null];
 
-type Result<T> = Promise<Success<T> | Error>;
+type Result<T> = Promise<Success<T> | TError>;
 
 export async function tryCatch<T>(promise: Promise<T>): Result<T> {
   try {

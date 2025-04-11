@@ -154,11 +154,11 @@ export const posts = pgTable("posts", {
     .references(() => entries.id),
   title: varchar({ length: 255 }).notNull(),
   description: varchar({ length: 2048 }).notNull(),
-  imageKey: text()
-    .references(() => imageKeys.key)
-    .notNull(),
+  imageKey: text().references(() => imageKeys.key),
+  order: integer().notNull(),
   deleting: boolean("deleting").notNull().default(false),
 }).enableRLS();
+export type Posts = typeof posts.$inferSelect;
 
 export const editorStates = pgTable("editor_state", {
   data: json("editorState").$type<
