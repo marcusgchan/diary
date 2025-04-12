@@ -36,7 +36,6 @@ export function PostsSection() {
           diaryId={diaryId}
           entryId={entryId}
           mutate={mutate}
-          type="CREATE"
         />
       </section>
     );

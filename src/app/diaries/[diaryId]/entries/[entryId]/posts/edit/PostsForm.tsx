@@ -111,11 +111,10 @@ type Props = {
       | RouterInputs["diary"]["createPosts"]
       | RouterInputs["diary"]["updatePosts"],
   ): void;
-  type: "CREATE" | "UPDATE";
 };
 
 export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
-  { diaryId, entryId, mutate, type }: Props,
+  { diaryId, entryId, mutate }: Props,
   ref,
 ) {
   const formMethods = useForm<FormValues>({
@@ -130,7 +129,6 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     name: "posts",
     keyName: "_id",
   });
-  console.log(formMethods.formState.errors);
   const initialStatuses = useMemo(() => {
     return Object.fromEntries(
       fields.map((field) => [field.id, { type: "empty" as const }]),
@@ -194,10 +192,6 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
             .filter(({ image }) => image.type === "SUCCESS")
             .map(postToKeyIdMap),
         );
-        console.log({
-          newImgUploadStatuses,
-          imageKeyToIdRef: imageKeyToIdRef.current,
-        });
       },
     };
   });
@@ -278,7 +272,6 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     }),
   );
 
-  const deletePostByIdMutation = api.diary.deletePostById.useMutation();
   const deleteImageMutation = api.diary.deleteImage.useMutation();
 
   function addPost() {
@@ -307,7 +300,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     }
 
     // If status is error key is optional
-    if (status.type !== "empty" && status.key) {
+    if (status.type === "uploaded" && status.key) {
       const key = status.key;
       imageKeyToIdRef.current.delete(key);
 
@@ -323,6 +316,12 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
           },
         },
       );
+    } else if (status.type === "empty") {
+      remove(index);
+      setImgUploadStatuses((prev) => {
+        const { [id]: _, ...other } = prev;
+        return other;
+      });
     }
   }
 

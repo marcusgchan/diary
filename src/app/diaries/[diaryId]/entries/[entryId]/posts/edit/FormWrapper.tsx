@@ -39,7 +39,6 @@ export function FormWrapper() {
         diaryId={Number(params.diaryId)}
         entryId={Number(params.entryId)}
         mutate={updatePost}
-        type="UPDATE"
       />
     );
   }

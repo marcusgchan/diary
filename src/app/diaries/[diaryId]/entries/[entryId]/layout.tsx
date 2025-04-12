@@ -1,4 +1,3 @@
-import { api } from "~/trpc/server";
 import { Entries } from "../Entries";
 import { Header } from "../Header";
 import { DatePicker } from "./DatePicker";
@@ -8,20 +7,9 @@ import { EditPostsButton } from "./EditPostsButton";
 
 export default async function EntryLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: { diaryId: string; entryId: string };
 }) {
-  const { entryId } = params;
-
-  await api.diary.getEntryTitle.prefetch({
-    entryId: Number(entryId),
-  });
-  await api.diary.getEntryDay.prefetch({
-    entryId: Number(entryId),
-  });
-
   return (
     <div className="flex h-full flex-col gap-4">
       <Header />

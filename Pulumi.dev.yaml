@@ -1,5 +1,0 @@
-config:
-  aws:region: us-west-1
-  diary:bucketWebhookEndpoint: https://explorer-diary.vercel.app/api/upload-callback
-  diary:bucketWebhookToken:
-    secure: AAABAF2HM55GJQNg4C35sODpXxboKwPL7E+f1pQ6/Oqpzb3tRsN9WG5OyS5JZcFxXQJY8dFjZUfF6/oICtcb9fFS20QxBVdyWYkCew==
