@@ -37,6 +37,8 @@ export const users = pgTable("user", {
   image: text("image"),
 }).enableRLS();
 
+export type Users = typeof users.$inferSelect;
+
 export const accounts = pgTable(
   "account",
   {
@@ -105,6 +107,7 @@ export const diaries = pgTable("diary", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 }).enableRLS();
+export type Diaries = typeof diaries.$inferSelect;
 
 export const entries = pgTable("entry", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
@@ -117,6 +120,8 @@ export const entries = pgTable("entry", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 }).enableRLS();
+
+export type Entries = typeof entries.$inferSelect;
 
 export const imageKeys = pgTable("image_key", {
   key: text("key").primaryKey(),
@@ -136,6 +141,7 @@ export const imageKeys = pgTable("image_key", {
     .default("success")
     .$type<"success" | "failure">()
     .notNull(),
+  deleting: boolean().notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
 
@@ -148,11 +154,11 @@ export const posts = pgTable("posts", {
     .references(() => entries.id),
   title: varchar({ length: 255 }).notNull(),
   description: varchar({ length: 2048 }).notNull(),
-  imageKey: text()
-    .references(() => imageKeys.key)
-    .notNull(),
+  imageKey: text().references(() => imageKeys.key),
+  order: integer().notNull(),
   deleting: boolean("deleting").notNull().default(false),
 }).enableRLS();
+export type Posts = typeof posts.$inferSelect;
 
 export const editorStates = pgTable("editor_state", {
   data: json("editorState").$type<

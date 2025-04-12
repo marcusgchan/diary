@@ -9,18 +9,13 @@ import { PostFormHandle as PostsFormHandle, PostsForm } from "./edit/PostsForm";
 export function PostsSection() {
   const params = useParams();
   const entryId = Number(params.entryId);
+  const diaryId = Number(params.diaryId);
 
   const { data, isError } = api.diary.getEntryMap.useQuery({
-    entryId: Number(params.entryId),
+    entryId,
   });
 
   const postsFormRef = useRef<PostsFormHandle>(null);
-
-  useEffect(() => {
-    if (!postsFormRef.current) {
-      return;
-    }
-  }, []);
 
   const queryUtils = api.useUtils();
   const createPostMutation = api.diary.createPosts.useMutation({
@@ -38,8 +33,8 @@ export function PostsSection() {
       <section className="grid gap-3">
         <PostsForm
           ref={postsFormRef}
-          diaryId={Number(params.diaryId)}
-          entryId={Number(params.entryId)}
+          diaryId={diaryId}
+          entryId={entryId}
           mutate={mutate}
         />
       </section>
@@ -112,20 +107,38 @@ function PostImage({
   className?: string;
   styles?: CSSProperties | undefined;
 }) {
+  if (post.image.type === "EMPTY") {
+    return (
+      <div
+        style={styles}
+        className={cn("grid w-full gap-2 bg-gray-400 p-2", className)}
+      >
+        <p>No image uplaoded.</p>
+      </div>
+    );
+  }
+
+  if (post.image.type === "FAILED") {
+    return (
+      <div
+        style={styles}
+        className={cn("grid w-full gap-2 bg-gray-400 p-2", className)}
+      >
+        <p>There was a problem loading the image.</p>
+      </div>
+    );
+  }
+
   return (
     <div
       style={styles}
       className={cn("grid w-full gap-2 bg-gray-400 p-2", className)}
     >
-      {post.image.success ? (
-        <img
-          className="aspect-square w-full object-cover"
-          alt=""
-          src={post.image.url}
-        />
-      ) : (
-        <p>:(</p>
-      )}
+      <img
+        className="aspect-square w-full object-cover"
+        alt=""
+        src={post.image.url}
+      />
     </div>
   );
 }

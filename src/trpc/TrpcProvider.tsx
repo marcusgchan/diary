@@ -2,9 +2,9 @@
 // ^-- to make sure we can mount the Provider from a server component
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink } from "@trpc/client";
+import { httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { makeQueryClient } from "./query-client";
 import superjson from "superjson";
 import type { AppRouter } from "~/server/api/root";
@@ -44,6 +44,11 @@ export function TRPCProvider(
   const [trpcClient] = useState(() =>
     api.createClient({
       links: [
+        loggerLink({
+          enabled: (op) =>
+            process.env.NODE_ENV === "development" ||
+            (op.direction === "down" && op.result instanceof Error),
+        }),
         httpBatchLink({
           transformer: superjson,
           url: getUrl(),
@@ -52,10 +57,12 @@ export function TRPCProvider(
     }),
   );
   return (
-    <api.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        {props.children}
-      </QueryClientProvider>
-    </api.Provider>
+    <Suspense fallback={null}>
+      <api.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          {props.children}
+        </QueryClientProvider>
+      </api.Provider>
+    </Suspense>
   );
 }

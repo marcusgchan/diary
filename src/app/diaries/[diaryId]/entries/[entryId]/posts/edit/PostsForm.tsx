@@ -129,7 +129,6 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     name: "posts",
     keyName: "_id",
   });
-  console.log(formMethods.formState.errors);
   const initialStatuses = useMemo(() => {
     return Object.fromEntries(
       fields.map((field) => [field.id, { type: "empty" as const }]),
@@ -165,33 +164,34 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
         const postToImageUploadStatus = (
           post: Post,
         ): [Post["id"], UploadStatus] => {
-          const statusData: UploadStatus = post.image.success
-            ? {
-                type: "uploaded",
-                key: post.image.key,
-                url: post.image.url,
-              }
-            : {
-                type: "error",
-                key: post.image.key,
-              };
-          return [post.id, statusData] as const;
+          if (post.image.type === "SUCCESS") {
+            return [
+              post.id,
+              { type: "uploaded", key: post.image.key, url: post.image.url },
+            ] as const;
+          }
+
+          if (post.image.type === "EMPTY") {
+            return [post.id, { type: "empty" }] as const;
+          }
+
+          return [post.id, { type: "error", key: post.image.key }] as const;
         };
         const postToKeyIdMap = (
           post: Post,
-        ): [Post["image"]["key"], Post["id"]] => {
-          return [post.image.key, post.id];
+        ): [NonNullable<Post["image"]["key"]>, Post["id"]] => {
+          return [post.image.key!, post.id];
         };
 
         const newImgUploadStatuses = typeSafeObjectFromEntries(
           data.map(postToImageUploadStatus),
         );
         setImgUploadStatuses(newImgUploadStatuses);
-        imageKeyToIdRef.current = new Map(data.map(postToKeyIdMap));
-        console.log({
-          newImgUploadStatuses,
-          imageKeyToIdRef: imageKeyToIdRef.current,
-        });
+        imageKeyToIdRef.current = new Map(
+          data
+            .filter(({ image }) => image.type === "SUCCESS")
+            .map(postToKeyIdMap),
+        );
       },
     };
   });
@@ -272,7 +272,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     }),
   );
 
-  const deletePostMutation = api.diary.deleteUnlinkedImage.useMutation();
+  const deleteImageMutation = api.diary.deleteImage.useMutation();
 
   function addPost() {
     const id = getUUID();
@@ -290,7 +290,6 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
   }
 
   async function removePost(index: number, id: string) {
-    deletePostMutation.mutate({ entryId, diaryId, key: "" });
     const status = imgUploadStatuses[id];
     if (status === undefined) {
       throw Error("status should not be undefined");
@@ -300,17 +299,29 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
       return;
     }
 
-    remove(index);
-    setImgUploadStatuses((prev) => {
-      const { [id]: _, ...other } = prev;
-      return other;
-    });
-
     // If status is error key is optional
-    if (status.type !== "empty" && status.key) {
+    if (status.type === "uploaded" && status.key) {
       const key = status.key;
       imageKeyToIdRef.current.delete(key);
-      deletePostMutation.mutate({ entryId, diaryId, key });
+
+      deleteImageMutation.mutate(
+        { key },
+        {
+          onSuccess() {
+            remove(index);
+            setImgUploadStatuses((prev) => {
+              const { [id]: _, ...other } = prev;
+              return other;
+            });
+          },
+        },
+      );
+    } else if (status.type === "empty") {
+      remove(index);
+      setImgUploadStatuses((prev) => {
+        const { [id]: _, ...other } = prev;
+        return other;
+      });
     }
   }
 
@@ -407,6 +418,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
           key: string;
         };
         return {
+          id: post.id,
           key: status.key,
           title: post.title,
           description: post.description,
@@ -508,6 +520,19 @@ function ImageField({
     register,
     formState: { errors },
   } = useFormContext<FormValues>();
+  const deleteImageMutation = api.diary.deleteImage.useMutation();
+
+  function handleDeleteImage(key: string) {
+    deleteImageMutation.mutate(
+      { key },
+      {
+        onSuccess() {
+          resetImage(fieldId, key);
+        },
+      },
+    );
+  }
+
   if (imageUploadStatus.type === "empty") {
     return (
       <ImageUpload id={fieldId} onChange={handleImageUpload} index={fieldIndex}>
@@ -573,7 +598,14 @@ function ImageField({
   }
 
   return (
-    <div className="aspect-square max-w-[250px]">
+    <div className="relative aspect-square max-w-[250px]">
+      <button
+        type="button"
+        className="absolute right-0 top-0 -translate-y-1/2 translate-x-1/2"
+        onClick={() => handleDeleteImage(imageUploadStatus.key)}
+      >
+        X
+      </button>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         className="h-full w-full object-cover"

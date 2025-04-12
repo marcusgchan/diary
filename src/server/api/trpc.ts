@@ -8,6 +8,7 @@
  */
 
 import {
+  inferProcedureBuilderResolverOptions,
   initTRPC,
   TRPCError,
   type inferRouterInputs,
@@ -16,7 +17,7 @@ import {
 import { type Session } from "next-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { trace } from "@opentelemetry/api";
+import { trace, type Tracer } from "@opentelemetry/api";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
@@ -32,6 +33,7 @@ import { AppRouter } from "~/server/api/root";
 
 interface CreateContextOptions {
   session: Session | null;
+  tracer: Tracer;
 }
 
 /**
@@ -48,7 +50,43 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     session: opts.session,
     db,
+    tracer: opts.tracer,
+    log,
   };
+};
+
+const log = (
+  name: string,
+  level: "error" | "warn" | "log",
+  message: string,
+  opts?: { [key: string]: string | number | string[] | number[] },
+) => {
+  let ops: Record<string, string | number | string[] | number[]> = {};
+  if (opts) {
+    for (const [key, value] of Object.entries(opts)) {
+      if (Array.isArray(value)) {
+        ops[key] = `[${value.join(",")}]`;
+      } else {
+        ops[key] = value;
+      }
+    }
+  }
+  const tracer = trace.getTracer("api");
+  const span = tracer.startSpan(name);
+  span.setAttributes({
+    function: name,
+    ...ops,
+  });
+
+  span.addEvent(
+    "log",
+    {
+      ["log.severity"]: level,
+      ["log.message"]: message,
+    },
+    new Date(),
+  );
+  span.end();
 };
 
 /**
@@ -62,9 +100,11 @@ export type TRPCContext = ReturnType<typeof createInnerTRPCContext>;
 export const createTRPCContext = async () => {
   // Get the session from the server using the getServerSession wrapper function
   const session = await getServerAuthSession();
+  const tracer = trace.getTracer("api");
 
   return createInnerTRPCContext({
     session,
+    tracer,
   });
 };
 
@@ -84,7 +124,9 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
       data: {
         ...shape.data,
         zodError:
-          error.cause instanceof ZodError ? error.cause.flatten() : null,
+          error.code === "BAD_REQUEST" && error.cause instanceof ZodError
+            ? error.cause.flatten()
+            : null,
       },
     };
   },
@@ -121,47 +163,10 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
   if (!user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
-  const log = (
-    name: string,
-    level: string,
-    message: string,
-    opts?: { [key: string]: string | number | string[] | number[] },
-  ) => {
-    let ops: Record<string, string | number | string[] | number[]> = {};
-    if (opts) {
-      for (const [key, value] of Object.entries(opts)) {
-        if (Array.isArray(value)) {
-          ops[key] = `[${value.join(",")}]`;
-        } else {
-          ops[key] = value;
-        }
-      }
-    }
-    const tracer = trace.getTracer("api");
-    const span = tracer.startSpan(name);
-    span.setAttributes({
-      function: name,
-      // ["highlight.session_id"]: "abc123",
-      // ["highlight.trace_id"]: "def456",
-      user_id: user.id,
-      ...ops,
-    });
-
-    span.addEvent(
-      "log",
-      {
-        ["log.severity"]: level,
-        ["log.message"]: message,
-      },
-      new Date(),
-    );
-    span.end();
-  };
-
   return next({
     ctx: {
       // infers the `session` as non-nullable
-      session: { ...ctx.session, user: user, log },
+      session: { ...ctx.session, user: user },
     },
   });
 });
@@ -175,6 +180,9 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
  * @see https://trpc.io/docs/procedures
  */
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+export type ProtectedContext = inferProcedureBuilderResolverOptions<
+  typeof protectedProcedure
+>["ctx"];
 
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type RouterInputs = inferRouterInputs<AppRouter>;
