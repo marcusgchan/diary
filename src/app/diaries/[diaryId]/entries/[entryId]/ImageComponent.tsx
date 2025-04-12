@@ -31,7 +31,7 @@ import {
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
 import * as React from "react";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { $isImageNode } from "./image-node";
 import { useSharedHistoryContext } from "./SharedHistoryContext";

@@ -1,9 +1,15 @@
 import { PostsSection } from "./Posts";
 
-export default function Entry({
-  params: { entryId },
-}: {
-  params: { diaryId: string; entryId: string };
-}) {
+export default async function Entry(
+  props: {
+    params: Promise<{ diaryId: string; entryId: string }>;
+  }
+) {
+  const params = await props.params;
+
+  const {
+    entryId
+  } = params;
+
   return <PostsSection />;
 }

@@ -26,7 +26,7 @@ import {
   ImagePayload,
 } from "./image-node";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { useEffect } from "react";
+import { useEffect, type JSX } from "react";
 import { $wrapNodeInElement, mergeRegister } from "@lexical/utils";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";

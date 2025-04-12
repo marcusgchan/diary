@@ -103,7 +103,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [startPolling, setStartPolling] = useState(false);
   const [imageKey, setImageKey] = useState<string>();
   const [disableCancel, setDisableCancel] = useState(false);
-  const fileRef = useRef<File>();
+  const fileRef = useRef<File>(undefined);
   const { data } = api.diary.getImageUploadStatus.useQuery(
     { key: imageKey },
     {

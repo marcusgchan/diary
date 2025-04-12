@@ -5,13 +5,14 @@ import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 import { diariesToUsers } from "~/server/db/schema";
 
-export default async function Diary({
-  params,
-}: {
-  params: { diaryId: string };
-}) {
+export default async function Diary(
+  props: {
+    params: Promise<{ diaryId: string }>;
+  }
+) {
+  const params = await props.params;
   const session = await getServerAuthSession();
-  const headersList = headers();
+  const headersList = await headers();
   const url = headersList.get("x-url");
   if (session === null) {
     if (url !== null) {
