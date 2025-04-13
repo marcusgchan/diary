@@ -170,3 +170,4 @@ export const editorStates = pgTable("editor_state", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 }).enableRLS();
+export type EditorStates = typeof editorStates.$inferSelect;

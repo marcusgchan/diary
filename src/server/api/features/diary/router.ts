@@ -137,16 +137,16 @@ export const diaryRouter = createTRPCRouter({
           ctx.log(
             "deleteDiary",
             "warn",
-            "unable to delete entry from database: " + err,
+            "unable to delete entry from database: " + err.message,
           );
         }
       } else {
-        let [err] = await tryCatch(diaryService.deleteDiary(input.diaryId));
+        const [err] = await tryCatch(diaryService.deleteDiary(input.diaryId));
         if (err) {
           ctx.log(
             "deleteDiary",
             "warn",
-            "unable to delete entry from database: " + err,
+            "unable to delete entry from database: " + err.message,
           );
         }
       }
@@ -221,7 +221,7 @@ export const diaryRouter = createTRPCRouter({
               ctx.log(
                 "deleteEntry",
                 "warn",
-                "unable to delete entry from database: " + err,
+                "unable to delete entry from database: " + err.message,
               );
             }
           }
@@ -485,7 +485,7 @@ export const diaryRouter = createTRPCRouter({
       }
 
       const s3ImageService = new S3ImageService(ctx);
-      let [err] = await tryCatch(
+      const [err] = await tryCatch(
         s3ImageService.deleteImages(expandKeys([input.key])),
       );
       console.log(err);
@@ -740,7 +740,7 @@ export const diaryRouter = createTRPCRouter({
             }
 
             return [id, { key: el.key, url, status: "success" }] as const;
-          } catch (e) {
+          } catch (_) {
             return [
               input.keyToIdMap.get(el.key)!,
               {

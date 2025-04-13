@@ -79,7 +79,7 @@ function Header() {
       );
     },
     onSettled() {
-      queryUtils.diary.getDiaries.invalidate();
+      return queryUtils.diary.getDiaries.invalidate();
     },
   });
   const createDiary = (e: FormEvent) => {

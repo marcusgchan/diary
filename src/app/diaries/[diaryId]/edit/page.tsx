@@ -91,7 +91,7 @@ function Form({
   const id = useId();
   const router = useRouter();
   const goToDiaries = () => router.push("./entries");
-  const queryUtils = api.useContext();
+  const queryUtils = api.useUtils();
   const editDiaryMutation = api.diary.editDiary.useMutation({
     async onSuccess() {
       if (diary?.id !== undefined) {
@@ -100,7 +100,7 @@ function Form({
       }
     },
   });
-  const editDiary = async (e: FormEvent<HTMLFormElement>) => {
+  const editDiary = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (diary?.id && diary.id !== undefined) {
       editDiaryMutation.mutate({

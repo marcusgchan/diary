@@ -107,6 +107,7 @@ type Props = {
   diaryId: number;
   entryId: number;
   mutate(
+    this: void,
     data:
       | RouterInputs["diary"]["createPosts"]
       | RouterInputs["diary"]["updatePosts"],
@@ -289,7 +290,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     setImgUploadStatuses((prev) => ({ ...prev, [id]: { type: "empty" } }));
   }
 
-  async function removePost(index: number, id: string) {
+  function removePost(index: number, id: string) {
     const status = imgUploadStatuses[id];
     if (status === undefined) {
       throw Error("status should not be undefined");
@@ -369,7 +370,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
           throw new Error("Unable to upload image");
         }
         // increment ref which will start poll
-      } catch (e) {
+      } catch (_) {
         // unable to upload
         setImgUploadStatuses((prev) => {
           return { ...prev, [id]: { type: "error" } };

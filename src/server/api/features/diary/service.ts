@@ -13,6 +13,7 @@ import {
   Diaries,
   diaries,
   diariesToUsers,
+  EditorStates,
   editorStates,
   Entries,
   entries,
@@ -35,7 +36,6 @@ import {
 import { TRPCError } from "@trpc/server";
 import { db } from "~/server/db";
 import { tryCatch } from "~/app/_utils/tryCatch";
-import { randomUUID } from "crypto";
 
 export async function getDiaries({
   db,
@@ -605,7 +605,7 @@ export async function saveEditorState({
   await db
     .update(editorStates)
     .set({
-      data: JSON.parse(input.editorState),
+      data: JSON.parse(input.editorState) as EditorStates["data"],
       updatedAt: new Date(),
     })
     .where(
@@ -1122,9 +1122,9 @@ export async function cancelImageUpload({
 }
 
 // TODO: need to refactor upload for journal
-export async function confirmImageUpload({
-  db,
-  key,
+export function confirmImageUpload({
+  db: _db,
+  key: _key,
 }: {
   db: TRPCContext["db"];
   key: string;

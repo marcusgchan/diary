@@ -10,11 +10,13 @@ type UpdatePostsMut = RouterInputs["diary"]["updatePosts"];
 
 export function FormWrapper() {
   const params = useParams();
+  const diaryId = params.diaryId as string;
+  const entryId = params.entryId as string;
   const router = useRouter();
 
   const updatePostMut = api.diary.updatePosts.useMutation({
     onSuccess() {
-      router.push(`/diaries/${params.diaryId}/entries/${params.entryId}/posts`);
+      router.push(`/diaries/${diaryId}/entries/${entryId}/posts`);
     },
   });
   function updatePost(data: UpdatePostsMut) {

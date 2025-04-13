@@ -6,12 +6,12 @@ import type {
 } from "lexical";
 import { cn } from "@/app/_utils/cx";
 
-import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
+// import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { LexicalNestedComposer } from "@lexical/react/LexicalNestedComposer";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+// import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+// import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+// import { LexicalNestedComposer } from "@lexical/react/LexicalNestedComposer";
+// import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection";
 import { mergeRegister } from "@lexical/utils";
 import {
@@ -31,29 +31,29 @@ import {
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
 import * as React from "react";
-import { Suspense, useCallback, useEffect, useRef, useState, type JSX } from "react";
-import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+// import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { $isImageNode } from "./image-node";
-import { useSharedHistoryContext } from "./SharedHistoryContext";
+// import { useSharedHistoryContext } from "./SharedHistoryContext";
 import ImageResizer from "./ImageResizer";
 
-const imageCache = new Set();
+// const imageCache = new Set();
 
 export const RIGHT_CLICK_IMAGE_COMMAND: LexicalCommand<MouseEvent> =
   createCommand("RIGHT_CLICK_IMAGE_COMMAND");
 
-function useSuspenseImage(src: string) {
-  if (!imageCache.has(src)) {
-    throw new Promise((resolve) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        imageCache.add(src);
-        resolve(null);
-      };
-    });
-  }
-}
+// function useSuspenseImage(src: string) {
+//   if (!imageCache.has(src)) {
+//     throw new Promise((resolve) => {
+//       const img = new Image();
+//       img.src = src;
+//       img.onload = () => {
+//         imageCache.add(src);
+//         resolve(null);
+//       };
+//     });
+//   }
+// }
 
 function LazyImage({
   altText,
@@ -225,10 +225,7 @@ export default function ImageComponent({
           $isRangeSelection(latestSelection) &&
           latestSelection.getNodes().length === 1
         ) {
-          editor.dispatchCommand(
-            RIGHT_CLICK_IMAGE_COMMAND,
-            event as MouseEvent,
-          );
+          editor.dispatchCommand(RIGHT_CLICK_IMAGE_COMMAND, event);
         }
       });
     },
@@ -341,7 +338,7 @@ export default function ImageComponent({
     setIsResizing(true);
   };
 
-  const { historyState } = useSharedHistoryContext();
+  // const { historyState } = useSharedHistoryContext();
   const draggable = isSelected && $isNodeSelection(selection) && !isResizing;
   const isFocused = isSelected || isResizing;
   return (

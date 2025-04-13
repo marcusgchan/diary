@@ -3,7 +3,6 @@
 import {
   $createParagraphNode,
   $createRangeSelection,
-  $getNodeByKey,
   $getSelection,
   $insertNodes,
   $isNodeSelection,
@@ -95,7 +94,7 @@ function useRemoveImageMetadataOnDelete(editor: LexicalEditor) {
   const params = useParams();
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
-  const queryUtils = api.useContext();
+  const queryUtils = api.useUtils();
   const deleteImageMetadata = api.diary.deleteImageMetadata.useMutation({
     onSuccess(data) {
       if (!data) {
@@ -107,9 +106,9 @@ function useRemoveImageMetadataOnDelete(editor: LexicalEditor) {
   useEffect(() => {
     const removeMutationListener = editor.registerMutationListener(
       ImageNode,
-      (mutatedNodes, { updateTags, dirtyLeaves, prevEditorState }) => {
+      (mutatedNodes, { prevEditorState }) => {
         // mutatedNodes is a Map where each key is the NodeKey, and the value is the state of mutation.
-        for (let [nodeKey, mutation] of mutatedNodes) {
+        for (const [nodeKey, mutation] of mutatedNodes) {
           if (mutation == "destroyed") {
             editor.read(() => {
               const node = prevEditorState._nodeMap.get(nodeKey) as ImageNode;
@@ -214,11 +213,14 @@ function getDragImageData(event: DragEvent): null | InsertImagePayload {
   if (!dragData) {
     return null;
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { type, data } = JSON.parse(dragData);
   if (type !== "image") {
     return null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return data;
 }
 

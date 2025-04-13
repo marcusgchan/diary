@@ -20,6 +20,7 @@ export function DragDropPastePlugin(): null {
     return editor.registerCommand(
       DRAG_DROP_PASTE,
       (files) => {
+        // eslint-disable-next-line
         (async () => {
           const filesResult = await mediaFileReader(
             files,

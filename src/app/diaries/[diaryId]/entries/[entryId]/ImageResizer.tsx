@@ -19,7 +19,6 @@ export default function ImageResizer({
   onResizeEnd,
   buttonRef,
   imageRef,
-  maxWidth,
   editor,
   showCaption,
   setShowCaption,
@@ -28,7 +27,6 @@ export default function ImageResizer({
   editor: LexicalEditor;
   buttonRef: { current: null | HTMLButtonElement };
   imageRef: { current: null | HTMLElement };
-  maxWidth?: number;
   onResizeEnd: (width: number, height: number) => void;
   onResizeStart: () => void;
   setShowCaption: (show: boolean) => void;

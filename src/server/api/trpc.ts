@@ -61,7 +61,7 @@ const log = (
   message: string,
   opts?: { [key: string]: string | number | string[] | number[] },
 ) => {
-  let ops: Record<string, string | number | string[] | number[]> = {};
+  const ops: Record<string, string | number | string[] | number[]> = {};
   if (opts) {
     for (const [key, value] of Object.entries(opts)) {
       if (Array.isArray(value)) {
