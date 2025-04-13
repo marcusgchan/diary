@@ -3,7 +3,6 @@
 import {
   $createParagraphNode,
   $createRangeSelection,
-  $getNodeByKey,
   $getSelection,
   $insertNodes,
   $isNodeSelection,
@@ -15,18 +14,18 @@ import {
   DRAGOVER_COMMAND,
   DRAGSTART_COMMAND,
   DROP_COMMAND,
-  LexicalCommand,
-  LexicalEditor,
+  type LexicalCommand,
+  type LexicalEditor,
   createCommand,
 } from "lexical";
 import {
   $createImageNode,
   $isImageNode,
   ImageNode,
-  ImagePayload,
+  type ImagePayload,
 } from "./image-node";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { useEffect } from "react";
+import { useEffect, type JSX } from "react";
 import { $wrapNodeInElement, mergeRegister } from "@lexical/utils";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
@@ -95,7 +94,7 @@ function useRemoveImageMetadataOnDelete(editor: LexicalEditor) {
   const params = useParams();
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
-  const queryUtils = api.useContext();
+  const queryUtils = api.useUtils();
   const deleteImageMetadata = api.diary.deleteImageMetadata.useMutation({
     onSuccess(data) {
       if (!data) {
@@ -107,9 +106,9 @@ function useRemoveImageMetadataOnDelete(editor: LexicalEditor) {
   useEffect(() => {
     const removeMutationListener = editor.registerMutationListener(
       ImageNode,
-      (mutatedNodes, { updateTags, dirtyLeaves, prevEditorState }) => {
+      (mutatedNodes, { prevEditorState }) => {
         // mutatedNodes is a Map where each key is the NodeKey, and the value is the state of mutation.
-        for (let [nodeKey, mutation] of mutatedNodes) {
+        for (const [nodeKey, mutation] of mutatedNodes) {
           if (mutation == "destroyed") {
             editor.read(() => {
               const node = prevEditorState._nodeMap.get(nodeKey) as ImageNode;
@@ -181,8 +180,7 @@ function canDropImage(event: DragEvent): boolean {
     target &&
     target instanceof HTMLElement &&
     !target.closest("code, span.editor-image") &&
-    target.parentElement &&
-    target.parentElement.closest("div.ContentEditable__root")
+    target?.parentElement?.closest("div.ContentEditable__root")
   );
 }
 
@@ -214,11 +212,14 @@ function getDragImageData(event: DragEvent): null | InsertImagePayload {
   if (!dragData) {
     return null;
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { type, data } = JSON.parse(dragData);
   if (type !== "image") {
     return null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return data;
 }
 
@@ -235,11 +236,10 @@ function onDragover(event: DragEvent): boolean {
 
 const CAN_USE_DOM: boolean =
   typeof window !== "undefined" &&
-  typeof window.document !== "undefined" &&
-  typeof window.document.createElement !== "undefined";
+  typeof window.document?.createElement !== "undefined";
 
 const getDOMSelection = (targetWindow: Window | null): Selection | null =>
-  CAN_USE_DOM ? (targetWindow || window).getSelection() : null;
+  CAN_USE_DOM ? (targetWindow ?? window).getSelection() : null;
 
 declare global {
   interface DragEvent {
@@ -261,7 +261,7 @@ function getDragSelection(event: DragEvent): Range | null | undefined {
   if (document.caretRangeFromPoint) {
     range = document.caretRangeFromPoint(event.clientX, event.clientY);
   } else if (event.rangeParent && domSelection !== null) {
-    domSelection.collapse(event.rangeParent, event.rangeOffset || 0);
+    domSelection.collapse(event.rangeParent, event.rangeOffset ?? 0);
     range = domSelection.getRangeAt(0);
   } else {
     throw Error(`Cannot get the selection when dragging`);

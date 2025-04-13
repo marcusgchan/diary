@@ -5,7 +5,9 @@ import { useParams, usePathname } from "next/navigation";
 import { cn } from "~/app/_utils/cx";
 
 export function EntryTab() {
-  const { diaryId, entryId } = useParams();
+  const params = useParams();
+  const diaryId = params.diaryId as string;
+  const entryId = params.entryId as string;
   const path = usePathname();
   function currentPath(target: string) {
     return path.includes(target);

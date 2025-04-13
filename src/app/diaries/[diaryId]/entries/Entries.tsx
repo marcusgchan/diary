@@ -24,11 +24,7 @@ export function Entries() {
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const router = useRouter();
-  const {
-    data: entries,
-    isPending,
-    isError,
-  } = api.diary.getEntries.useQuery(
+  const { data: entries, isError } = api.diary.getEntries.useQuery(
     { diaryId: Number(diaryId) },
     {
       enabled: !!diaryId,

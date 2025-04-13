@@ -21,7 +21,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const session = await getServerAuthSession();
-  const headersList = headers();
+  const headersList = await headers();
   const url = headersList.get("x-url");
 
   if (!session) {

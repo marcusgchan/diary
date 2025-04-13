@@ -5,7 +5,7 @@ import { TitleInput } from "./TitleInput";
 import { EntryTab } from "./EntryTab";
 import { EditPostsButton } from "./EditPostsButton";
 
-export default async function EntryLayout({
+export default function EntryLayout({
   children,
 }: {
   children: React.ReactNode;

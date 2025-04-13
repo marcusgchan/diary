@@ -26,7 +26,7 @@ import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "~/app/_components/ui/use-toast";
 import * as ExifReader from "exifreader";
-import { RouterOutputs } from "~/server/api/trpc";
+import type { RouterOutputs } from "~/server/api/trpc";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();
@@ -90,6 +90,7 @@ async function getImgSize(
       resolve({ height, width });
     };
     img.onerror = (e) => {
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
       reject(e);
     };
     img.src = src;
@@ -100,10 +101,12 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
   const params = useParams();
+  const diaryId = params.diaryId as string;
+  const entryId = params.diaryId as string;
   const [startPolling, setStartPolling] = useState(false);
   const [imageKey, setImageKey] = useState<string>();
   const [disableCancel, setDisableCancel] = useState(false);
-  const fileRef = useRef<File>();
+  const fileRef = useRef<File>(undefined);
   const { data } = api.diary.getImageUploadStatus.useQuery(
     { key: imageKey },
     {
@@ -143,7 +146,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
       const dimensions = await getImgSize(`/api/image/${imageKey}`);
       width = dimensions.width;
       height = dimensions.height;
-    } catch (e) {}
+    } catch (_) {}
 
     if (width !== undefined && height !== undefined) {
       if (width > 200) {
@@ -205,7 +208,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
           size: file.size,
         },
       });
-    } catch (e) {
+    } catch (_) {
       toast({ title: "Unable to upload image" });
       setDisableCancel(false);
       return;
@@ -217,16 +220,14 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     });
     formData.append("file", file);
 
-    setImageKey(
-      `${data.userId}/${params.diaryId}/${params.entryId}/${data.filename}`,
-    );
+    setImageKey(`${data.userId}/${diaryId}/${entryId}/${data.filename}`);
     setStartPolling(true);
 
     fetch(data.url, {
       method: "POST",
       body: formData,
     })
-      .then(async (res) => {
+      .then((res) => {
         if (!res.ok) {
           throw Error("unable to upload file");
         }

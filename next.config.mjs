@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    instrumentationHook: false,
+  eslint: {
+    ignoreDuringBuilds: true,
   },
   redirects() {
     return [
@@ -16,6 +16,17 @@ const nextConfig = {
         permanent: true,
       },
     ];
+  },
+  // https://github.com/baselime/node-opentelemetry/issues/2
+  // https://github.com/vercel/next.js/discussions/76247
+  webpack: (
+    config,
+    { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack },
+  ) => {
+    if (isServer) {
+      config.ignoreWarnings = [{ module: /opentelemetry/ }];
+    }
+    return config;
   },
 };
 

@@ -13,7 +13,7 @@ import type {
 
 import { $applyNodeReplacement, createEditor, DecoratorNode } from "lexical";
 import * as React from "react";
-import { Suspense } from "react";
+import { type JSX } from "react";
 
 import ImageComponent from "./ImageComponent";
 
@@ -135,7 +135,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
 
   static importDOM(): DOMConversionMap | null {
     return {
-      img: (node: Node) => ({
+      img: (_: Node) => ({
         conversion: convertImageElement,
         priority: 0,
       }),
@@ -164,9 +164,8 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     this.__width = width ?? "100%";
     this.__height = height ?? "100%";
     this.__showCaption = showCaption ?? false;
-    this.__caption = caption || createEditor();
-    //this.__captionsEnabled = captionsEnabled || captionsEnabled === undefined;
-    this.__captionsEnabled = false;
+    this.__caption = caption ?? createEditor();
+    this.__captionsEnabled = captionsEnabled ?? false;
   }
 
   exportJSON(): SerializedImageNode {

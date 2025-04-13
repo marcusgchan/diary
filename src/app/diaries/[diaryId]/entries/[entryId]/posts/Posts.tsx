@@ -1,10 +1,12 @@
 "use client";
 import { useParams } from "next/navigation";
-import { CSSProperties, Fragment, useEffect, useRef } from "react";
+import { Fragment, useRef } from "react";
+import type { CSSProperties } from "react";
 import { cn } from "~/app/_utils/cx";
-import { RouterInputs, RouterOutputs } from "~/server/api/trpc";
+import type { RouterInputs, RouterOutputs } from "~/server/api/trpc";
 import { api } from "~/trpc/TrpcProvider";
-import { PostFormHandle as PostsFormHandle, PostsForm } from "./edit/PostsForm";
+import type { PostFormHandle as PostsFormHandle } from "./edit/PostsForm";
+import { PostsForm } from "./edit/PostsForm";
 
 export function PostsSection() {
   const params = useParams();
@@ -134,6 +136,7 @@ function PostImage({
       style={styles}
       className={cn("grid w-full gap-2 bg-gray-400 p-2", className)}
     >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         className="aspect-square w-full object-cover"
         alt=""

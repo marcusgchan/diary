@@ -1,9 +1,5 @@
 import { PostsSection } from "./Posts";
 
-export default function Entry({
-  params: { entryId },
-}: {
-  params: { diaryId: string; entryId: string };
-}) {
+export default function Entry() {
   return <PostsSection />;
 }

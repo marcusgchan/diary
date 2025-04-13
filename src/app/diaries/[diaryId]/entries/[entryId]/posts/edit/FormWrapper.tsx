@@ -1,20 +1,23 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { PostsForm, PostsFormHandle } from "./PostsForm";
+import { PostsForm } from "./PostsForm";
+import type { PostsFormHandle } from "./PostsForm";
 import { api } from "~/trpc/TrpcProvider";
 import { useEffect, useRef } from "react";
-import { RouterInputs } from "~/server/api/trpc";
+import type { RouterInputs } from "~/server/api/trpc";
 
 type UpdatePostsMut = RouterInputs["diary"]["updatePosts"];
 
 export function FormWrapper() {
   const params = useParams();
+  const diaryId = params.diaryId as string;
+  const entryId = params.entryId as string;
   const router = useRouter();
 
   const updatePostMut = api.diary.updatePosts.useMutation({
     onSuccess() {
-      router.push(`/diaries/${params.diaryId}/entries/${params.entryId}/posts`);
+      router.push(`/diaries/${diaryId}/entries/${entryId}/posts`);
     },
   });
   function updatePost(data: UpdatePostsMut) {

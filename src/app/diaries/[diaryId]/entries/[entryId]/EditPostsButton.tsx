@@ -18,6 +18,10 @@ export function EditPostsButton() {
   }
 
   return (
-    <Link href={`/diaries/${diaryId}/entries/${entryId}/posts/edit`}>Edit</Link>
+    <Link
+      href={`/diaries/${diaryId as string}/entries/${entryId as string}/posts/edit`}
+    >
+      Edit
+    </Link>
   );
 }

@@ -9,21 +9,25 @@ import {
   isNull,
   sql,
 } from "drizzle-orm";
-import {
+import type {
   Diaries,
+  EditorStates,
+  Entries,
+  ImageKeys,
+  Posts,
+  Users,
+} from "~/server/db/schema";
+import {
   diaries,
   diariesToUsers,
   editorStates,
-  Entries,
   entries,
-  ImageKeys,
   imageKeys,
-  Posts,
   posts,
-  Users,
 } from "~/server/db/schema";
-import { ProtectedContext, type TRPCContext } from "../../trpc";
-import {
+import type { TRPCContext } from "../../trpc";
+import { type ProtectedContext } from "../../trpc";
+import type {
   CreateEntry,
   CreatePost,
   DeleteEntryInput,
@@ -33,9 +37,8 @@ import {
   UpdateEntryTitle,
 } from "./schema";
 import { TRPCError } from "@trpc/server";
-import { db } from "~/server/db";
+import { type db } from "~/server/db";
 import { tryCatch } from "~/app/_utils/tryCatch";
-import { randomUUID } from "crypto";
 
 export async function getDiaries({
   db,
@@ -605,7 +608,7 @@ export async function saveEditorState({
   await db
     .update(editorStates)
     .set({
-      data: JSON.parse(input.editorState),
+      data: JSON.parse(input.editorState) as EditorStates["data"],
       updatedAt: new Date(),
     })
     .where(
@@ -878,8 +881,6 @@ export async function getUnlinkedImages({
     );
 }
 
-export async function setPostsToDeleting() {}
-
 export async function deletePosts({
   db,
   entryId,
@@ -1122,9 +1123,9 @@ export async function cancelImageUpload({
 }
 
 // TODO: need to refactor upload for journal
-export async function confirmImageUpload({
-  db,
-  key,
+export function confirmImageUpload({
+  db: _db,
+  key: _key,
 }: {
   db: TRPCContext["db"];
   key: string;

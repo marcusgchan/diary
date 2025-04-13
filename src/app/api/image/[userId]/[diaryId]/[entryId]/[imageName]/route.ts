@@ -3,17 +3,16 @@ import { getServerAuthSession } from "~/server/auth";
 
 export async function GET(
   _: Request,
-  {
-    params,
-  }: {
-    params: {
+  props: {
+    params: Promise<{
       userId: string;
       diaryId: string;
       entryId: string;
       imageName: string;
-    };
+    }>;
   },
 ) {
+  const params = await props.params;
   const session = await getServerAuthSession();
   if (!session || (session && session.user.id !== params.userId)) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });

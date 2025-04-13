@@ -1,7 +1,7 @@
 import type { LexicalEditor } from "lexical";
 
 import * as React from "react";
-import { useRef } from "react";
+import { useRef, type JSX } from "react";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -19,7 +19,6 @@ export default function ImageResizer({
   onResizeEnd,
   buttonRef,
   imageRef,
-  maxWidth,
   editor,
   showCaption,
   setShowCaption,
@@ -28,7 +27,6 @@ export default function ImageResizer({
   editor: LexicalEditor;
   buttonRef: { current: null | HTMLButtonElement };
   imageRef: { current: null | HTMLElement };
-  maxWidth?: number;
   onResizeEnd: (width: number, height: number) => void;
   onResizeStart: () => void;
   setShowCaption: (show: boolean) => void;

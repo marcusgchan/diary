@@ -5,16 +5,15 @@ import { Input } from "~/app/_components/ui/input";
 import { Label } from "~/app/_components/ui/label";
 import { Textarea } from "~/app/_components/ui/textarea";
 import {
-  SubmitHandler,
   useFieldArray,
   useForm,
   FormProvider,
   useFormContext,
 } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ChangeEvent,
   forwardRef,
   useEffect,
   useImperativeHandle,
@@ -22,16 +21,17 @@ import {
   useRef,
   useState,
 } from "react";
+import type { ChangeEvent } from "react";
 import { cn } from "~/app/_utils/cx";
 import {
   closestCenter,
   DndContext,
-  DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -42,7 +42,7 @@ import { api } from "~/trpc/TrpcProvider";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { toast } from "~/app/_components/ui/use-toast";
 import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
-import { RouterInputs, RouterOutputs } from "~/server/api/trpc";
+import type { RouterInputs, RouterOutputs } from "~/server/api/trpc";
 
 type Post = RouterOutputs["diary"]["getPostsForForm"][number];
 
@@ -73,9 +73,7 @@ type UploadStatus =
   | { type: "empty" }
   | { type: "uploaded"; url: string; key: string };
 
-type IdToUploadStatus = {
-  [id: string]: UploadStatus;
-};
+type IdToUploadStatus = Record<string, UploadStatus>;
 
 function getUUID() {
   return crypto.randomUUID();
@@ -107,6 +105,7 @@ type Props = {
   diaryId: number;
   entryId: number;
   mutate(
+    this: void,
     data:
       | RouterInputs["diary"]["createPosts"]
       | RouterInputs["diary"]["updatePosts"],
@@ -123,7 +122,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
       posts: posts,
     },
   });
-  const { control, register, setValue, resetField, handleSubmit } = formMethods;
+  const { control, register, setValue, handleSubmit } = formMethods;
   const { fields, append, remove, move } = useFieldArray({
     control,
     name: "posts",
@@ -289,7 +288,7 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
     setImgUploadStatuses((prev) => ({ ...prev, [id]: { type: "empty" } }));
   }
 
-  async function removePost(index: number, id: string) {
+  function removePost(index: number, id: string) {
     const status = imgUploadStatuses[id];
     if (status === undefined) {
       throw Error("status should not be undefined");
@@ -326,64 +325,58 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
   }
 
   const utils = api.useUtils();
-  const handleImageUpload: HandleImageUploadCallabck = async (
+  const handleImageUpload: HandleImageUploadCallabck = (
     index: number,
     id: string,
     file: File | null,
   ) => {
     if (file) {
-      const metadata = {
-        name: file.name,
-        size: file.size,
-        mimetype: file.type,
-      };
-      const data = await utils.diary.createPresignedPostUrl.fetch(
-        {
-          diaryId,
-          entryId,
-          imageMetadata: metadata,
-        },
-        { staleTime: 0 },
-      );
+      void (async () => {
+        const metadata = {
+          name: file.name,
+          size: file.size,
+          mimetype: file.type,
+        };
+        const data = await utils.diary.createPresignedPostUrl.fetch(
+          {
+            diaryId,
+            entryId,
+            imageMetadata: metadata,
+          },
+          { staleTime: 0 },
+        );
 
-      const formData = new FormData();
-      for (const [key, value] of Object.entries(data.fields)) {
-        formData.set(key, value);
-      }
-      formData.set("file", file);
-
-      setValue(`posts.${index}.imageMetadata`, metadata, {
-        shouldValidate: true,
-      });
-      setImgUploadStatuses((prev) => {
-        return { ...prev, [id]: { type: "loading" } };
-      });
-      imageKeyToIdRef.current.set(data.key, id);
-
-      try {
-        const res = await fetch(data.url, {
-          body: formData,
-          method: "post",
-        });
-        if (!res.ok) {
-          throw new Error("Unable to upload image");
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(data.fields)) {
+          formData.set(key, value);
         }
-        // increment ref which will start poll
-      } catch (e) {
-        // unable to upload
-        setImgUploadStatuses((prev) => {
-          return { ...prev, [id]: { type: "error" } };
+        formData.set("file", file);
+
+        setValue(`posts.${index}.imageMetadata`, metadata, {
+          shouldValidate: true,
         });
-      }
-      return;
+        setImgUploadStatuses((prev) => {
+          return { ...prev, [id]: { type: "loading" } };
+        });
+        imageKeyToIdRef.current.set(data.key, id);
+
+        try {
+          const res = await fetch(data.url, {
+            body: formData,
+            method: "post",
+          });
+          if (!res.ok) {
+            throw new Error("Unable to upload image");
+          }
+          // increment ref which will start poll
+        } catch (_) {
+          // unable to upload
+          setImgUploadStatuses((prev) => {
+            return { ...prev, [id]: { type: "error" } };
+          });
+        }
+      })();
     }
-    resetField(`posts.${index}`);
-    setImgUploadStatuses((prev) => {
-      return { ...prev, [id]: { type: "empty" } };
-    });
-    imageKeyToIdRef.current.delete(
-      (imgUploadStatuses[id] as { key: string }).key,
-    );
   };
 
   function handleDragEnd(event: DragEndEvent) {
@@ -696,7 +689,7 @@ function ImageUpload({
     }
 
     const file = files[0]?.getAsFile();
-    if (!file || !file.type.includes("image/")) {
+    if (!file?.type.includes("image/")) {
       return;
     }
 

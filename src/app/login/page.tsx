@@ -8,8 +8,8 @@ export default function Login() {
   const callbackUrl = useSearchParams();
   return (
     <Button
-      onClick={() =>
-        signIn(undefined, {
+      onClick={async () =>
+        await signIn(undefined, {
           callbackUrl: callbackUrl.get("redirect") ?? "/diaries",
         })
       }

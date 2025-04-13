@@ -2,10 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { RouterOutputs } from "~/server/api/trpc";
 import { api } from "~/trpc/TrpcProvider";
-
-type Entry = NonNullable<RouterOutputs["diary"]["getEntry"]>;
 
 export function TitleInput() {
   const { diaryId, entryId } = useParams();

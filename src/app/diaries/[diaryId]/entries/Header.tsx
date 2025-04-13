@@ -6,9 +6,10 @@ import { api } from "~/trpc/TrpcProvider";
 
 export function Header() {
   const params = useParams();
+  const diaryId = params.diaryId as string;
   const queryUtils = api.useUtils();
   const router = useRouter();
-  const goToEditDiary = () => router.push(`/diaries/${params.diaryId}/edit`);
+  const goToEditDiary = () => router.push(`/diaries/${diaryId}/edit`);
   const { data: diary } = api.diary.getDiary.useQuery(
     {
       diaryId: Number(params.diaryId),
@@ -17,7 +18,7 @@ export function Header() {
   );
   const addEntryMutation = api.diary.createEntry.useMutation({
     async onSuccess(data) {
-      router.push(`/diaries/${params.diaryId}/entries/${data.id}`);
+      router.push(`/diaries/${diaryId}/entries/${data.id}`);
       await queryUtils.diary.getEntries.invalidate({
         diaryId: Number(params.diaryId),
       });

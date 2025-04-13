@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const body = (await req.json()) as unknown;
   const content = getInfoFromBody(body, environment);
   if (!content.success) {
     return Response.json({ message: content.message }, { status: 400 });
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     return Response.json({}, { status: 400 });
   }
 
-  let compressImageBuf = await compressImage(image.buffer);
+  const compressImageBuf = await compressImage(image.buffer);
 
   if (compressImageBuf === undefined) {
     console.log("unable to compress image");
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
       });
     }
   } catch (e) {
-    console.error(`unable to upload compressed image with key ${key}`);
+    console.error(`unable to upload compressed image with key ${key}`, e);
   }
 
   return Response.json({});
@@ -251,7 +251,7 @@ type ParsingError = {
 };
 
 function getInfoFromBody(
-  body: string,
+  body: unknown,
   environment: "hosted" | "local",
 ): WebhookReqBody | ParsingError {
   if (environment === "hosted") {

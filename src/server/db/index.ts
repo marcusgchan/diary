@@ -3,6 +3,7 @@ import postgress from "postgres";
 import { env } from "~/env.mjs";
 
 declare global {
+  // eslint-disable-next-line no-var
   var _db: ReturnType<typeof drizzle> | undefined;
 }
 
