@@ -383,7 +383,6 @@ export default function ImageComponent({
           editor={editor}
           buttonRef={buttonRef}
           imageRef={imageRef}
-          maxWidth={maxWidth}
           onResizeStart={onResizeStart}
           onResizeEnd={onResizeEnd}
           captionsEnabled={captionsEnabled}
