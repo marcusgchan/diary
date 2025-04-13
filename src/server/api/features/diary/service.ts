@@ -9,22 +9,25 @@ import {
   isNull,
   sql,
 } from "drizzle-orm";
-import {
+import type {
   Diaries,
-  diaries,
-  diariesToUsers,
   EditorStates,
-  editorStates,
   Entries,
-  entries,
   ImageKeys,
-  imageKeys,
   Posts,
-  posts,
   Users,
 } from "~/server/db/schema";
-import { ProtectedContext, type TRPCContext } from "../../trpc";
 import {
+  diaries,
+  diariesToUsers,
+  editorStates,
+  entries,
+  imageKeys,
+  posts,
+} from "~/server/db/schema";
+import type { TRPCContext } from "../../trpc";
+import { type ProtectedContext } from "../../trpc";
+import type {
   CreateEntry,
   CreatePost,
   DeleteEntryInput,
@@ -34,7 +37,7 @@ import {
   UpdateEntryTitle,
 } from "./schema";
 import { TRPCError } from "@trpc/server";
-import { db } from "~/server/db";
+import { type db } from "~/server/db";
 import { tryCatch } from "~/app/_utils/tryCatch";
 
 export async function getDiaries({
@@ -877,8 +880,6 @@ export async function getUnlinkedImages({
       ),
     );
 }
-
-export async function setPostsToDeleting() {}
 
 export async function deletePosts({
   db,

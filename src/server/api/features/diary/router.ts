@@ -52,7 +52,7 @@ import {
 } from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
 import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
-import { Span } from "@opentelemetry/api";
+import { type Span } from "@opentelemetry/api";
 import { tryCatch } from "~/app/_utils/tryCatch";
 import { getUserIdFromKey } from "./utils";
 
@@ -793,6 +793,6 @@ export const diaryRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await confirmImageUpload({ db: ctx.db, key: input.key });
+      confirmImageUpload({ db: ctx.db, key: input.key });
     }),
 });

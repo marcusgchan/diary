@@ -1,10 +1,11 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { PostsForm, PostsFormHandle } from "./PostsForm";
+import { PostsForm } from "./PostsForm";
+import type { PostsFormHandle } from "./PostsForm";
 import { api } from "~/trpc/TrpcProvider";
 import { useEffect, useRef } from "react";
-import { RouterInputs } from "~/server/api/trpc";
+import type { RouterInputs } from "~/server/api/trpc";
 
 type UpdatePostsMut = RouterInputs["diary"]["updatePosts"];
 

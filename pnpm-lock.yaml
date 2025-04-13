@@ -236,6 +236,9 @@ devDependencies:
   eslint-config-prettier:
     specifier: ^10.1.2
     version: 10.1.2(eslint@9.24.0)
+  eslint-plugin-drizzle:
+    specifier: ^0.2.3
+    version: 0.2.3(eslint@9.24.0)
   eslint-plugin-react-hooks:
     specifier: ^5.2.0
     version: 5.2.0(eslint@9.24.0)
@@ -6875,6 +6878,14 @@ packages:
       eslint-import-resolver-typescript: 3.10.0(eslint-plugin-import@2.31.0)(eslint@9.24.0)
     transitivePeerDependencies:
       - supports-color
+    dev: true
+
+  /eslint-plugin-drizzle@0.2.3(eslint@9.24.0):
+    resolution: {integrity: sha512-BO+ymHo33IUNoJlC0rbd7HP9EwwpW4VIp49R/tWQF/d2E1K2kgTf0tCXT0v9MSiBr6gGR1LtPwMLapTKEWSg9A==}
+    peerDependencies:
+      eslint: '>=8.0.0'
+    dependencies:
+      eslint: 9.24.0
     dev: true
 
   /eslint-plugin-import@2.31.0(@typescript-eslint/parser@8.29.1)(eslint-import-resolver-typescript@3.10.0)(eslint@9.24.0):

@@ -1,11 +1,12 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { FormEvent, useEffect, useId, useState } from "react";
+import type { FormEvent } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "~/app/_components/ui/button";
 import { Input } from "~/app/_components/ui/input";
 import { cn } from "~/app/_utils/cx";
-import { RouterOutputs } from "~/server/api/trpc";
+import type { RouterOutputs } from "~/server/api/trpc";
 import { api } from "~/trpc/TrpcProvider";
 import {
   AlertDialog,

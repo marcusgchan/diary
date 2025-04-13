@@ -26,7 +26,7 @@ import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "~/app/_components/ui/use-toast";
 import * as ExifReader from "exifreader";
-import { RouterOutputs } from "~/server/api/trpc";
+import type { RouterOutputs } from "~/server/api/trpc";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();

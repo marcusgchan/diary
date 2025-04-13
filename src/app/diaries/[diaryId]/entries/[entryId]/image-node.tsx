@@ -164,8 +164,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     this.__width = width ?? "100%";
     this.__height = height ?? "100%";
     this.__showCaption = showCaption ?? false;
-    this.__caption = caption || createEditor();
-    // this.__captionsEnabled = captionsEnabled || captionsEnabled === undefined;
+    this.__caption = caption ?? createEditor();
     this.__captionsEnabled = captionsEnabled ?? false;
   }
 

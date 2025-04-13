@@ -8,7 +8,7 @@
  */
 
 import {
-  inferProcedureBuilderResolverOptions,
+  type inferProcedureBuilderResolverOptions,
   initTRPC,
   TRPCError,
   type inferRouterInputs,
@@ -21,7 +21,7 @@ import { trace, type Tracer } from "@opentelemetry/api";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
-import { AppRouter } from "~/server/api/root";
+import { type AppRouter } from "~/server/api/root";
 
 /**
  * 1. CONTEXT
@@ -59,7 +59,7 @@ const log = (
   name: string,
   level: "error" | "warn" | "log",
   message: string,
-  opts?: { [key: string]: string | number | string[] | number[] },
+  opts?: Record<string, string | number | string[] | number[]>,
 ) => {
   const ops: Record<string, string | number | string[] | number[]> = {};
   if (opts) {

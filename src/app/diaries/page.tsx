@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { api } from "~/trpc/TrpcProvider";
 import Link from "next/link";
 import { cn } from "@/app/_utils/cx";
@@ -61,7 +61,7 @@ function DiaryList() {
 
 function Header() {
   const [newDiaryName, setNewDiaryName] = useState("");
-  const queryUtils = api.useContext();
+  const queryUtils = api.useUtils();
   const addDiary = api.diary.createDiary.useMutation({
     async onMutate(newDiary) {
       await queryUtils.diary.getDiaries.cancel();
@@ -72,7 +72,7 @@ function Header() {
       ]);
       return { previousDiaries };
     },
-    onError(err, newDiary, context) {
+    onError(_err, _newDiary, context) {
       queryUtils.diary.getDiaries.setData(
         undefined,
         context?.previousDiaries ?? [],

@@ -1,60 +1,65 @@
 import { FlatCompat } from "@eslint/eslintrc";
-import js from "@eslint/js";
 import tseslint from "typescript-eslint";
+// @ts-ignore -- no types for this plugin
+import drizzle from "eslint-plugin-drizzle";
 
 const compat = new FlatCompat({
   baseDirectory: import.meta.dirname,
-  recommendedConfig: js.configs.recommended,
 });
 
-const eslintConfig = [
-  ...compat.config({
-    extends: ["next/core-web-vitals", "next", "prettier"],
-  }),
-  ...tseslint.configs.recommendedTypeChecked,
+export default tseslint.config(
   {
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
+    ignores: [".next"],
+  },
+  ...compat.extends("next/core-web-vitals"),
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    plugins: {
+      drizzle,
     },
+    extends: [
+      ...tseslint.configs.recommended,
+      ...tseslint.configs.recommendedTypeChecked,
+      ...tseslint.configs.stylisticTypeChecked,
+    ],
     rules: {
+      "@typescript-eslint/array-type": "off",
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/consistent-type-imports": [
+        "warn",
+        { prefer: "type-imports", fixStyle: "inline-type-imports" },
+      ],
       "@typescript-eslint/no-unused-vars": [
-        "error",
+        "warn",
         {
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/require-await": "off",
       "@typescript-eslint/no-misused-promises": [
         "error",
-        {
-          checksVoidReturn: false,
-        },
+        { checksVoidReturn: { attributes: false } },
+      ],
+      "drizzle/enforce-delete-with-where": [
+        "error",
+        { drizzleObjectName: ["db", "ctx.db"] },
+      ],
+      "drizzle/enforce-update-with-where": [
+        "error",
+        { drizzleObjectName: ["db", "ctx.db"] },
       ],
     },
   },
-];
-
-export default eslintConfig;
-//
-// import js from "@eslint/js";
-// import { FlatCompat } from "@eslint/eslintrc";
-//
-//
-// const compat = new FlatCompat({
-//   // import.meta.dirname is available after Node.js v20.11.0
-//   baseDirectory: import.meta.dirname,
-//   recommendedConfig: js.configs.recommended,
-// });
-//
-// const eslintConfig = [
-//   ...compat.config({
-//     extends: ["eslint:recommended", "next"],
-//   }),
-// ];
-//
-// export default eslintConfig;
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: true,
+    },
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+      },
+    },
+  },
+);
