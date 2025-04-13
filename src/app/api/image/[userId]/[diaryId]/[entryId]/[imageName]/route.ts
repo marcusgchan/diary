@@ -10,7 +10,7 @@ export async function GET(
       entryId: string;
       imageName: string;
     }>;
-  }
+  },
 ) {
   const params = await props.params;
   const session = await getServerAuthSession();

@@ -3,11 +3,9 @@ import { Entries } from "./Entries";
 import { Header } from "./Header";
 import { api } from "~/trpc/server";
 
-export default async function Page(
-  props: {
-    params: Promise<{ diaryId: string; entryId: string }>;
-  }
-) {
+export default async function Page(props: {
+  params: Promise<{ diaryId: string; entryId: string }>;
+}) {
   const params = await props.params;
   await api.diary.getEntry.prefetch({
     diaryId: Number(params.diaryId),

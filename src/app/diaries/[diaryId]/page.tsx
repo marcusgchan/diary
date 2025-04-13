@@ -5,11 +5,9 @@ import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 import { diariesToUsers } from "~/server/db/schema";
 
-export default async function Diary(
-  props: {
-    params: Promise<{ diaryId: string }>;
-  }
-) {
+export default async function Diary(props: {
+  params: Promise<{ diaryId: string }>;
+}) {
   const params = await props.params;
   const session = await getServerAuthSession();
   const headersList = await headers();
