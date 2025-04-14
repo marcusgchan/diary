@@ -5,11 +5,11 @@ import { db } from "~/server/db";
 import {
   createMetadataOnImageCallback,
   getEntryIdByEntryAndDiaryId,
-} from "~/server/api/features/diary/service";
+} from "~/server/features/diary/service";
 import {
   getImage,
   uploadImage,
-} from "~/server/api/features/shared/s3ImagesService";
+} from "~/server/features/shared/s3ImagesService";
 import sharp from "sharp";
 import ExifReader from "exifreader";
 import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";

@@ -21,7 +21,7 @@ import { trace, type Tracer } from "@opentelemetry/api";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
-import { type AppRouter } from "~/server/api/root";
+import { type AppRouter } from "~/server/root";
 
 /**
  * 1. CONTEXT

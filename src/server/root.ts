@@ -1,5 +1,5 @@
-import { diaryRouter } from "~/server/api/features/diary/router";
-import { createTRPCRouter } from "~/server/api/trpc";
+import { diaryRouter } from "~/server/features/diary/router";
+import { createTRPCRouter } from "~/server/trpc";
 
 /**
  * This is the primary router for your server.

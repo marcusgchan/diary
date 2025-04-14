@@ -42,7 +42,7 @@ import { api } from "~/trpc/TrpcProvider";
 import { Skeleton } from "~/app/_components/ui/skeleton";
 import { toast } from "~/app/_components/ui/use-toast";
 import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
-import type { RouterInputs, RouterOutputs } from "~/server/api/trpc";
+import type { RouterInputs, RouterOutputs } from "~/server/trpc";
 
 type Post = RouterOutputs["diary"]["getPostsForForm"][number];
 

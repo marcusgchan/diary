@@ -5,7 +5,7 @@ import { PostsForm } from "./PostsForm";
 import type { PostsFormHandle } from "./PostsForm";
 import { api } from "~/trpc/TrpcProvider";
 import { useEffect, useRef } from "react";
-import type { RouterInputs } from "~/server/api/trpc";
+import type { RouterInputs } from "~/server/trpc";
 
 type UpdatePostsMut = RouterInputs["diary"]["updatePosts"];
 
