@@ -1,7 +1,6 @@
 import {
   and,
   asc,
-  desc,
   eq,
   exists,
   inArray,
@@ -28,10 +27,8 @@ import {
 import type { TRPCContext } from "../../trpc";
 import { type ProtectedContext } from "../../trpc";
 import type {
-  CreateEntry,
   CreatePost,
   DeleteEntryInput,
-  EditDiaryName,
   EditEntryDate,
   SaveEditorState,
   UpdateEntryTitle,
@@ -39,78 +36,6 @@ import type {
 import { TRPCError } from "@trpc/server";
 import { type db } from "~/server/db";
 import { tryCatch } from "~/app/_utils/tryCatch";
-
-export async function getDiaries({
-  db,
-  userId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-}) {
-  const diariesList = await db
-    .select({ id: diaries.id, name: diaries.name })
-    .from(diariesToUsers)
-    .innerJoin(diaries, eq(diaries.id, diariesToUsers.diaryId))
-    .where(and(eq(diariesToUsers.userId, userId), eq(diaries.deleting, false)));
-  return diariesList;
-}
-
-export async function createDiary({
-  db,
-  userId,
-  name,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  name: string;
-}) {
-  await db.transaction(async (tx) => {
-    const [inserted] = await tx
-      .insert(diaries)
-      .values({ name: name })
-      .returning({ insertedId: diaries.id });
-    await tx.insert(diariesToUsers).values({
-      userId: userId,
-      diaryId: inserted!.insertedId,
-    });
-  });
-}
-
-export async function editDiaryName({
-  db,
-  input,
-}: {
-  db: TRPCContext["db"];
-  input: EditDiaryName;
-}) {
-  await db
-    .update(diaries)
-    .set({ name: input.name })
-    .where(eq(diaries.id, input.diaryId));
-}
-
-export async function getEntryIdById({
-  db,
-  userId,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
-}) {
-  const [entry] = await db
-    .select({ id: entries.id })
-    .from(entries)
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(
-      and(
-        eq(entries.id, entryId),
-        eq(diariesToUsers.userId, userId),
-        eq(diariesToUsers.diaryId, entries.diaryId),
-      ),
-    );
-  return entry;
-}
 
 export async function getEntryIdByEntryAndDiaryId({
   db,
@@ -168,26 +93,6 @@ export async function getEntryTitleDayById({
   return { title: entry.title ?? null, day: entry.day };
 }
 
-export async function deleteEntry({
-  db,
-  input,
-}: {
-  db: TRPCContext["db"];
-  input: DeleteEntryInput;
-}) {
-  await db.transaction(async (tx) => {
-    await tx
-      .delete(editorStates)
-      .where(eq(editorStates.entryId, input.entryId));
-
-    await tx.delete(posts).where(eq(posts.entryId, input.entryId));
-
-    await tx.delete(imageKeys).where(eq(imageKeys.entryId, input.entryId));
-
-    await tx.delete(entries).where(eq(entries.id, input.entryId));
-  });
-}
-
 export async function getLinkedImageKeys({
   db,
   entryId,
@@ -224,19 +129,6 @@ export class DiaryServiceRepo {
     this.userId = context.session.user.id;
     this.db = context.db;
     this.ctx = context;
-  }
-
-  public async flagEntryForDeletion(entryId: Entries["id"]) {
-    await this.db.transaction(async (tx) => {
-      await tx
-        .update(entries)
-        .set({ deleting: true })
-        .where(eq(entries.id, entryId));
-      await tx
-        .update(imageKeys)
-        .set({ deleting: true })
-        .where(eq(imageKeys.entryId, entryId));
-    });
   }
 
   public async flagDiaryForDeletion(diaryId: Diaries["id"]) {
@@ -453,61 +345,6 @@ export async function updateDiaryEntryStatusToNotDeleting({
     .where(eq(entries.id, entryId));
 }
 
-export async function getEntry({
-  db,
-  userId,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
-}) {
-  const [entry] = await db
-    .select({
-      id: entries.id,
-      day: entries.day,
-      editorState: editorStates.data,
-      lastUpdatedEditorState: editorStates.updatedAt,
-      title: entries.title,
-    })
-    .from(entries)
-    .leftJoin(editorStates, eq(editorStates.entryId, entries.id))
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)));
-
-  return entry ?? null;
-}
-
-export async function getEntries({
-  db,
-  userId,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  diaryId: number;
-}) {
-  const entriesList = await db
-    .select({
-      id: entries.id,
-      day: entries.day,
-      title: entries.title,
-      diaryId: entries.diaryId,
-    })
-    .from(entries)
-    .orderBy(desc(entries.day))
-    .innerJoin(diaries, eq(diaries.id, entries.diaryId))
-    .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
-    .where(
-      and(
-        eq(entries.diaryId, diaryId),
-        eq(diariesToUsers.userId, userId),
-        eq(entries.deleting, false),
-      ),
-    );
-  return entriesList;
-}
-
 export async function updateTitle({
   db,
   userId,
@@ -596,107 +433,6 @@ export async function updateEntryDate({
     );
 }
 
-export async function saveEditorState({
-  db,
-  userId,
-  input,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  input: SaveEditorState;
-}) {
-  await db
-    .update(editorStates)
-    .set({
-      data: JSON.parse(input.editorState) as EditorStates["data"],
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(editorStates.entryId, input.entryId),
-        exists(
-          db
-            .selectDistinct({ diaryId: diariesToUsers.diaryId })
-            .from(diariesToUsers)
-            .where(
-              and(
-                eq(diariesToUsers.diaryId, input.diaryId),
-                eq(diariesToUsers.userId, userId),
-              ),
-            ),
-        ),
-      ),
-    );
-}
-
-export async function createEntry({
-  db,
-  userId,
-  input,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  input: CreateEntry;
-}) {
-  // Turn into transaction
-  return await db.transaction(async (tx) => {
-    const res = await tx
-      .select({ date: entries.day })
-      .from(entries)
-      .where(eq(entries.diaryId, input.diaryId))
-      .innerJoin(
-        diariesToUsers,
-        and(
-          eq(diariesToUsers.diaryId, entries.diaryId),
-          eq(diariesToUsers.userId, userId),
-          eq(entries.day, input.day),
-          eq(entries.deleting, false),
-        ),
-      )
-      .limit(1);
-    // Only can have 1 entry per day
-    if (res.length) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Entry already exists",
-      });
-    }
-    const [insertedEntry] = await tx
-      .insert(entries)
-      .values({ diaryId: input.diaryId, day: input.day })
-      .returning({ insertedId: entries.id });
-
-    // Create editor state
-    await tx
-      .insert(editorStates)
-      .values({ entryId: insertedEntry!.insertedId });
-
-    return { id: insertedEntry!.insertedId };
-  });
-}
-
-export async function getDiaryById({
-  db,
-  userId,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  diaryId: number;
-}) {
-  const [diary] = await db
-    .select({ id: diaries.id, name: diaries.name })
-    .from(diaries)
-    .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
-    .where(
-      and(
-        eq(diariesToUsers.diaryId, diaryId),
-        eq(diariesToUsers.userId, userId),
-      ),
-    );
-  return diary;
-}
-
 export async function getDiaryIdById({
   db,
   userId,
@@ -730,38 +466,6 @@ export async function updateDiaryStatusToNotDeleting({
     .update(diaries)
     .set({ deleting: false })
     .where(eq(diaries.id, diaryId));
-}
-
-export async function getImageKeysByDiaryId({
-  db,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  diaryId: number;
-}) {
-  const query = await db
-    .select({ key: imageKeys.key })
-    .from(imageKeys)
-    .innerJoin(entries, eq(imageKeys.entryId, entries.id))
-    .innerJoin(diaries, eq(entries.diaryId, diaries.id))
-    .where(eq(diaries.id, diaryId));
-
-  return query.map(({ key }) => key);
-}
-
-export async function getImageKeysByEntryId({
-  db,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-}) {
-  const query = await db
-    .select({ key: imageKeys.key })
-    .from(imageKeys)
-    .where(eq(imageKeys.entryId, entryId));
-
-  return query.map(({ key }) => key);
 }
 
 export async function insertImageMetadata({
@@ -892,125 +596,6 @@ export async function deletePosts({
     await tx.delete(posts).where(eq(posts.entryId, entryId));
     await tx.delete(imageKeys).where(eq(imageKeys.entryId, entryId));
   });
-}
-
-export async function getPosts({
-  db,
-  entryId,
-  userId,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-  userId: string;
-}) {
-  return await db
-    .select({
-      id: posts.id,
-      title: posts.title,
-      description: posts.description,
-      imageKey: posts.imageKey,
-    })
-    .from(posts)
-    .innerJoin(entries, eq(entries.id, posts.entryId))
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(
-      and(
-        eq(posts.entryId, entryId),
-        eq(diariesToUsers.userId, userId),
-        eq(posts.deleting, false),
-      ),
-    )
-    .orderBy(asc(posts.order));
-}
-
-export async function getPostsForForm({
-  db,
-  entryId,
-  userId,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-  userId: string;
-}) {
-  return await db
-    .select({
-      id: posts.id,
-      title: posts.title,
-      description: posts.description,
-      imageKey: imageKeys.key,
-      name: imageKeys.name,
-      mimetype: imageKeys.mimetype,
-      size: imageKeys.size,
-    })
-    .from(posts)
-    .leftJoin(imageKeys, eq(imageKeys.key, posts.imageKey))
-    .innerJoin(entries, eq(entries.id, posts.entryId))
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(
-      and(
-        eq(entries.id, entryId),
-        eq(diariesToUsers.userId, userId),
-        eq(posts.deleting, false),
-      ),
-    );
-}
-
-export async function getEntryHeader({
-  db,
-  userId,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
-}) {
-  return await db
-    .select({
-      day: entries.day,
-      title: entries.title,
-    })
-    .from(entries)
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)))
-    .limit(1);
-}
-
-export async function getEntryTitle({
-  db,
-  userId,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
-}) {
-  return await db
-    .select({
-      title: entries.title,
-    })
-    .from(entries)
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)))
-    .limit(1);
-}
-
-export async function getEntryDay({
-  db,
-  userId,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
-}) {
-  return await db
-    .select({
-      day: entries.day,
-    })
-    .from(entries)
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(and(eq(entries.id, entryId), eq(diariesToUsers.userId, userId)))
-    .limit(1);
 }
 
 export async function setCompressionStatus({

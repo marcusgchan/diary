@@ -13,7 +13,7 @@ export function PostsSection() {
   const entryId = Number(params.entryId);
   const diaryId = Number(params.diaryId);
 
-  const { data, isError } = api.diary.getEntryMap.useQuery({
+  const { data, isError } = api.diary.getPosts.useQuery({
     entryId,
   });
 
@@ -22,7 +22,7 @@ export function PostsSection() {
   const queryUtils = api.useUtils();
   const createPostMutation = api.diary.createPosts.useMutation({
     async onSuccess() {
-      await queryUtils.diary.getEntryMap.invalidate({ entryId });
+      await queryUtils.diary.getPosts.invalidate({ entryId });
     },
   });
 
@@ -69,7 +69,7 @@ function PostsSectionContainer({ children }: { children: React.ReactNode }) {
   );
 }
 
-type Posts = RouterOutputs["diary"]["getEntryMap"]["posts"];
+type Posts = RouterOutputs["diary"]["getPosts"]["posts"];
 
 type Post = Posts[number];
 
