@@ -8,11 +8,13 @@ import {
   type Entries,
   entries,
   imageKeys,
+  posts,
   type Users,
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
 import { type CreateEntry } from "../schema";
 import { TRPCError } from "@trpc/server";
+import { tryCatch } from "~/app/_utils/tryCatch";
 
 export class ImageModel {
   private userId: Users["id"];
@@ -35,12 +37,42 @@ export class ImageModel {
 
     return query.map(({ key }) => key);
   }
+
   public async getImageKeysByEntryId(entryId: Entries["id"]) {
-    const query = await db
+    const query = await this.db
       .select({ key: imageKeys.key })
       .from(imageKeys)
       .where(eq(imageKeys.entryId, entryId));
 
     return query.map(({ key }) => key);
+  }
+
+  public async deleteFileByKey(key: string) {
+    const [err] = await tryCatch(
+      this.db.transaction(async (tx) => {
+        await tx
+          .update(posts)
+          .set({ imageKey: null })
+          .where(eq(posts.imageKey, key));
+        await tx.delete(imageKeys).where(eq(imageKeys.key, key));
+      }),
+    );
+    if (err) {
+      this.ctx.log(
+        "deleteFileByKey",
+        "warn",
+        "unable to delete file by key: " + err.message,
+      );
+      throw new Error("unable to delete file by key", { cause: err });
+    }
+  }
+
+  public async getKeyByKey(key: string) {
+    return await this.db
+      .select({ key: imageKeys.key })
+      .from(imageKeys)
+      .innerJoin(entries, eq(entries.id, imageKeys.entryId))
+      .innerJoin(diariesToUsers, eq(entries.diaryId, diariesToUsers.diaryId))
+      .where(and(eq(imageKeys.key, key), eq(diariesToUsers.userId, this.userId)));
   }
 }

@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { type db } from "~/server/db";
 import {
   diariesToUsers,
@@ -6,9 +6,13 @@ import {
   entries,
   imageKeys,
   posts,
+  type Posts,
   type Users,
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
+import { TRPCError } from "@trpc/server";
+import { tryCatch } from "~/app/_utils/tryCatch";
+import { type CreatePost } from "../schema";
 
 export class PostModel {
   private userId: Users["id"];
@@ -41,6 +45,7 @@ export class PostModel {
       )
       .orderBy(asc(posts.order));
   }
+
   public async getPostsForForm(entryId: Entries["id"]) {
     return await this.db
       .select({
@@ -63,5 +68,82 @@ export class PostModel {
           eq(posts.deleting, false),
         ),
       );
+  }
+
+  public async getPostById(postId: Posts["id"]) {
+    const [p] = await this.db
+      .select({ postId: posts.id })
+      .from(posts)
+      .innerJoin(entries, eq(entries.id, posts.entryId))
+      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+      .where(and(eq(posts.id, postId), eq(diariesToUsers.userId, this.userId)))
+      .limit(1);
+    return p?.postId;
+  }
+
+  public async flagPostForDeletion(postId: Posts["id"]) {
+    await this.db
+      .update(posts)
+      .set({ deleting: true })
+      .where(eq(posts.id, postId));
+  }
+
+  public async deletePostById(postId: Posts["id"]) {
+    await this.db.delete(posts).where(eq(posts.id, postId));
+  }
+
+  public async flagPostsToDeleteByIds(postIds: Posts["id"][]) {
+    await this.db
+      .update(posts)
+      .set({ deleting: true })
+      .where(inArray(posts.id, postIds));
+  }
+
+  public async deletePostsByIds(postIds: Posts["id"][]) {
+    await this.db.delete(posts).where(inArray(posts.id, postIds));
+  }
+
+  public async updatePostsToDeleting(entryId: Entries["id"]) {
+    await this.db
+      .update(posts)
+      .set({ deleting: true })
+      .where(eq(posts.entryId, entryId));
+  }
+
+  public async upsertPosts(
+    entryId: Entries["id"],
+    postsToInsert: (CreatePost["posts"][number] & { id?: Posts["id"] })[],
+  ) {
+    const query = this.db
+      .insert(posts)
+      .values(
+        postsToInsert.map((post, index) => {
+          return {
+            ...(post.id && { id: post.id }),
+            entryId: entryId,
+            title: post.title,
+            description: post.description,
+            imageKey: post.key,
+            order: index,
+          };
+        }),
+      )
+      .onConflictDoUpdate({
+        target: posts.id,
+        set: {
+          title: sql.raw(`excluded.${posts.title.name}`),
+          imageKey: sql.raw(`excluded."${posts.imageKey.name}"`),
+          description: sql.raw(`excluded.${posts.description.name}`),
+          order: sql.raw(`excluded.${posts.order.name}`),
+        },
+      })
+      .returning({ id: posts.id });
+    const [err] = await tryCatch(query);
+    if (err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create posts",
+      });
+    }
   }
 }

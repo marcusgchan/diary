@@ -2,20 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/trpc";
 import {
-  updateEntryDate,
-  updateTitle,
-  getEntryIdsByDate as getEntryIdByDate,
-  getDiaryIdById,
   insertImageMetadata,
   deleteImageMetadata,
   getImageUploadStatus,
   cancelImageUpload,
-  getKeyByKey,
   confirmImageUpload,
   insertImageMetadataWithGps,
-  getEntryIdByEntryAndDiaryId,
   getUnlinkedImages,
-  DiaryServiceRepo,
 } from "./service";
 import {
   createDiarySchema,
@@ -80,11 +73,8 @@ export const diaryRouter = createTRPCRouter({
   deleteDiary: protectedProcedure
     .input(z.object({ diaryId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const diaryId = await getDiaryIdById({
-        db: ctx.db,
-        userId: ctx.session.user.id,
-        diaryId: input.diaryId,
-      });
+      const diaryModel = new DiaryModel(ctx);
+      const diaryId = await diaryModel.getDiaryIdById(input.diaryId);
       if (!diaryId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -92,10 +82,9 @@ export const diaryRouter = createTRPCRouter({
         });
       }
 
-      const diaryService = new DiaryServiceRepo(ctx);
       const s3ImageService = new S3ImageService(ctx);
 
-      await diaryService.flagDiaryForDeletion(input.diaryId);
+      await diaryModel.flagDiaryForDeletion(input.diaryId);
 
       const imageModel = new ImageModel(ctx);
       const keysToDelete = await imageModel.getImageKeysByDiaryId(
@@ -108,7 +97,7 @@ export const diaryRouter = createTRPCRouter({
           return input.diaryId;
         }
 
-        [err] = await tryCatch(diaryService.deleteDiary(input.diaryId));
+        [err] = await tryCatch(diaryModel.deleteDiary(input.diaryId));
         if (err) {
           ctx.log(
             "deleteDiary",
@@ -117,7 +106,7 @@ export const diaryRouter = createTRPCRouter({
           );
         }
       } else {
-        const [err] = await tryCatch(diaryService.deleteDiary(input.diaryId));
+        const [err] = await tryCatch(diaryModel.deleteDiary(input.diaryId));
         if (err) {
           ctx.log(
             "deleteDiary",
@@ -202,14 +191,14 @@ export const diaryRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      const diaryService = new DiaryServiceRepo(ctx);
-      await diaryService.upsertPosts(input.entryId, input.posts);
+      const postModel = new PostModel(ctx);
+      await postModel.upsertPosts(input.entryId, input.posts);
     }),
   deletePostById: protectedProcedure
     .input(z.object({ postId: z.string(), imageKey: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const diaryService = new DiaryServiceRepo(ctx);
-      const postId = await diaryService.getPostById(input.postId);
+      const postModel = new PostModel(ctx);
+      const postId = await postModel.getPostById(input.postId);
       if (postId === undefined) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
@@ -220,7 +209,7 @@ export const diaryRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      await diaryService.flagPostForDeletion(input.postId);
+      await postModel.flagPostForDeletion(input.postId);
 
       const s3Service = new S3ImageService(ctx);
 
@@ -228,7 +217,7 @@ export const diaryRouter = createTRPCRouter({
         s3Service.deleteImages(expandKeys([input.imageKey])),
       );
       if (!err) {
-        await diaryService.deletePostById(input.postId);
+        await postModel.deletePostById(input.postId);
       }
     }),
   getPosts: protectedProcedure
@@ -355,8 +344,8 @@ export const diaryRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST" });
       }
 
-      const diaryService = new DiaryServiceRepo(ctx);
-      const posts = await diaryService.getPosts(input.entryId);
+      const postModel = new PostModel(ctx);
+      const posts = await postModel.getPosts(input.entryId);
 
       // Find posts that need to be deleted (posts that exist in the database but not in the input)
       const postsToDelete = posts.filter(
@@ -370,7 +359,7 @@ export const diaryRouter = createTRPCRouter({
           .map((p) => p.imageKey!);
 
         // First flag the posts for deletion
-        await diaryService.flagPostsToDeleteByIds(postIdsToDelete);
+        await postModel.flagPostsToDeleteByIds(postIdsToDelete);
 
         // Delete the images from S3
         const s3Service = new S3ImageService(ctx);
@@ -380,12 +369,12 @@ export const diaryRouter = createTRPCRouter({
 
         // Only delete posts from database if S3 deletion was successful
         if (!err) {
-          await diaryService.deletePostsByIds(postIdsToDelete);
+          await postModel.deletePostsByIds(postIdsToDelete);
         }
       }
 
       // Create/update the remaining posts
-      await diaryService.upsertPosts(input.entryId, input.posts);
+      await postModel.upsertPosts(input.entryId, input.posts);
     }),
   getEntryTitle: protectedProcedure
     .input(z.object({ entryId: z.number() }))
@@ -428,9 +417,9 @@ export const diaryRouter = createTRPCRouter({
         s3ImageService.deleteImages(expandKeys([input.key])),
       );
 
-      const diaryService = new DiaryServiceRepo(ctx);
+      const imageModel = new ImageModel(ctx);
       if (!err) {
-        await tryCatch(diaryService.deleteFileByKey(input.key));
+        await tryCatch(imageModel.deleteFileByKey(input.key));
       }
     }),
 
@@ -446,28 +435,22 @@ export const diaryRouter = createTRPCRouter({
   updateTitle: protectedProcedure
     .input(updateEntryTitleSchema)
     .mutation(async ({ ctx, input }) => {
-      await updateTitle({ db: ctx.db, userId: ctx.session.user.id, input });
+      const entryModel = new EntryModel(ctx);
+      await entryModel.updateTitle(input);
       return input.title;
     }),
   updateEntryDate: protectedProcedure
     .input(editEntryDateSchema)
     .mutation(async ({ ctx, input }) => {
-      const id = await getEntryIdByDate({
-        db: ctx.db,
-        userId: ctx.session.user.id,
-        input,
-      });
+      const entryModel = new EntryModel(ctx);
+      const id = await entryModel.getEntryIdByDate(input);
       if (id) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Entry with this date already exists",
         });
       }
-      await updateEntryDate({
-        db: ctx.db,
-        userId: ctx.session.user.id,
-        input,
-      });
+      await entryModel.updateEntryDate(input);
       return { diaryId: input.diaryId, entryId: input.entryId, day: input.day };
     }),
   createPresignedPostUrl: protectedProcedure
@@ -483,12 +466,8 @@ export const diaryRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const entry = await getEntryIdByEntryAndDiaryId({
-        db: ctx.db,
-        entryId: input.entryId,
-        diaryId: input.diaryId,
-        userId: ctx.session.user.id,
-      });
+      const entryModel = new EntryModel(ctx);
+      const entry = await entryModel.getEntryIdById(input.entryId);
       if (!entry) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -528,12 +507,8 @@ export const diaryRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const uuid = randomUUID();
-      const entry = await getEntryIdByEntryAndDiaryId({
-        db: ctx.db,
-        entryId: input.entryId,
-        diaryId: input.diaryId,
-        userId: ctx.session.user.id,
-      });
+      const entryModel = new EntryModel(ctx);
+      const entry = await entryModel.getEntryIdById(input.entryId);
       if (!entry) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -600,11 +575,8 @@ export const diaryRouter = createTRPCRouter({
   deleteImageMetadata: protectedProcedure
     .input(z.object({ key: z.string(), entryId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const [key] = await getKeyByKey({
-        db: ctx.db,
-        userId: ctx.session.user.id,
-        key: input.key,
-      });
+      const imageModel = new ImageModel(ctx);
+      const [key] = await imageModel.getKeyByKey(input.key);
       if (!key) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
@@ -695,11 +667,8 @@ export const diaryRouter = createTRPCRouter({
   cancelImageUpload: protectedProcedure
     .input(z.object({ key: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const [key] = await getKeyByKey({
-        db: ctx.db,
-        userId: ctx.session.user.id,
-        key: input.key,
-      });
+      const imageModel = new ImageModel(ctx);
+      const [key] = await imageModel.getKeyByKey(input.key);
       if (!key) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
@@ -715,11 +684,8 @@ export const diaryRouter = createTRPCRouter({
   confirmImageUpload: protectedProcedure
     .input(z.object({ key: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const [key] = await getKeyByKey({
-        db: ctx.db,
-        userId: ctx.session.user.id,
-        key: input.key,
-      });
+      const imageModel = new ImageModel(ctx);
+      const [key] = await imageModel.getKeyByKey(input.key);
       if (!key) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }

@@ -12,7 +12,7 @@ import {
   type Users,
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
-import { type CreateEntry } from "../schema";
+import { type CreateEntry, type UpdateEntryTitle, type EditEntryDate } from "../schema";
 import { TRPCError } from "@trpc/server";
 
 export class EntryModel {
@@ -172,14 +172,73 @@ export class EntryModel {
 
   public async getEntryDay(entryId: Entries["id"]) {
     return await this.db
-      .select({
-        day: entries.day,
+      .select({ day: entries.day })
+      .from(entries)
+      .where(eq(entries.id, entryId))
+      .limit(1);
+  }
+
+  public async updateTitle(input: UpdateEntryTitle) {
+    await this.db
+      .update(entries)
+      .set({ title: input.title })
+      .where(
+        and(
+          eq(entries.diaryId, input.diaryId),
+          eq(entries.id, input.entryId),
+          eq(
+            entries.diaryId,
+            this.db
+              .selectDistinct({ diaryId: diariesToUsers.diaryId })
+              .from(diariesToUsers)
+              .where(
+                and(
+                  eq(diariesToUsers.diaryId, entries.diaryId),
+                  eq(diariesToUsers.userId, this.userId),
+                ),
+              ),
+          ),
+        ),
+      );
+  }
+
+  public async updateEntryDate(input: EditEntryDate) {
+    await this.db
+      .update(entries)
+      .set({ day: input.day })
+      .where(
+        and(
+          eq(entries.id, input.entryId),
+          eq(
+            entries.diaryId,
+            this.db
+              .selectDistinct({ diaryId: diariesToUsers.diaryId })
+              .from(diariesToUsers)
+              .where(
+                and(
+                  eq(diariesToUsers.diaryId, entries.diaryId),
+                  eq(diariesToUsers.userId, this.userId),
+                ),
+              ),
+          ),
+        ),
+      );
+  }
+
+  public async getEntryIdByDate(input: { diaryId: number; entryId: number; day: string }) {
+    const [entriesWithSameDateAsInput] = await this.db
+      .selectDistinct({
+        id: entries.id,
       })
       .from(entries)
       .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
       .where(
-        and(eq(entries.id, entryId), eq(diariesToUsers.userId, this.userId)),
-      )
-      .limit(1);
+        and(
+          eq(entries.diaryId, input.diaryId),
+          eq(entries.day, input.day),
+          eq(diariesToUsers.userId, this.userId),
+        ),
+      );
+    return entriesWithSameDateAsInput;
   }
 }
