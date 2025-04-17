@@ -12,7 +12,7 @@ import {
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
 
-export class DiaryModel {
+export class DiaryService {
   private userId: Users["id"];
   private db: typeof db;
   private ctx: ProtectedContext;

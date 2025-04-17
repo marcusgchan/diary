@@ -11,11 +11,11 @@ import {
   posts,
   type Users,
 } from "~/server/db/schema";
-import { type ProtectedContext } from "~/server/trpc";
+import { TRPCContext, type ProtectedContext } from "~/server/trpc";
 import { type CreateEntry, type UpdateEntryTitle, type EditEntryDate } from "../schema";
 import { TRPCError } from "@trpc/server";
 
-export class EntryModel {
+export class EntryService {
   private userId: Users["id"];
   private db: typeof db;
   private ctx: ProtectedContext;
@@ -241,4 +241,29 @@ export class EntryModel {
       );
     return entriesWithSameDateAsInput;
   }
+}
+
+export async function getEntryIdByEntryAndDiaryId({
+  db,
+  userId,
+  entryId,
+  diaryId,
+}: {
+  db: TRPCContext["db"];
+  userId: string;
+  entryId: number;
+  diaryId: number;
+}) {
+  const [entry] = await db
+    .select({ id: entries.id })
+    .from(entries)
+    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+    .where(
+      and(
+        eq(entries.id, entryId),
+        eq(diariesToUsers.userId, userId),
+        eq(diariesToUsers.diaryId, diaryId),
+      ),
+    );
+  return entry;
 }

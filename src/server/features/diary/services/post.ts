@@ -14,7 +14,7 @@ import { TRPCError } from "@trpc/server";
 import { tryCatch } from "~/app/_utils/tryCatch";
 import { type CreatePost } from "../schema";
 
-export class PostModel {
+export class PostService {
   private userId: Users["id"];
   private db: typeof db;
   private ctx: ProtectedContext;

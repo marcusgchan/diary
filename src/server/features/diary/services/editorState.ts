@@ -9,7 +9,7 @@ import {
 import { type ProtectedContext } from "~/server/trpc";
 import { type SaveEditorState } from "../schema";
 
-export class EditorStateModel {
+export class EditorStateService {
   private userId: Users["id"];
   private db: typeof db;
   private ctx: ProtectedContext;

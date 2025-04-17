@@ -4,12 +4,9 @@ import { timingSafeEqual } from "crypto";
 import { db } from "~/server/db";
 import {
   createMetadataOnImageCallback,
-  getEntryIdByEntryAndDiaryId,
 } from "~/server/features/diary/service";
-import {
-  getImage,
-  uploadImage,
-} from "~/server/features/shared/s3ImagesService";
+import { getEntryIdByEntryAndDiaryId } from "~/server/features/diary/services/entry";
+import { getImage, uploadImage } from "~/server/features/shared/s3ImagesService";
 import sharp from "sharp";
 import ExifReader from "exifreader";
 import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";

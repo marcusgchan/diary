@@ -16,7 +16,7 @@ import { type CreateEntry } from "../schema";
 import { TRPCError } from "@trpc/server";
 import { tryCatch } from "~/app/_utils/tryCatch";
 
-export class ImageModel {
+export class ImageService {
   private userId: Users["id"];
   private db: typeof db;
   private ctx: ProtectedContext;
