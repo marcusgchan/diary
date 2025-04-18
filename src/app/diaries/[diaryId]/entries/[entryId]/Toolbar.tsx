@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "~/app/_components/ui/separator";
+import { Separator } from "~/app/_lib/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,11 +20,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useEffect, useRef, useState } from "react";
-import { Input } from "~/app/_components/ui/input";
+import { Input } from "~/app/_lib/ui/input";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
-import { useToast } from "~/app/_components/ui/use-toast";
+import { useToast } from "~/app/_lib/ui/use-toast";
 import * as ExifReader from "exifreader";
 import type { RouterOutputs } from "~/server/trpc";
 

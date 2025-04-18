@@ -14,9 +14,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "~/app/_components/ui/alert-dialog";
-import { Skeleton } from "~/app/_components/ui/skeleton";
-import { cn } from "~/app/_utils/cx";
+} from "~/app/_lib/ui/alert-dialog";
+import { Skeleton } from "~/app/_lib/ui/skeleton";
+import { cn } from "~/app/_lib/utils/cx";
 import { api } from "~/trpc/TrpcProvider";
 
 export function Entries() {

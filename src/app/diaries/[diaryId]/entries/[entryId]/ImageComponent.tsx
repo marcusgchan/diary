@@ -4,7 +4,7 @@ import type {
   LexicalEditor,
   NodeKey,
 } from "lexical";
-import { cn } from "@/app/_utils/cx";
+import { cn } from "@/app/_lib/utils/cx";
 
 // import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";

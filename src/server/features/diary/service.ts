@@ -31,7 +31,7 @@ import type {
 } from "./schema";
 import { TRPCError } from "@trpc/server";
 import { type db } from "~/server/db";
-import { tryCatch } from "~/app/_utils/tryCatch";
+import { tryCatch } from "~/app/_lib/utils/tryCatch";
 
 
 export async function getEntryTitleDayById({

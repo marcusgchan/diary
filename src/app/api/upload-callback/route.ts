@@ -9,7 +9,7 @@ import { getEntryIdByEntryAndDiaryId } from "~/server/features/diary/services/en
 import { getImage, uploadImage } from "~/server/features/shared/s3ImagesService";
 import sharp from "sharp";
 import ExifReader from "exifreader";
-import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";
+import { getCompressedImageKey } from "~/app/_lib/utils/getCompressedImageKey";
 
 export async function POST(req: Request) {
   const rawToken = req.headers.get("authorization");

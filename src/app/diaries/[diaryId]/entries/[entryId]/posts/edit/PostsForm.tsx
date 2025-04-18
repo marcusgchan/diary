@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "~/app/_components/ui/button";
-import { Input } from "~/app/_components/ui/input";
-import { Label } from "~/app/_components/ui/label";
-import { Textarea } from "~/app/_components/ui/textarea";
+import { Button } from "~/app/_lib/ui/button";
+import { Input } from "~/app/_lib/ui/input";
+import { Label } from "~/app/_lib/ui/label";
+import { Textarea } from "~/app/_lib/ui/textarea";
 import {
   useFieldArray,
   useForm,
@@ -22,7 +22,7 @@ import {
   useState,
 } from "react";
 import type { ChangeEvent } from "react";
-import { cn } from "~/app/_utils/cx";
+import { cn } from "~/app/_lib/utils/cx";
 import {
   closestCenter,
   DndContext,
@@ -39,9 +39,9 @@ import {
 } from "@dnd-kit/sortable";
 import { SortableItem } from "./SortableItem";
 import { api } from "~/trpc/TrpcProvider";
-import { Skeleton } from "~/app/_components/ui/skeleton";
-import { toast } from "~/app/_components/ui/use-toast";
-import { typeSafeObjectFromEntries } from "~/app/_utils/typeSafeObjectFromEntries";
+import { Skeleton } from "~/app/_lib/ui/skeleton";
+import { toast } from "~/app/_lib/ui/use-toast";
+import { typeSafeObjectFromEntries } from "~/app/_lib/utils/typeSafeObjectFromEntries";
 import type { RouterInputs, RouterOutputs } from "~/server/trpc";
 
 type Post = RouterOutputs["diary"]["getPostsForForm"][number];

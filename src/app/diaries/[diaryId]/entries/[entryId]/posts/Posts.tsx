@@ -2,7 +2,7 @@
 import { useParams } from "next/navigation";
 import { Fragment, useRef } from "react";
 import type { CSSProperties } from "react";
-import { cn } from "~/app/_utils/cx";
+import { cn } from "~/app/_lib/utils/cx";
 import type { RouterInputs, RouterOutputs } from "~/server/trpc";
 import { api } from "~/trpc/TrpcProvider";
 import type { PostFormHandle as PostsFormHandle } from "./edit/PostsForm";

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import { Skeleton } from "~/app/_components/ui/skeleton";
+import { Skeleton } from "~/app/_lib/ui/skeleton";
 import { api } from "~/trpc/TrpcProvider";
 
 const Editor = dynamic(

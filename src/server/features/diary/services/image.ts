@@ -11,7 +11,7 @@ import {
   type Users,
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
-import { tryCatch } from "~/app/_utils/tryCatch";
+import { tryCatch } from "~/app/_lib/utils/tryCatch";
 
 export class ImageService {
   private userId: Users["id"];

@@ -12,8 +12,8 @@ import { config } from "~/server/config";
 import { s3Client } from "~/server/s3Client";
 import { type Readable } from "stream";
 import type { ProtectedContext } from "../../trpc";
-import { tryCatch } from "~/app/_utils/tryCatch";
-import { getCompressedImageKey } from "~/app/_utils/getCompressedImageKey";
+import { tryCatch } from "~/app/_lib/utils/tryCatch";
+import { getCompressedImageKey } from "~/app/_lib/utils/getCompressedImageKey";
 
 export async function getPresignedPost(
   userId: string,

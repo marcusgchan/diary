@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "~/app/_components/ui/button";
+import { Button } from "~/app/_lib/ui/button";
 import { api } from "~/trpc/TrpcProvider";
 
 export function Header() {

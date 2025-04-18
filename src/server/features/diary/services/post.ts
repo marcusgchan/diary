@@ -11,7 +11,7 @@ import {
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
-import { tryCatch } from "~/app/_utils/tryCatch";
+import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { type CreatePost } from "../schema";
 
 export class PostService {

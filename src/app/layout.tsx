@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getServerAuthSession } from "~/server/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Toaster } from "./_components/ui/toaster";
+import { Toaster } from "./_lib/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
