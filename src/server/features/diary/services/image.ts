@@ -1,10 +1,9 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { type db } from "~/server/db";
 import {
   diaries,
   type Diaries,
   diariesToUsers,
-  editorStates,
   type Entries,
   entries,
   imageKeys,
@@ -12,8 +11,6 @@ import {
   type Users,
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
-import { type CreateEntry } from "../schema";
-import { TRPCError } from "@trpc/server";
 import { tryCatch } from "~/app/_utils/tryCatch";
 
 export class ImageService {

@@ -2,7 +2,6 @@ import {
   and,
   asc,
   eq,
-  exists,
   inArray,
   isNotNull,
   isNull,
@@ -10,7 +9,6 @@ import {
 } from "drizzle-orm";
 import type {
   Diaries,
-  EditorStates,
   Entries,
   ImageKeys,
   Posts,
@@ -28,9 +26,7 @@ import type { TRPCContext } from "../../trpc";
 import { type ProtectedContext } from "../../trpc";
 import type {
   CreatePost,
-  DeleteEntryInput,
   EditEntryDate,
-  SaveEditorState,
   UpdateEntryTitle,
 } from "./schema";
 import { TRPCError } from "@trpc/server";

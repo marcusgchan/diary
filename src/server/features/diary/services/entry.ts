@@ -11,7 +11,7 @@ import {
   posts,
   type Users,
 } from "~/server/db/schema";
-import { TRPCContext, type ProtectedContext } from "~/server/trpc";
+import { type TRPCContext, type ProtectedContext } from "~/server/trpc";
 import { type CreateEntry, type UpdateEntryTitle, type EditEntryDate } from "../schema";
 import { TRPCError } from "@trpc/server";
 
