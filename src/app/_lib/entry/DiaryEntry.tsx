@@ -6,7 +6,7 @@ import { Skeleton } from "~/app/_lib/ui/skeleton";
 import { api } from "~/trpc/TrpcProvider";
 
 const Editor = dynamic(
-  () => import("./Editor").then((c) => ({ default: c.Editor })),
+  () => import("@/_lib/editor/Editor").then((c) => ({ default: c.Editor })),
   { ssr: false },
 );
 
