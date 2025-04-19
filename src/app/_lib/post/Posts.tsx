@@ -5,8 +5,8 @@ import type { CSSProperties } from "react";
 import { cn } from "~/app/_lib/utils/cx";
 import type { RouterInputs, RouterOutputs } from "~/server/trpc";
 import { api } from "~/trpc/TrpcProvider";
-import type { PostFormHandle as PostsFormHandle } from "./edit/PostsForm";
-import { PostsForm } from "./edit/PostsForm";
+import type { PostFormHandle as PostsFormHandle } from "./PostsForm";
+import { PostsForm } from "./PostsForm";
 
 export function PostsSection() {
   const params = useParams();

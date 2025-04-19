@@ -23,7 +23,7 @@ import { CodeNode } from "@lexical/code";
 import { LinkNode } from "@lexical/link";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
-import { Toolbar } from "./Toolbar";
+import { Toolbar } from "~/app/_lib/editor/Toolbar";
 import { useSharedHistoryContext } from "./SharedHistoryContext";
 import ImagesPlugin from "./ImagePlugin";
 import { ImageNode } from "./image-node";

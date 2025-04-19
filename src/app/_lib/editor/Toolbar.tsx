@@ -6,7 +6,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "~/app/_lib/ui/dropdown-menu";
 import { Separator } from "~/app/_lib/ui/separator";
 import {
   AlertDialog,
@@ -18,10 +18,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "~/app/_lib/ui/alert-dialog";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "~/app/_lib/ui/input";
-import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
+import { INSERT_IMAGE_COMMAND } from "~/app/_lib/editor/ImagePlugin";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "~/app/_lib/ui/use-toast";

@@ -22,7 +22,7 @@ import {
   useState,
 } from "react";
 import type { ChangeEvent } from "react";
-import { cn } from "~/app/_lib/utils/cx";
+import { cn } from "@/_lib/utils/cx";
 import {
   closestCenter,
   DndContext,
@@ -37,11 +37,11 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { SortableItem } from "./SortableItem";
+import { SortableItem } from "../shared/SortableItem";
 import { api } from "~/trpc/TrpcProvider";
 import { Skeleton } from "~/app/_lib/ui/skeleton";
 import { toast } from "~/app/_lib/ui/use-toast";
-import { typeSafeObjectFromEntries } from "~/app/_lib/utils/typeSafeObjectFromEntries";
+import { typeSafeObjectFromEntries } from "@/_lib/utils/typeSafeObjectFromEntries";
 import type { RouterInputs, RouterOutputs } from "~/server/trpc";
 
 type Post = RouterOutputs["diary"]["getPostsForForm"][number];

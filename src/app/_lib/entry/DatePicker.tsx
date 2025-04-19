@@ -12,7 +12,7 @@ import {
   PopoverTrigger,
 } from "~/app/_lib/ui/popover";
 import { useToast } from "~/app/_lib/ui/use-toast";
-import { cn } from "~/app/_lib/utils/cx";
+import { cn } from "@/_lib/utils/cx";
 import { api } from "~/trpc/TrpcProvider";
 
 export function DatePicker() {

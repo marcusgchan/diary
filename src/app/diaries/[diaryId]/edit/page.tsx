@@ -3,9 +3,9 @@
 import { useParams, useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useId, useState } from "react";
-import { Button } from "~/app/_lib/ui/button";
-import { Input } from "~/app/_lib/ui/input";
-import { cn } from "~/app/_lib/utils/cx";
+import { Button } from "@/_lib/ui/button";
+import { Input } from "@/_lib/ui/input";
+import { cn } from "@/_lib/utils/cx";
 import type { RouterOutputs } from "~/server/trpc";
 import { api } from "~/trpc/TrpcProvider";
 import {
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/_lib/ui/alert-dialog";
 
 export default function EditDiary() {
   const params = useParams();

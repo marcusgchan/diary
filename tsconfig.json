@@ -23,7 +23,8 @@
     "paths": {
       "~/*": ["./src/*"],
       "@/app/*": ["./src/app/*"],
-      "@/components/*": ["./src/app/_lib/*"]
+      "@/_lib/*": ["./src/app/_lib/*"],
+      "@/components/*": ["./src/app/_lib/components/*"]
     },
     "baseUrl": "."
   },
