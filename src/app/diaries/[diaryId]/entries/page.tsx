@@ -1,6 +1,6 @@
 import { HydrateClient } from "~/trpc/server";
-import { Entries } from "./Entries";
-import { Header } from "./Header";
+import { Entries } from "@/_lib/entry/Entries";
+import { Header } from "@/_lib/diary/Header";
 import { api } from "~/trpc/server";
 
 export default async function Page(props: {

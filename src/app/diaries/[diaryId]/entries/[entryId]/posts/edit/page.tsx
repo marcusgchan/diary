@@ -1,5 +1,5 @@
 import { api } from "~/trpc/server";
-import { FormWrapper } from "./FormWrapper";
+import { FormWrapper } from "@/_lib/shared/FormWrapper";
 
 export default async function EditMapPage(props: {
   params: Promise<{ diaryId: string; entryId: string }>;

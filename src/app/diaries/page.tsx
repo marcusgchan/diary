@@ -7,14 +7,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from "@/_lib/ui/dialog";
+import { Input } from "@/_lib/ui/input";
 import { type FormEvent, useState } from "react";
 import { api } from "~/trpc/TrpcProvider";
 import Link from "next/link";
-import { cn } from "@/app/_utils/cx";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "../_components/ui/skeleton";
+import { cn } from "@/_lib/utils/cx";
+import { Button } from "@/_lib/ui/button";
+import { Skeleton } from "@/_lib/ui/skeleton";
 
 export default function Diaries() {
   return (

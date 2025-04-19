@@ -1,4 +1,4 @@
-import { getImageSignedUrl } from "~/server/api/features/shared/s3ImagesService";
+import { getImageSignedUrl } from "~/server/features/shared/s3ImagesService";
 import { getServerAuthSession } from "~/server/auth";
 
 export async function GET(

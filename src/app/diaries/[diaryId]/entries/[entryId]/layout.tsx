@@ -1,9 +1,9 @@
-import { Entries } from "../Entries";
-import { Header } from "../Header";
-import { DatePicker } from "./DatePicker";
-import { TitleInput } from "./TitleInput";
-import { EntryTab } from "./EntryTab";
-import { EditPostsButton } from "./EditPostsButton";
+import { Entries } from "@/_lib/entry/Entries";
+import { Header } from "@/_lib/diary/Header";
+import { DatePicker } from "@/_lib/entry/DatePicker";
+import { TitleInput } from "@/_lib/entry/TitleInput";
+import { EntryTab } from "@/_lib/entry/EntryTab";
+import { EditPostsButton } from "@/_lib/post/EditPostsButton";
 
 export default function EntryLayout({
   children,
