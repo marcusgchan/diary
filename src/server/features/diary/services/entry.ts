@@ -12,7 +12,11 @@ import {
   type Users,
 } from "~/server/db/schema";
 import { type TRPCContext, type ProtectedContext } from "~/server/trpc";
-import { type CreateEntry, type UpdateEntryTitle, type EditEntryDate } from "../schema";
+import {
+  type CreateEntry,
+  type UpdateEntryTitle,
+  type EditEntryDate,
+} from "../schema";
 import { TRPCError } from "@trpc/server";
 
 export class EntryService {
@@ -225,7 +229,11 @@ export class EntryService {
       );
   }
 
-  public async getEntryIdByDate(input: { diaryId: number; entryId: number; day: string }) {
+  public async getEntryIdByDate(input: {
+    diaryId: number;
+    entryId: number;
+    day: string;
+  }) {
     const [entriesWithSameDateAsInput] = await this.db
       .selectDistinct({
         id: entries.id,

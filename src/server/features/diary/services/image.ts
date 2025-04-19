@@ -70,6 +70,8 @@ export class ImageService {
       .from(imageKeys)
       .innerJoin(entries, eq(entries.id, imageKeys.entryId))
       .innerJoin(diariesToUsers, eq(entries.diaryId, diariesToUsers.diaryId))
-      .where(and(eq(imageKeys.key, key), eq(diariesToUsers.userId, this.userId)));
+      .where(
+        and(eq(imageKeys.key, key), eq(diariesToUsers.userId, this.userId)),
+      );
   }
 }

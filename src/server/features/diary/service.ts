@@ -1,12 +1,4 @@
-import {
-  and,
-  asc,
-  eq,
-  inArray,
-  isNotNull,
-  isNull,
-  sql,
-} from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type {
   Diaries,
   Entries,
@@ -24,15 +16,10 @@ import {
 } from "~/server/db/schema";
 import type { TRPCContext } from "../../trpc";
 import { type ProtectedContext } from "../../trpc";
-import type {
-  CreatePost,
-  EditEntryDate,
-  UpdateEntryTitle,
-} from "./schema";
+import type { CreatePost, EditEntryDate, UpdateEntryTitle } from "./schema";
 import { TRPCError } from "@trpc/server";
 import { type db } from "~/server/db";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
-
 
 export async function getEntryTitleDayById({
   db,
