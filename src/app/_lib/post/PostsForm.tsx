@@ -440,42 +440,51 @@ export const PostsForm = forwardRef<PostsFormHandle, Props>(function PostsForm(
               const uploadStatus = imgUploadStatuses[field.id]!;
               return (
                 <SortableItem key={field.id} id={field.id}>
-                  <FieldSet>
-                    <button
-                      type="button"
-                      onClick={() => removePost(index, field.id)}
-                      className="absolute right-0 top-0 -translate-y-1/2 translate-x-1/2"
-                    >
-                      X
-                    </button>
-                    <div>
-                      <Label htmlFor={`${field.id}-title`}>Title</Label>
-                      <Input
-                        {...register(`posts.${index}.title`)}
-                        id={`${field.id}-title`}
-                        type="text"
-                        placeholder="Whistler at Night"
-                      />
-                    </div>
-                    <div>
-                      <ImageField
-                        imageUploadStatus={uploadStatus}
-                        fieldId={field.id}
-                        fieldIndex={index}
-                        handleImageUpload={handleImageUpload}
-                        resetImage={resetImage}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`${field.id}-description`}>
-                        Description
-                      </Label>
-                      <Textarea
-                        {...register(`posts.${index}.description`)}
-                        id={`${field.id}-description`}
-                      />
-                    </div>
-                  </FieldSet>
+                  {(props) => {
+                    return (
+                      <FieldSet
+                        {...props.attributes}
+                        {...props.listeners}
+                        style={props.style}
+                        ref={props.setNodeRef}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => removePost(index, field.id)}
+                          className="absolute right-0 top-0 -translate-y-1/2 translate-x-1/2"
+                        >
+                          X
+                        </button>
+                        <div>
+                          <Label htmlFor={`${field.id}-title`}>Title</Label>
+                          <Input
+                            {...register(`posts.${index}.title`)}
+                            id={`${field.id}-title`}
+                            type="text"
+                            placeholder="Whistler at Night"
+                          />
+                        </div>
+                        <div>
+                          <ImageField
+                            imageUploadStatus={uploadStatus}
+                            fieldId={field.id}
+                            fieldIndex={index}
+                            handleImageUpload={handleImageUpload}
+                            resetImage={resetImage}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`${field.id}-description`}>
+                            Description
+                          </Label>
+                          <Textarea
+                            {...register(`posts.${index}.description`)}
+                            id={`${field.id}-description`}
+                          />
+                        </div>
+                      </FieldSet>
+                    );
+                  }}
                 </SortableItem>
               );
             })}
@@ -609,9 +618,13 @@ function ImageField({
   );
 }
 
-function FieldSet({ children }: { children: React.ReactNode }) {
+type FieldSetProps = React.ComponentPropsWithRef<"fieldset">;
+function FieldSet({ children, ...props }: FieldSetProps) {
   return (
-    <fieldset className="relative grid gap-2 bg-gray-100 [grid-auto-rows:auto_250px_auto]">
+    <fieldset
+      {...props}
+      className="relative grid gap-2 bg-gray-100 [grid-auto-rows:auto_250px_auto]"
+    >
       {children}
     </fieldset>
   );

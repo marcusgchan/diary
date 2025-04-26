@@ -162,32 +162,34 @@ function SelectedPostView({
   savePost,
 }: SelectedPostView) {
   return (
-    <div className="grid w-96 grid-cols-1 grid-rows-[2fr_1fr_1fr] gap-2 rounded border-2 border-black p-2">
-      <div className="relative overflow-x-auto">
-        <label className="absolute bottom-2 right-2 grid place-content-center">
-          <Input
-            type="file"
-            onChange={handleFilesChange}
-            multiple
-            className="w-0 opacity-0 [grid-area:1/1]"
-          />
-          <Images className="[grid-area:1/1]" />
-        </label>
-        <ul className="flex gap-4">
-          {selectedPostForm.images.map((image) => {
-            return (
-              <li
-                key={image.id}
-                className="flex-shrink-0 border-2 border-black"
-              >
-                <img
-                  className="aspect-[4/3] w-[300px] object-cover"
-                  src={image.dataUrl}
-                />
-              </li>
-            );
-          })}
-        </ul>
+    <div className="grid w-96 grid-cols-1 grid-rows-[2fr_auto_1fr] gap-2 rounded border-2 border-black p-2">
+      <div className="relative">
+        <div className="h-[200px] overflow-x-auto">
+          <label className="absolute bottom-2 right-2 grid place-items-center">
+            <Input
+              type="file"
+              onChange={handleFilesChange}
+              multiple
+              className="w-0 opacity-0 [grid-area:1/1]"
+            />
+            <Images className="[grid-area:1/1]" />
+          </label>
+          <ul className="flex gap-4">
+            {selectedPostForm.images.map((image) => {
+              return (
+                <li
+                  key={image.id}
+                  className="flex-shrink-0 border-2 border-black"
+                >
+                  <img
+                    className="aspect-[4/3] w-[300px] object-cover"
+                    src={image.dataUrl}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
       <input
         placeholder="Title..."
@@ -196,6 +198,7 @@ function SelectedPostView({
       />
       <textarea
         placeholder="Description..."
+        className="resize-none"
         value={selectedPostForm.description}
         onChange={(e) => handleDescriptionChange(e.target.value)}
       />
