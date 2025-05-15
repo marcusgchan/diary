@@ -1,9 +1,8 @@
 "use client";
 import { Images, Plus, Trash } from "lucide-react";
 import {
-  ChangeEvent,
-  InputHTMLAttributes,
-  RefObject,
+  type ChangeEvent,
+  type RefObject,
   useEffect,
   useRef,
   useState,
@@ -22,6 +21,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { SortableItem } from "../shared/SortableItem";
+import { cn } from "../utils/cx";
 
 type Post = {
   id: string;
@@ -61,7 +61,7 @@ function useScrollDetector(
   selectedImageId: Post["images"][number]["id"] | undefined,
   onShouldScroll: (nextImageId: Post["images"][number]["id"]) => void,
 ) {
-  const scrollContainerRef = useRef<HTMLUListElement>(null);
+  const scrollContainerRef = useRef<HTMLElement>(null);
   const scrollDataRef = useRef<ScrollData>({ type: "STATIONARY" });
 
   useEffect(() => {
@@ -311,6 +311,7 @@ export function EditPosts() {
       <DndContext sensors={sensors}>
         <SelectedPostView
           selectedPostForm={selectedPostForm}
+          selectedImageId={selectedImageId}
           handleTitleChange={handleTitleChange}
           handleDescriptionChange={handleDescriptionChange}
           handleFilesChange={handleFilesChange}
@@ -328,15 +329,17 @@ export function EditPosts() {
 
 type SelectedPostView = {
   selectedPostForm: SelectedPostForm;
+  selectedImageId: Post["images"][number]["id"];
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
   savePost: (post: SelectedPostForm) => void;
   setRef: (postId: Post["id"], el: HTMLLIElement | null) => void;
-  scrollContainerRef: RefObject<HTMLUListElement | null>;
+  scrollContainerRef: RefObject<HTMLElement | null>;
 };
 function SelectedPostView({
   selectedPostForm,
+  selectedImageId,
   handleTitleChange,
   handleDescriptionChange,
   handleFilesChange,
@@ -345,9 +348,12 @@ function SelectedPostView({
   scrollContainerRef,
 }: SelectedPostView) {
   return (
-    <div className="grid w-80 grid-cols-1 grid-rows-[2fr_auto_1fr] gap-2 rounded border-2 border-black p-2">
+    <div className="flex w-80 flex-col gap-2 rounded border-2 border-black p-2">
       <div className="relative">
-        <div ref={scrollContainerRef} className="h-[200px] overflow-x-auto">
+        <div
+          ref={scrollContainerRef}
+          className="hide-scrollbar h-[200px] overflow-x-auto"
+        >
           <label className="absolute bottom-2 right-2 grid place-items-center">
             <Input
               type="file"
@@ -377,6 +383,20 @@ function SelectedPostView({
           </ul>
         </div>
       </div>
+      <ul className="flex items-center justify-center gap-1">
+        {selectedPostForm.images.map((image) => {
+          return (
+            <li key={image.id} className="">
+              <button
+                className={cn(
+                  "block aspect-square min-h-0 w-2 rounded-full bg-blue-300",
+                  image.id === selectedImageId && "aspect-[4/3] w-3",
+                )}
+              ></button>
+            </li>
+          );
+        })}
+      </ul>
       <input
         placeholder="Title..."
         value={selectedPostForm.title}
@@ -384,7 +404,7 @@ function SelectedPostView({
       />
       <textarea
         placeholder="Description..."
-        className="resize-none"
+        className="h-[100px] resize-none"
         value={selectedPostForm.description}
         onChange={(e) => handleDescriptionChange(e.target.value)}
       />
