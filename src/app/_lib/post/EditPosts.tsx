@@ -1,6 +1,13 @@
 "use client";
 import { Images, Plus, Trash } from "lucide-react";
-import { ChangeEvent, InputHTMLAttributes, useState } from "react";
+import {
+  ChangeEvent,
+  InputHTMLAttributes,
+  RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
@@ -39,11 +46,147 @@ const defaultFormValue = {
   description: "",
 };
 
+function useScrollDetector(
+  images: Post["images"],
+  selectedImageId: Post["images"][number]["id"] | undefined,
+  onShouldScroll: (nextImageId: Post["images"][number]["id"]) => void,
+) {
+  const scrollContainerRef = useRef<HTMLUListElement>(null);
+  const pressedRef = useRef<number>(null);
+  const currentScrolledDistanceRef = useRef<number>(0);
+  useEffect(() => {
+    function determineNextImageId(delta: number): Post["images"][number]["id"] {
+      if (delta > 40) {
+        const currentPostIndex = images.findIndex(
+          (image) => image.id === selectedImageId,
+        );
+        if (!(currentPostIndex < images.length - 1)) {
+          return selectedImageId!;
+        }
+
+        return images[currentPostIndex + 1]!.id;
+      }
+      if (delta < -40) {
+        const currentPostIndex = images.findIndex(
+          (post) => post.id === selectedImageId,
+        );
+        if (currentPostIndex === 0) {
+          return selectedImageId!;
+        }
+        return images[currentPostIndex - 1]!.id;
+      }
+
+      return selectedImageId!;
+    }
+
+    function pointerDown() {
+      if (scrollContainerRef.current === null) {
+        return;
+      }
+
+      if (pressedRef.current !== null) {
+        const delta =
+          scrollContainerRef.current.scrollLeft - pressedRef.current;
+        if (Math.abs(delta) > 40) {
+          const nextImageId = determineNextImageId(delta);
+          onShouldScroll(nextImageId);
+          pressedRef.current = null;
+          currentScrolledDistanceRef.current = 0;
+        } else {
+          currentScrolledDistanceRef.current += delta;
+        }
+
+        return;
+      }
+
+      pressedRef.current = scrollContainerRef.current.scrollLeft;
+    }
+    function pointerUp() {
+      if (pressedRef.current === null || selectedImageId === undefined) {
+        return;
+      }
+
+      onShouldScroll(selectedImageId);
+      currentScrolledDistanceRef.current = 0;
+    }
+
+    if (!scrollContainerRef.current) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const element = scrollContainerRef.current;
+    element.addEventListener("scroll", pointerDown, {
+      signal: controller.signal,
+    });
+    element.addEventListener("scrollend", pointerUp, {
+      signal: controller.signal,
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [scrollContainerRef, images, selectedImageId, onShouldScroll]);
+
+  return scrollContainerRef;
+}
+
+function usePostViewController() {
+  const imagesRef =
+    useRef<Map<Post["images"][number]["id"], HTMLLIElement>>(null);
+
+  function setRef(postId: Post["id"], el: HTMLLIElement | null) {
+    const map = getMap();
+    map.set(postId, el!);
+
+    return () => {
+      map.delete(postId);
+    };
+  }
+
+  function scrollToPost(id: Post["id"]) {
+    const map = getMap();
+    const el = map.get(id);
+    if (!el) {
+      return;
+    }
+
+    el.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }
+
+  function getMap() {
+    if (imagesRef.current === null) {
+      imagesRef.current = new Map<Post["id"], HTMLLIElement>();
+      return imagesRef.current;
+    }
+
+    return imagesRef.current;
+  }
+
+  return { setRef, scrollToPost };
+}
+
 export function EditPosts() {
   const [posts, setPosts] = useState<Post[]>([]);
 
   const [selectedPostForm, setSelectedPostForm] =
     useState<SelectedPostForm>(defaultFormValue);
+  const [selectedImageId, setSelectedImageId] =
+    useState<Post["images"][number]["id"]>();
+
+  const { scrollToPost, setRef } = usePostViewController();
+  const scrollContainerRef = useScrollDetector(
+    selectedPostForm.images,
+    selectedImageId,
+    (nextImageId) => {
+      scrollToPost(nextImageId);
+      setSelectedImageId(nextImageId);
+    },
+  );
 
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -85,6 +228,9 @@ export function EditPosts() {
       ...prev,
       images: [...prev.images, ...success],
     }));
+    if (success.length > 0) {
+      setSelectedImageId(success[0]!.id);
+    }
   }
   function handleTitleChange(value: string) {
     setSelectedPostForm({
@@ -138,6 +284,8 @@ export function EditPosts() {
           handleDescriptionChange={handleDescriptionChange}
           handleFilesChange={handleFilesChange}
           savePost={savePost}
+          setRef={setRef}
+          scrollContainerRef={scrollContainerRef}
         />
         <SortableContext items={posts.map((post) => ({ id: post.id }))}>
           <PostsAside posts={posts} />
@@ -153,6 +301,8 @@ type SelectedPostView = {
   handleDescriptionChange: (value: string) => void;
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
   savePost: (post: SelectedPostForm) => void;
+  setRef: (postId: Post["id"], el: HTMLLIElement | null) => void;
+  scrollContainerRef: RefObject<HTMLUListElement | null>;
 };
 function SelectedPostView({
   selectedPostForm,
@@ -160,11 +310,13 @@ function SelectedPostView({
   handleDescriptionChange,
   handleFilesChange,
   savePost,
+  setRef,
+  scrollContainerRef,
 }: SelectedPostView) {
   return (
-    <div className="grid w-96 grid-cols-1 grid-rows-[2fr_auto_1fr] gap-2 rounded border-2 border-black p-2">
+    <div className="grid w-80 grid-cols-1 grid-rows-[2fr_auto_1fr] gap-2 rounded border-2 border-black p-2">
       <div className="relative">
-        <div className="h-[200px] overflow-x-auto">
+        <div ref={scrollContainerRef} className="h-[200px] overflow-x-auto">
           <label className="absolute bottom-2 right-2 grid place-items-center">
             <Input
               type="file"
@@ -174,15 +326,18 @@ function SelectedPostView({
             />
             <Images className="[grid-area:1/1]" />
           </label>
-          <ul className="flex gap-4">
+          <ul className="flex h-full bg-blue-300">
             {selectedPostForm.images.map((image) => {
               return (
                 <li
+                  ref={(ref) => {
+                    setRef(image.id, ref);
+                  }}
                   key={image.id}
-                  className="flex-shrink-0 border-2 border-black"
+                  className="w-full flex-shrink-0 flex-grow border-2 border-black"
                 >
                   <img
-                    className="aspect-[4/3] w-[300px] object-cover"
+                    className="h-full w-full object-cover"
                     src={image.dataUrl}
                   />
                 </li>
