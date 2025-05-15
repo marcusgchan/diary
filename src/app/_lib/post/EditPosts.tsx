@@ -46,15 +46,23 @@ const defaultFormValue = {
   description: "",
 };
 
+type ScrollData =
+  | { type: "STATIONARY" }
+  | {
+      type: "MOVING";
+      by: "USER";
+      startingScrollLeftPosition: number;
+      currentScrolledDistance: number;
+    }
+  | { type: "MOVING"; by: "COMPUTER" };
+
 function useScrollDetector(
   images: Post["images"],
   selectedImageId: Post["images"][number]["id"] | undefined,
   onShouldScroll: (nextImageId: Post["images"][number]["id"]) => void,
 ) {
   const scrollContainerRef = useRef<HTMLUListElement>(null);
-  const startingScrollLeftRef = useRef<number>(null);
-  const currentScrolledDistanceRef = useRef<number>(0);
-  const scrolledByRef = useRef<"USER" | "COMPUTER">(null);
+  const scrollDataRef = useRef<ScrollData>({ type: "STATIONARY" });
 
   useEffect(() => {
     function determineNextImageId(delta: number): Post["images"][number]["id"] {
@@ -82,54 +90,55 @@ function useScrollDetector(
     }
 
     function onScroll() {
-      console.log("scroll start", scrolledByRef.current);
       if (scrollContainerRef.current === null) {
         throw new Error(
           "Initialize scrollContainerRef to capture scroll events",
         );
       }
 
-      if (scrolledByRef.current && scrolledByRef.current === "COMPUTER") {
+      if (
+        scrollDataRef.current.type === "MOVING" &&
+        scrollDataRef.current.by === "COMPUTER"
+      ) {
         return;
       }
 
-      if (startingScrollLeftRef.current !== null) {
+      if (scrollDataRef.current.type === "MOVING") {
+        const { startingScrollLeftPosition } = scrollDataRef.current;
         const delta =
-          scrollContainerRef.current.scrollLeft - startingScrollLeftRef.current;
+          scrollContainerRef.current.scrollLeft - startingScrollLeftPosition;
         if (Math.abs(delta) > 40) {
           const nextImageId = determineNextImageId(delta);
           onShouldScroll(nextImageId);
-          startingScrollLeftRef.current = null;
-          currentScrolledDistanceRef.current = 0;
-          scrolledByRef.current = "COMPUTER";
+          scrollDataRef.current = { type: "MOVING", by: "COMPUTER" };
         } else {
-          currentScrolledDistanceRef.current += delta;
-          scrolledByRef.current = "USER";
+          scrollDataRef.current.currentScrolledDistance += delta;
         }
 
         return;
       }
 
-      startingScrollLeftRef.current = scrollContainerRef.current.scrollLeft;
+      const scrollLeft = scrollContainerRef.current.scrollLeft;
+      scrollDataRef.current = {
+        type: "MOVING",
+        by: "USER",
+        currentScrolledDistance: scrollLeft,
+        startingScrollLeftPosition: scrollLeft,
+      };
     }
+
     function onScrollEnd() {
       if (selectedImageId === undefined) {
         throw new Error("Should not scroll while not image selected");
       }
 
-      if (startingScrollLeftRef.current === null) {
-        throw new Error(
-          "StartingScrollLeftRef should not be null for scroll end event",
-        );
+      if (
+        scrollDataRef.current.type === "MOVING" &&
+        scrollDataRef.current.by === "USER"
+      ) {
+        onShouldScroll(selectedImageId);
       }
-
-      console.log("scroll end", scrolledByRef.current);
-      if (scrolledByRef.current === "COMPUTER") {
-        scrolledByRef.current = null;
-      }
-
-      onShouldScroll(selectedImageId);
-      currentScrolledDistanceRef.current = 0;
+      scrollDataRef.current = { type: "STATIONARY" };
     }
 
     if (!scrollContainerRef.current) {
