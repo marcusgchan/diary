@@ -52,8 +52,10 @@ function useScrollDetector(
   onShouldScroll: (nextImageId: Post["images"][number]["id"]) => void,
 ) {
   const scrollContainerRef = useRef<HTMLUListElement>(null);
-  const pressedRef = useRef<number>(null);
+  const startingScrollLeftRef = useRef<number>(null);
   const currentScrolledDistanceRef = useRef<number>(0);
+  const scrolledByRef = useRef<"USER" | "COMPUTER">(null);
+
   useEffect(() => {
     function determineNextImageId(delta: number): Post["images"][number]["id"] {
       if (delta > 40) {
@@ -79,31 +81,51 @@ function useScrollDetector(
       return selectedImageId!;
     }
 
-    function pointerDown() {
+    function onScroll() {
+      console.log("scroll start", scrolledByRef.current);
       if (scrollContainerRef.current === null) {
+        throw new Error(
+          "Initialize scrollContainerRef to capture scroll events",
+        );
+      }
+
+      if (scrolledByRef.current && scrolledByRef.current === "COMPUTER") {
         return;
       }
 
-      if (pressedRef.current !== null) {
+      if (startingScrollLeftRef.current !== null) {
         const delta =
-          scrollContainerRef.current.scrollLeft - pressedRef.current;
+          scrollContainerRef.current.scrollLeft - startingScrollLeftRef.current;
         if (Math.abs(delta) > 40) {
           const nextImageId = determineNextImageId(delta);
           onShouldScroll(nextImageId);
-          pressedRef.current = null;
+          startingScrollLeftRef.current = null;
           currentScrolledDistanceRef.current = 0;
+          scrolledByRef.current = "COMPUTER";
         } else {
           currentScrolledDistanceRef.current += delta;
+          scrolledByRef.current = "USER";
         }
 
         return;
       }
 
-      pressedRef.current = scrollContainerRef.current.scrollLeft;
+      startingScrollLeftRef.current = scrollContainerRef.current.scrollLeft;
     }
-    function pointerUp() {
-      if (pressedRef.current === null || selectedImageId === undefined) {
-        return;
+    function onScrollEnd() {
+      if (selectedImageId === undefined) {
+        throw new Error("Should not scroll while not image selected");
+      }
+
+      if (startingScrollLeftRef.current === null) {
+        throw new Error(
+          "StartingScrollLeftRef should not be null for scroll end event",
+        );
+      }
+
+      console.log("scroll end", scrolledByRef.current);
+      if (scrolledByRef.current === "COMPUTER") {
+        scrolledByRef.current = null;
       }
 
       onShouldScroll(selectedImageId);
@@ -116,10 +138,10 @@ function useScrollDetector(
 
     const controller = new AbortController();
     const element = scrollContainerRef.current;
-    element.addEventListener("scroll", pointerDown, {
+    element.addEventListener("scroll", onScroll, {
       signal: controller.signal,
     });
-    element.addEventListener("scrollend", pointerUp, {
+    element.addEventListener("scrollend", onScrollEnd, {
       signal: controller.signal,
     });
 
