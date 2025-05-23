@@ -61,7 +61,7 @@ function useScrollDetector(
   selectedImageId: Post["images"][number]["id"] | undefined,
   onShouldScroll: (nextImageId: Post["images"][number]["id"]) => void,
 ) {
-  const scrollContainerRef = useRef<HTMLElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollDataRef = useRef<ScrollData>({ type: "STATIONARY" });
 
   useEffect(() => {
@@ -327,16 +327,17 @@ export function EditPosts() {
   );
 }
 
-type SelectedPostView = {
+type SelectedPostViewProps = {
   selectedPostForm: SelectedPostForm;
-  selectedImageId: Post["images"][number]["id"];
+  selectedImageId: Post["images"][number]["id"] | undefined;
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
   savePost: (post: SelectedPostForm) => void;
   setRef: (postId: Post["id"], el: HTMLLIElement | null) => void;
-  scrollContainerRef: RefObject<HTMLElement | null>;
+  scrollContainerRef: RefObject<HTMLDivElement | null>;
 };
+
 function SelectedPostView({
   selectedPostForm,
   selectedImageId,
@@ -346,7 +347,7 @@ function SelectedPostView({
   savePost,
   setRef,
   scrollContainerRef,
-}: SelectedPostView) {
+}: SelectedPostViewProps) {
   return (
     <div className="flex w-80 flex-col gap-2 rounded border-2 border-black p-2">
       <div className="relative">
