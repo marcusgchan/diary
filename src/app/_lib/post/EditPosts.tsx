@@ -74,7 +74,6 @@ function usePostViewController() {
       inline: "center",
     });
 
-    // Re-enable intersection observer after animation
     setTimeout(() => {
       setIsScrollingProgrammatically(false);
     }, 500);
@@ -110,7 +109,6 @@ function useIntersectionObserver(
           (entry) => entry.intersectionRatio > 0.8,
         );
         if (centerEntry && imagesRef) {
-          // Find the image ID by checking which element from our refs matches the entry target
           for (const [id, el] of imagesRef.entries()) {
             if (el === centerEntry.target) {
               onIntersect(id);
@@ -125,7 +123,6 @@ function useIntersectionObserver(
       },
     );
 
-    // Observe all elements in our refs map
     imagesRef.forEach((el) => observer.observe(el));
 
     observerRef.current = observer;
