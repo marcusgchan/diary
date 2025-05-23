@@ -84,6 +84,15 @@
   }
 }
 
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  overflow: -moz-scrollbars-none;
+  scroll-behavior: smooth;
+}
+
 .ImageNode__contentEditable {
   min-height: 20px;
   border: 0px;
