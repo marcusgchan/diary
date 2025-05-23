@@ -1,6 +1,12 @@
 "use client";
 import { Images, Plus, Trash } from "lucide-react";
-import { type ChangeEvent, type RefObject, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type RefObject,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
@@ -41,8 +47,8 @@ const defaultFormValue = {
 };
 
 function usePostViewController() {
-  const imagesRef =
-    useRef<Map<Post["images"][number]["id"], HTMLLIElement>>(null);
+  const imagesRef = useRef<Map<Post["images"][number]["id"], HTMLLIElement>>(null);
+  const [isScrollingProgrammatically, setIsScrollingProgrammatically] = useState(false);
 
   function setRef(postId: Post["id"], el: HTMLLIElement | null) {
     const map = getMap();
@@ -56,15 +62,20 @@ function usePostViewController() {
   function scrollToPost(id: Post["id"]) {
     const map = getMap();
     const el = map.get(id);
-    if (!el) {
-      return;
-    }
+    if (!el) return;
 
+    setIsScrollingProgrammatically(true);
+    
     el.scrollIntoView({
       behavior: "smooth",
       block: "nearest",
       inline: "center",
     });
+
+    // Re-enable intersection observer after animation
+    setTimeout(() => {
+      setIsScrollingProgrammatically(false);
+    }, 500);
   }
 
   function getMap() {
@@ -76,7 +87,48 @@ function usePostViewController() {
     return imagesRef.current;
   }
 
-  return { setRef, scrollToPost };
+  return { setRef, scrollToPost, isScrollingProgrammatically, getMap };
+}
+
+function useIntersectionObserver(
+  onIntersect: (imageId: string) => void,
+  disabled: boolean,
+  imagesRef: Map<string, HTMLLIElement>
+) {
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (disabled) return;
+        
+        const centerEntry = entries.find(
+          (entry) => entry.intersectionRatio > 0.8,
+        );
+        if (centerEntry && imagesRef) {
+          // Find the image ID by checking which element from our refs matches the entry target
+          for (const [id, el] of imagesRef.entries()) {
+            if (el === centerEntry.target) {
+              onIntersect(id);
+              break;
+            }
+          }
+        }
+      },
+      {
+        root: null,
+        threshold: 0.8,
+      },
+    );
+
+    // Observe all elements in our refs map
+    imagesRef.forEach((el) => observer.observe(el));
+
+    observerRef.current = observer;
+    return () => observer.disconnect();
+  }, [onIntersect, disabled, imagesRef]);
 }
 
 export function EditPosts() {
@@ -86,8 +138,19 @@ export function EditPosts() {
   const [selectedImageId, setSelectedImageId] =
     useState<Post["images"][number]["id"]>();
 
-  const { setRef } = usePostViewController();
+  const { setRef, scrollToPost, isScrollingProgrammatically, getMap } = usePostViewController();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  const handleImageSelect = (imageId: string) => {
+    setSelectedImageId(imageId);
+    scrollToPost(imageId);
+  };
+
+  useIntersectionObserver(
+    (imageId) => setSelectedImageId(imageId),
+    isScrollingProgrammatically,
+    getMap()
+  );
 
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -182,6 +245,7 @@ export function EditPosts() {
         <SelectedPostView
           selectedPostForm={selectedPostForm}
           selectedImageId={selectedImageId}
+          setSelectedImageId={handleImageSelect}
           handleTitleChange={handleTitleChange}
           handleDescriptionChange={handleDescriptionChange}
           handleFilesChange={handleFilesChange}
@@ -200,6 +264,7 @@ export function EditPosts() {
 type SelectedPostViewProps = {
   selectedPostForm: SelectedPostForm;
   selectedImageId: Post["images"][number]["id"] | undefined;
+  setSelectedImageId: (imageId: string) => void;
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -211,6 +276,7 @@ type SelectedPostViewProps = {
 function SelectedPostView({
   selectedPostForm,
   selectedImageId,
+  setSelectedImageId,
   handleTitleChange,
   handleDescriptionChange,
   handleFilesChange,
@@ -242,6 +308,7 @@ function SelectedPostView({
                     setRef(image.id, ref);
                   }}
                   key={image.id}
+                  data-image-id={image.id}
                   className="w-full flex-shrink-0 flex-grow snap-center border-2 border-black"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -261,6 +328,8 @@ function SelectedPostView({
           return (
             <li key={image.id} className="">
               <button
+                type="button"
+                onClick={() => setSelectedImageId(image.id)}
                 className={cn(
                   "block aspect-square min-h-0 w-2 rounded-full bg-blue-300",
                   image.id === selectedImageId && "aspect-[4/3] w-3",
