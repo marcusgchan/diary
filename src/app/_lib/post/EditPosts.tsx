@@ -47,8 +47,10 @@ const defaultFormValue = {
 };
 
 function usePostViewController() {
-  const imagesRef = useRef<Map<Post["images"][number]["id"], HTMLLIElement>>(null);
-  const [isScrollingProgrammatically, setIsScrollingProgrammatically] = useState(false);
+  const imagesRef =
+    useRef<Map<Post["images"][number]["id"], HTMLLIElement>>(null);
+  const [isScrollingProgrammatically, setIsScrollingProgrammatically] =
+    useState(false);
 
   function setRef(postId: Post["id"], el: HTMLLIElement | null) {
     const map = getMap();
@@ -65,7 +67,7 @@ function usePostViewController() {
     if (!el) return;
 
     setIsScrollingProgrammatically(true);
-    
+
     el.scrollIntoView({
       behavior: "smooth",
       block: "nearest",
@@ -93,7 +95,7 @@ function usePostViewController() {
 function useIntersectionObserver(
   onIntersect: (imageId: string) => void,
   disabled: boolean,
-  imagesRef: Map<string, HTMLLIElement>
+  imagesRef: Map<string, HTMLLIElement>,
 ) {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -103,7 +105,7 @@ function useIntersectionObserver(
     const observer = new IntersectionObserver(
       (entries) => {
         if (disabled) return;
-        
+
         const centerEntry = entries.find(
           (entry) => entry.intersectionRatio > 0.8,
         );
@@ -138,9 +140,10 @@ export function EditPosts() {
   const [selectedImageId, setSelectedImageId] =
     useState<Post["images"][number]["id"]>();
 
-  const { setRef, scrollToPost, isScrollingProgrammatically, getMap } = usePostViewController();
+  const { setRef, scrollToPost, isScrollingProgrammatically, getMap } =
+    usePostViewController();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const handleImageSelect = (imageId: string) => {
     setSelectedImageId(imageId);
     scrollToPost(imageId);
@@ -149,7 +152,7 @@ export function EditPosts() {
   useIntersectionObserver(
     (imageId) => setSelectedImageId(imageId),
     isScrollingProgrammatically,
-    getMap()
+    getMap(),
   );
 
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
