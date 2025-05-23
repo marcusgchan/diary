@@ -1,12 +1,6 @@
 "use client";
 import { Images, Plus, Trash } from "lucide-react";
-import {
-  type ChangeEvent,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ChangeEvent, type RefObject, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
@@ -45,122 +39,6 @@ const defaultFormValue = {
   title: "",
   description: "",
 };
-
-type ScrollData =
-  | { type: "STATIONARY" }
-  | {
-      type: "MOVING";
-      by: "USER";
-      startingScrollLeftPosition: number;
-      currentScrolledDistance: number;
-    }
-  | { type: "MOVING"; by: "COMPUTER" };
-
-function useScrollDetector(
-  images: Post["images"],
-  selectedImageId: Post["images"][number]["id"] | undefined,
-  onShouldScroll: (nextImageId: Post["images"][number]["id"]) => void,
-) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const scrollDataRef = useRef<ScrollData>({ type: "STATIONARY" });
-
-  useEffect(() => {
-    function determineNextImageId(delta: number): Post["images"][number]["id"] {
-      if (delta > 40) {
-        const currentPostIndex = images.findIndex(
-          (image) => image.id === selectedImageId,
-        );
-        if (!(currentPostIndex < images.length - 1)) {
-          return selectedImageId!;
-        }
-
-        return images[currentPostIndex + 1]!.id;
-      }
-      if (delta < -40) {
-        const currentPostIndex = images.findIndex(
-          (post) => post.id === selectedImageId,
-        );
-        if (currentPostIndex === 0) {
-          return selectedImageId!;
-        }
-        return images[currentPostIndex - 1]!.id;
-      }
-
-      return selectedImageId!;
-    }
-
-    function onScroll() {
-      if (scrollContainerRef.current === null) {
-        throw new Error(
-          "Initialize scrollContainerRef to capture scroll events",
-        );
-      }
-
-      if (
-        scrollDataRef.current.type === "MOVING" &&
-        scrollDataRef.current.by === "COMPUTER"
-      ) {
-        return;
-      }
-
-      if (scrollDataRef.current.type === "MOVING") {
-        const { startingScrollLeftPosition } = scrollDataRef.current;
-        const delta =
-          scrollContainerRef.current.scrollLeft - startingScrollLeftPosition;
-        if (Math.abs(delta) > 40) {
-          const nextImageId = determineNextImageId(delta);
-          onShouldScroll(nextImageId);
-          scrollDataRef.current = { type: "MOVING", by: "COMPUTER" };
-        } else {
-          scrollDataRef.current.currentScrolledDistance += delta;
-        }
-
-        return;
-      }
-
-      const scrollLeft = scrollContainerRef.current.scrollLeft;
-      scrollDataRef.current = {
-        type: "MOVING",
-        by: "USER",
-        currentScrolledDistance: scrollLeft,
-        startingScrollLeftPosition: scrollLeft,
-      };
-    }
-
-    function onScrollEnd() {
-      if (selectedImageId === undefined) {
-        throw new Error("Should not scroll while not image selected");
-      }
-
-      if (
-        scrollDataRef.current.type === "MOVING" &&
-        scrollDataRef.current.by === "USER"
-      ) {
-        onShouldScroll(selectedImageId);
-      }
-      scrollDataRef.current = { type: "STATIONARY" };
-    }
-
-    if (!scrollContainerRef.current) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const element = scrollContainerRef.current;
-    element.addEventListener("scroll", onScroll, {
-      signal: controller.signal,
-    });
-    element.addEventListener("scrollend", onScrollEnd, {
-      signal: controller.signal,
-    });
-
-    return () => {
-      controller.abort();
-    };
-  }, [scrollContainerRef, images, selectedImageId, onShouldScroll]);
-
-  return scrollContainerRef;
-}
 
 function usePostViewController() {
   const imagesRef =
@@ -203,21 +81,13 @@ function usePostViewController() {
 
 export function EditPosts() {
   const [posts, setPosts] = useState<Post[]>([]);
-
   const [selectedPostForm, setSelectedPostForm] =
     useState<SelectedPostForm>(defaultFormValue);
   const [selectedImageId, setSelectedImageId] =
     useState<Post["images"][number]["id"]>();
 
-  const { scrollToPost, setRef } = usePostViewController();
-  const scrollContainerRef = useScrollDetector(
-    selectedPostForm.images,
-    selectedImageId,
-    (nextImageId) => {
-      scrollToPost(nextImageId);
-      setSelectedImageId(nextImageId);
-    },
-  );
+  const { setRef } = usePostViewController();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -353,7 +223,7 @@ function SelectedPostView({
       <div className="relative">
         <div
           ref={scrollContainerRef}
-          className="hide-scrollbar h-[200px] overflow-x-auto"
+          className="hide-scrollbar h-[200px] snap-x snap-mandatory overflow-x-auto scroll-smooth"
         >
           <label className="absolute bottom-2 right-2 grid place-items-center">
             <Input
@@ -372,11 +242,13 @@ function SelectedPostView({
                     setRef(image.id, ref);
                   }}
                   key={image.id}
-                  className="w-full flex-shrink-0 flex-grow border-2 border-black"
+                  className="w-full flex-shrink-0 flex-grow snap-center border-2 border-black"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     className="h-full w-full object-cover"
                     src={image.dataUrl}
+                    alt={image.name}
                   />
                 </li>
               );
@@ -456,9 +328,11 @@ function PostsAside({ posts }: PostsAsideProps) {
                           key={image.id}
                           className="aspect-square min-h-0 w-12 flex-shrink-0 flex-grow-0 rounded border-2 border-black"
                         >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={image.dataUrl}
                             className="inline-block h-full w-full object-cover"
+                            alt={image.name}
                           />
                         </li>
                       ))}
