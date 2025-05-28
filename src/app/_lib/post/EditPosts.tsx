@@ -17,10 +17,14 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  closestCenter,
+  DragOverlay,
 } from "@dnd-kit/core";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableItem } from "../shared/SortableItem";
 import { cn } from "../utils/cx";
@@ -103,8 +107,10 @@ function useIntersectionObserver<T extends Element, U extends Element>(
 
 export function EditPosts() {
   const [state, dispatch] = useReducer(postsReducer, initialState);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const selectedPost = state.posts.find((p) => p.id === state.selectedPostId)!;
+  const activePost = activeId ? state.posts.find((p) => p.id === activeId) : null;
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { scrollToPost, isScrollingProgrammatically } = useScrollToPost(scrollContainerRef);
@@ -183,14 +189,31 @@ export function EditPosts() {
     dispatch({ type: "SAVE_POST" });
   }
 
-  function handleCancelEdit() {
-    dispatch({ type: "CANCEL_EDITING" });
+  function handleDeletePost() {
+    dispatch({ type: "DELETE_POST" });
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      dispatch({
+        type: "REORDER_POSTS",
+        payload: { activeId: active.id as string, overId: over.id as string },
+      });
+    }
+    
+    setActiveId(null);
   }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 2000,
+        delay: 300,
         tolerance: 5,
       },
     }),
@@ -201,7 +224,12 @@ export function EditPosts() {
 
   return (
     <div className="flex gap-4">
-      <DndContext sensors={sensors}>
+      <DndContext 
+        sensors={sensors} 
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+        onDragStart={handleDragStart}
+      >
         <SelectedPostView
           isScrollingProgrammatically={isScrollingProgrammatically}
           onImageIntersect={onImageIntersect}
@@ -212,16 +240,22 @@ export function EditPosts() {
           handleDescriptionChange={handleDescriptionChange}
           handleFilesChange={handleFilesChange}
           onSave={handleSavePost}
-          onCancel={handleCancelEdit}
+          onDelete={handleDeletePost}
           scrollContainerRef={scrollContainerRef}
         />
-        <SortableContext items={state.posts.map((post) => ({ id: post.id }))}>
+        <SortableContext 
+          items={state.posts.map((post) => ({ id: post.id }))}
+          strategy={verticalListSortingStrategy}
+        >
           <PostsAside
             posts={state.posts.filter((p) => p.images.length > 0)}
             onNewPost={handleStartNewPost}
             onEditPost={handleEditPost}
           />
         </SortableContext>
+        <DragOverlay>
+          {activePost ? <DragOverlayItem post={activePost} /> : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );
@@ -237,7 +271,7 @@ type SelectedPostViewProps = {
   handleDescriptionChange: (value: string) => void;
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
   onSave: () => void;
-  onCancel: () => void;
+  onDelete: () => void;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
 };
 
@@ -253,7 +287,7 @@ function SelectedPostView({
   handleDescriptionChange,
   handleFilesChange,
   onSave,
-  onCancel,
+  onDelete,
   scrollContainerRef,
 }: SelectedPostViewProps) {
   return (
@@ -322,7 +356,7 @@ function SelectedPostView({
         onChange={(e) => handleDescriptionChange(e.target.value)}
       />
       <div className="flex items-center">
-        <Button variant="destructive" type="button">
+        <Button onClick={onDelete} variant="destructive" type="button">
           <Trash />
         </Button>
         {/* <Button
@@ -400,7 +434,10 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
                     {...props.listeners}
                     {...props.attributes}
                     onClick={() => onEditPost(post)}
-                    style={props.style}
+                    style={{
+                      ...props.style,
+                      opacity: props.isDragging ? 0 : 1,
+                    }}
                     ref={props.setNodeRef}
                     className="rounded border-2 border-black p-2"
                   >
@@ -425,6 +462,28 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
             </SortableItem>
           );
         })}
+      </ul>
+    </div>
+  );
+}
+
+function DragOverlayItem({ post }: { post: Post }) {
+  return (
+    <div className="rounded border-2 border-black p-2 bg-white shadow-lg opacity-90 rotate-3 transform">
+      <ul className="flex flex-col gap-2">
+        {post.images.map((image) => (
+          <li
+            key={image.id}
+            className="aspect-square min-h-0 w-12 flex-shrink-0 flex-grow-0 rounded border-2 border-black"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={image.dataUrl}
+              className="inline-block h-full w-full object-cover"
+              alt={image.name}
+            />
+          </li>
+        ))}
       </ul>
     </div>
   );

@@ -14,14 +14,16 @@ export function SortableItem({
     listeners,
     style,
     setNodeRef,
+    isDragging,
   }: {
     attributes: DraggableAttributes;
     listeners: SyntheticListenerMap | undefined;
     style: { transform: string | undefined; transition: string | undefined };
     setNodeRef: (node: HTMLElement | null) => void;
+    isDragging: boolean;
   }) => React.JSX.Element;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: id });
 
   const style = {
@@ -29,5 +31,5 @@ export function SortableItem({
     transition,
   };
 
-  return children({ attributes, listeners, style, setNodeRef });
+  return children({ attributes, listeners, style, setNodeRef, isDragging });
 }
