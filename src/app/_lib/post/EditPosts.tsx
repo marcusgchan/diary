@@ -6,6 +6,8 @@ import {
   useRef,
   useState,
   useEffect,
+  useReducer,
+  useCallback,
 } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -22,148 +24,112 @@ import {
 } from "@dnd-kit/sortable";
 import { SortableItem } from "../shared/SortableItem";
 import { cn } from "../utils/cx";
+import { postsReducer, initialState, type Post } from "./postsReducer";
 
-type Post = {
-  id: string;
-  title: string;
-  description: string;
-  images: {
-    id: string;
-    dataUrl: string;
-    name: string;
-    type: string;
-    size: number;
-  }[];
-};
-
-type SelectedPostForm = Pick<Post, "title" | "description" | "images"> & {
-  id?: string;
-};
-
-const defaultFormValue = {
-  images: [],
-  title: "",
-  description: "",
-};
-
-function usePostViewController() {
-  const imagesRef =
-    useRef<Map<Post["images"][number]["id"], HTMLLIElement>>(null);
+function useScrollToPost(containerRef: RefObject<HTMLElement | null>) {
   const [isScrollingProgrammatically, setIsScrollingProgrammatically] =
     useState(false);
 
-  function setRef(postId: Post["id"], el: HTMLLIElement | null) {
-    const map = getMap();
-    map.set(postId, el!);
-
-    return () => {
-      map.delete(postId);
-    };
-  }
-
   function scrollToPost(id: Post["id"]) {
-    const map = getMap();
-    const el = map.get(id);
+    const el = document.querySelector(`[data-image-id="${id}"]`);
     if (!el) return;
 
     setIsScrollingProgrammatically(true);
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScrollEnd = () => {
+      setIsScrollingProgrammatically(false);
+      container.removeEventListener("scrollend", handleScrollEnd);
+    };
+    container.addEventListener("scrollend", handleScrollEnd);
 
     el.scrollIntoView({
       behavior: "smooth",
       block: "nearest",
       inline: "center",
     });
-
-    setTimeout(() => {
-      setIsScrollingProgrammatically(false);
-    }, 500);
   }
 
-  function getMap() {
-    if (imagesRef.current === null) {
-      imagesRef.current = new Map<Post["id"], HTMLLIElement>();
-      return imagesRef.current;
-    }
-
-    return imagesRef.current;
-  }
-
-  return { setRef, scrollToPost, isScrollingProgrammatically, getMap };
+  return { scrollToPost, isScrollingProgrammatically };
 }
 
-function useIntersectionObserver(
-  onIntersect: (imageId: string) => void,
+type IntersectionObserverReturn<T extends Element> = {
+  ref: RefObject<T | null>;
+};
+
+function useIntersectionObserver<T extends Element, U extends Element>(
+  onIntersect: (element: Element) => void,
   disabled: boolean,
-  imagesRef: Map<string, HTMLLIElement>,
-) {
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  rootRef?: RefObject<U | null>,
+): IntersectionObserverReturn<T> {
+  const ref = useRef<T>(null);
+  const observerRef = useRef<IntersectionObserver>(null);
 
   useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
+    if (disabled) return;
+    if (ref.current === null) {
+      throw new Error("ref not set");
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (disabled) return;
-
         const centerEntry = entries.find(
           (entry) => entry.intersectionRatio > 0.8,
         );
-        if (centerEntry && imagesRef) {
-          for (const [id, el] of imagesRef.entries()) {
-            if (el === centerEntry.target) {
-              onIntersect(id);
-              break;
-            }
+
+        if (centerEntry) {
+          const element = centerEntry.target;
+          if (element) {
+            onIntersect(element);
           }
         }
       },
       {
-        root: null,
+        root: rootRef?.current,
         threshold: 0.8,
       },
     );
 
-    imagesRef.forEach((el) => observer.observe(el));
-
     observerRef.current = observer;
-    return () => observer.disconnect();
-  }, [onIntersect, disabled, imagesRef]);
+    observerRef.current.observe(ref.current);
+
+    return () => observerRef.current!.disconnect();
+  }, [ref, onIntersect, disabled, rootRef]);
+
+  return { ref: ref };
 }
 
 export function EditPosts() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [selectedPostForm, setSelectedPostForm] =
-    useState<SelectedPostForm>(defaultFormValue);
-  const [selectedImageId, setSelectedImageId] =
-    useState<Post["images"][number]["id"]>();
+  const [state, dispatch] = useReducer(postsReducer, initialState);
 
-  const { setRef, scrollToPost, isScrollingProgrammatically, getMap } =
-    usePostViewController();
+  const selectedPost = state.posts.find((p) => p.id === state.selectedPostId)!;
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { scrollToPost, isScrollingProgrammatically } = useScrollToPost(scrollContainerRef);
 
   const handleImageSelect = (imageId: string) => {
-    setSelectedImageId(imageId);
+    dispatch({ type: "SELECT_IMAGE", payload: imageId });
     scrollToPost(imageId);
   };
 
-  useIntersectionObserver(
-    (imageId) => setSelectedImageId(imageId),
-    isScrollingProgrammatically,
-    getMap(),
+  const onImageIntersect = useCallback(
+    (element: Element) => {
+      const imageId = element.getAttribute("data-image-id");
+      if (!imageId) {
+        throw new Error("Image is missing data-image-id attribute");
+      }
+      dispatch({ type: "SELECT_IMAGE", payload: imageId });
+    },
+    [dispatch],
   );
 
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
-    if (!files) {
-      return;
-    }
+    if (!files || files.length === 0) return;
 
-    if (files.length === 0) {
-      // Toast
-      return;
-    }
-
-    const success: SelectedPostForm["images"] = [];
+    const success: Post["images"] = [];
     const failed = [];
     for (const file of files) {
       const { name, type, size } = file;
@@ -188,43 +154,37 @@ export function EditPosts() {
         };
       });
     }
-    setSelectedPostForm((prev) => ({
-      ...prev,
-      images: [...prev.images, ...success],
-    }));
-    if (success.length > 0) {
-      setSelectedImageId(success[0]!.id);
-    }
+    dispatch({ type: "ADD_IMAGES", payload: success });
   }
+
   function handleTitleChange(value: string) {
-    setSelectedPostForm({
-      ...selectedPostForm,
-      title: value,
+    dispatch({
+      type: "UPDATE_POST",
+      payload: { updates: { title: value } },
     });
   }
+
   function handleDescriptionChange(value: string) {
-    setSelectedPostForm({
-      ...selectedPostForm,
-      description: value,
+    dispatch({
+      type: "UPDATE_POST",
+      payload: { updates: { description: value } },
     });
   }
 
-  function savePost(postData: SelectedPostForm) {
-    if (postData.id) {
-      const updatedPosts = posts.map((post) => {
-        if (post.id !== postData.id) {
-          return post;
-        }
+  function handleStartNewPost() {
+    dispatch({ type: "START_NEW_POST" });
+  }
 
-        return postData as Post;
-      });
-      setPosts(updatedPosts);
-      return;
-    }
+  function handleEditPost(post: Post) {
+    dispatch({ type: "START_EDITING", payload: post.id });
+  }
 
-    const updatedPost = { id: crypto.randomUUID(), ...postData };
-    setPosts([...posts, updatedPost]);
-    setSelectedPostForm(defaultFormValue);
+  function handleSavePost() {
+    dispatch({ type: "SAVE_POST" });
+  }
+
+  function handleCancelEdit() {
+    dispatch({ type: "CANCEL_EDITING" });
   }
 
   const sensors = useSensors(
@@ -243,18 +203,24 @@ export function EditPosts() {
     <div className="flex gap-4">
       <DndContext sensors={sensors}>
         <SelectedPostView
-          selectedPostForm={selectedPostForm}
-          selectedImageId={selectedImageId}
+          isScrollingProgrammatically={isScrollingProgrammatically}
+          onImageIntersect={onImageIntersect}
+          selectedPostForm={selectedPost}
+          selectedImageId={state.selectedImageId}
           setSelectedImageId={handleImageSelect}
           handleTitleChange={handleTitleChange}
           handleDescriptionChange={handleDescriptionChange}
           handleFilesChange={handleFilesChange}
-          savePost={savePost}
-          setRef={setRef}
+          onSave={handleSavePost}
+          onCancel={handleCancelEdit}
           scrollContainerRef={scrollContainerRef}
         />
-        <SortableContext items={posts.map((post) => ({ id: post.id }))}>
-          <PostsAside posts={posts} />
+        <SortableContext items={state.posts.map((post) => ({ id: post.id }))}>
+          <PostsAside
+            posts={state.posts.filter((p) => p.images.length > 0)}
+            onNewPost={handleStartNewPost}
+            onEditPost={handleEditPost}
+          />
         </SortableContext>
       </DndContext>
     </div>
@@ -262,34 +228,40 @@ export function EditPosts() {
 }
 
 type SelectedPostViewProps = {
-  selectedPostForm: SelectedPostForm;
-  selectedImageId: Post["images"][number]["id"] | undefined;
+  onImageIntersect: (image: Element) => void;
+  isScrollingProgrammatically: boolean;
+  selectedPostForm: Post;
+  selectedImageId: string | null;
   setSelectedImageId: (imageId: string) => void;
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  savePost: (post: SelectedPostForm) => void;
-  setRef: (postId: Post["id"], el: HTMLLIElement | null) => void;
+  onSave: () => void;
+  onCancel: () => void;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
 };
 
+type PostImage = Post["images"][number];
+
 function SelectedPostView({
+  onImageIntersect,
+  isScrollingProgrammatically,
   selectedPostForm,
   selectedImageId,
   setSelectedImageId,
   handleTitleChange,
   handleDescriptionChange,
   handleFilesChange,
-  savePost,
-  setRef,
+  onSave,
+  onCancel,
   scrollContainerRef,
 }: SelectedPostViewProps) {
   return (
     <div className="flex w-80 flex-col gap-2 rounded border-2 border-black p-2">
       <div className="relative">
         <div
-          ref={scrollContainerRef}
           className="hide-scrollbar h-[200px] snap-x snap-mandatory overflow-x-auto scroll-smooth"
+          ref={scrollContainerRef}
         >
           <label className="absolute bottom-2 right-2 grid place-items-center">
             <Input
@@ -303,13 +275,12 @@ function SelectedPostView({
           <ul className="flex h-full bg-blue-300">
             {selectedPostForm.images.map((image) => {
               return (
-                <li
-                  ref={(ref) => {
-                    setRef(image.id, ref);
-                  }}
+                <ImageItem
                   key={image.id}
-                  data-image-id={image.id}
-                  className="w-full flex-shrink-0 flex-grow snap-center border-2 border-black"
+                  image={image}
+                  isScrollingProgrammatically={isScrollingProgrammatically}
+                  onImageIntersect={onImageIntersect}
+                  scrollableContainerRef={scrollContainerRef}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -317,14 +288,14 @@ function SelectedPostView({
                     src={image.dataUrl}
                     alt={image.name}
                   />
-                </li>
+                </ImageItem>
               );
             })}
           </ul>
         </div>
       </div>
-      <ul className="flex items-center justify-center gap-1">
-        {selectedPostForm.images.map((image) => {
+      <ul className="flex items-center justify-center gap-1 h-4">
+        {selectedPostForm.images.map((image: Post["images"][number]) => {
           return (
             <li key={image.id} className="">
               <button
@@ -354,27 +325,69 @@ function SelectedPostView({
         <Button variant="destructive" type="button">
           <Trash />
         </Button>
-        <Button className="ml-auto" variant="secondary" type="button">
+        {/* <Button
+          className="ml-auto"
+          variant="secondary"
+          type="button"
+          onClick={onCancel}
+        >
           Cancel
         </Button>
         <Button
           disabled={selectedPostForm.images.length === 0}
-          onClick={() => savePost(selectedPostForm)}
+          onClick={onSave}
           type="button"
           className="ml-2"
         >
-          Save All
-        </Button>
+          Save
+        </Button> */}
       </div>
     </div>
   );
 }
 
-type PostsAsideProps = { posts: Post[] };
-function PostsAside({ posts }: PostsAsideProps) {
+type ImageContainer<T extends Element> = {
+  children: React.JSX.Element;
+  image: PostImage;
+  onImageIntersect: (image: Element) => void;
+  isScrollingProgrammatically: boolean;
+  scrollableContainerRef: RefObject<T | null>;
+};
+
+function ImageItem<T extends Element>({
+  children,
+  image,
+  onImageIntersect,
+  isScrollingProgrammatically,
+  scrollableContainerRef,
+}: ImageContainer<T>) {
+  const { ref } = useIntersectionObserver<HTMLLIElement, T>(
+    onImageIntersect,
+    isScrollingProgrammatically,
+    scrollableContainerRef,
+  );
+  return (
+    <li
+      ref={ref}
+      key={image.id}
+      data-image-id={image.id}
+      className="w-full flex-shrink-0 flex-grow snap-center border-2 border-black"
+    >
+      {children}
+    </li>
+  );
+}
+
+type PostsAsideProps = {
+  posts: Post[];
+  onNewPost: () => void;
+  onEditPost: (post: Post) => void;
+};
+
+function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <Button type="button" variant="outline">
+      <Button type="button" variant="outline" onClick={onNewPost}>
         <Plus />
       </Button>
       <ul className="grid grow-0 gap-2">
@@ -386,7 +399,7 @@ function PostsAside({ posts }: PostsAsideProps) {
                   <li
                     {...props.listeners}
                     {...props.attributes}
-                    onClick={() => console.log("clicked")}
+                    onClick={() => onEditPost(post)}
                     style={props.style}
                     ref={props.setNodeRef}
                     className="rounded border-2 border-black p-2"
