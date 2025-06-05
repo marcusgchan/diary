@@ -1,3 +1,4 @@
+// move active id to reducer, scroll not selecting right active img
 "use client";
 import { Images, Plus, Trash } from "lucide-react";
 import {
@@ -25,18 +26,31 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableItem } from "../shared/SortableItem";
 import { cn } from "../utils/cx";
 import { postsReducer, initialState, type Post } from "./postsReducer";
+import { flushSync } from "react-dom";
 
 function useScrollToPost(containerRef: RefObject<HTMLElement | null>) {
   const [isScrollingProgrammatically, setIsScrollingProgrammatically] =
     useState(false);
 
-  function scrollToPost(id: Post["id"]) {
+  function scrollToPost(id: Post["id"], instant = false) {
     const el = document.querySelector(`[data-image-id="${id}"]`);
+    console.log("in scrollToPost", instant, el)
     if (!el) return;
+
+    if (instant) {
+      console.log("instant scroll")
+      el.scrollIntoView({
+        behavior: "instant",
+        block: "nearest",
+        inline: "center",
+      });
+      return;
+    }
 
     setIsScrollingProgrammatically(true);
 
@@ -108,9 +122,16 @@ function useIntersectionObserver<T extends Element, U extends Element>(
 export function EditPosts() {
   const [state, dispatch] = useReducer(postsReducer, initialState);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeImageId, setActiveImageId] = useState<string | null>(null);
 
   const selectedPost = state.posts.find((p) => p.id === state.selectedPostId)!;
   const activePost = activeId ? state.posts.find((p) => p.id === activeId) : null;
+  const activeImage = activeImageId ? selectedPost.images.find((img) => img.id === activeImageId) ?? null : null;
+
+  // Get the selected image for the current post from reducer state
+  const currentSelectedImageId = state.postImageSelections.get(state.selectedPostId) ?? 
+    selectedPost.images[0]?.id ?? 
+    null;
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { scrollToPost, isScrollingProgrammatically } = useScrollToPost(scrollContainerRef);
@@ -151,6 +172,7 @@ export function EditPosts() {
             type,
             size,
             dataUrl,
+            order: 0, // Placeholder, will be set properly in reducer
           });
           resolve();
         };
@@ -182,7 +204,15 @@ export function EditPosts() {
   }
 
   function handleEditPost(post: Post) {
-    dispatch({ type: "START_EDITING", payload: post.id });
+    flushSync(() => {
+      dispatch({ type: "START_EDITING", payload: post.id });
+    });
+    
+    const selectedImageId = state.postImageSelections.get(post.id) ?? post.images[0]?.id;
+    
+    if (selectedImageId) {
+        scrollToPost(selectedImageId, true);
+    }
   }
 
   function handleSavePost() {
@@ -210,6 +240,23 @@ export function EditPosts() {
     setActiveId(null);
   }
 
+  function handleImageDragStart(event: DragStartEvent) {
+    setActiveImageId(event.active.id as string);
+  }
+
+  function handleImageDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      dispatch({
+        type: "REORDER_IMAGES",
+        payload: { activeImageId: active.id as string, overImageId: over.id as string },
+      });
+    }
+    
+    setActiveImageId(null);
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -234,7 +281,7 @@ export function EditPosts() {
           isScrollingProgrammatically={isScrollingProgrammatically}
           onImageIntersect={onImageIntersect}
           selectedPostForm={selectedPost}
-          selectedImageId={state.selectedImageId}
+          selectedImageId={currentSelectedImageId}
           setSelectedImageId={handleImageSelect}
           handleTitleChange={handleTitleChange}
           handleDescriptionChange={handleDescriptionChange}
@@ -242,6 +289,10 @@ export function EditPosts() {
           onSave={handleSavePost}
           onDelete={handleDeletePost}
           scrollContainerRef={scrollContainerRef}
+          onImageDragStart={handleImageDragStart}
+          onImageDragEnd={handleImageDragEnd}
+          activeImageId={activeImageId}
+          activeImage={activeImage}
         />
         <SortableContext 
           items={state.posts.map((post) => ({ id: post.id }))}
@@ -273,6 +324,10 @@ type SelectedPostViewProps = {
   onSave: () => void;
   onDelete: () => void;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
+  onImageDragStart: (event: DragStartEvent) => void;
+  onImageDragEnd: (event: DragEndEvent) => void;
+  activeImageId: string | null;
+  activeImage: PostImage | null;
 };
 
 type PostImage = Post["images"][number];
@@ -289,7 +344,23 @@ function SelectedPostView({
   onSave,
   onDelete,
   scrollContainerRef,
+  onImageDragStart,
+  onImageDragEnd,
+  activeImageId,
+  activeImage,
 }: SelectedPostViewProps) {
+  const imageSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   return (
     <div className="flex w-80 flex-col gap-2 rounded border-2 border-black p-2">
       <div className="relative">
@@ -328,24 +399,69 @@ function SelectedPostView({
           </ul>
         </div>
       </div>
-      <ul className="flex items-center justify-center gap-1 h-4">
-        {selectedPostForm.images.map((image: Post["images"][number]) => {
-          return (
-            <li key={image.id} className="">
-              <button
-                type="button"
-                onClick={() => setSelectedImageId(image.id)}
-                className={cn(
-                  "block aspect-square min-h-0 w-2 rounded-full bg-blue-300",
-                  image.id === selectedImageId && "aspect-[4/3] w-3",
-                )}
-              ></button>
-            </li>
-          );
-        })}
-      </ul>
+      <DndContext
+        sensors={imageSensors}
+        collisionDetection={closestCenter}
+        onDragStart={onImageDragStart}
+        onDragEnd={onImageDragEnd}
+      >
+        <SortableContext
+          items={selectedPostForm.images.map((img) => ({ id: img.id }))}
+          strategy={horizontalListSortingStrategy}
+        >
+          <ul className="flex items-center justify-center gap-1 h-12">
+            {selectedPostForm.images.map((image: Post["images"][number]) => {
+              return (
+                <SortableItem key={image.id} id={image.id}>
+                  {(props) => (
+                    <li key={image.id} className="">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImageId(image.id)}
+                        {...props.listeners}
+                        {...props.attributes}
+                        ref={props.setNodeRef}
+                        style={{
+                          ...props.style,
+                          opacity: props.isDragging ? 0 : 1,
+                        }}
+                        className={cn(
+                          "block aspect-square h-10 w-10 rounded border-2 overflow-hidden transition-all cursor-grab active:cursor-grabbing",
+                          image.id === selectedImageId 
+                            ? "border-blue-500 ring-2 ring-blue-300 scale-110" 
+                            : "border-gray-300 hover:border-gray-400"
+                        )}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={image.dataUrl}
+                          className="h-full w-full object-cover pointer-events-none"
+                          alt={image.name}
+                        />
+                      </button>
+                    </li>
+                  )}
+                </SortableItem>
+              );
+            })}
+          </ul>
+        </SortableContext>
+        <DragOverlay>
+          {activeImage ? (
+            <div className="aspect-square h-10 w-10 rounded border-2 border-blue-500 overflow-hidden shadow-lg rotate-6 transform opacity-90">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={activeImage.dataUrl}
+                className="h-full w-full object-cover"
+                alt={activeImage.name}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
       <input
         placeholder="Title..."
+        className="text-lg font-bold"
         value={selectedPostForm.title}
         onChange={(e) => handleTitleChange(e.target.value)}
       />
