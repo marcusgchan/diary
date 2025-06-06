@@ -39,11 +39,11 @@ function useScrollToPost(containerRef: RefObject<HTMLElement | null>) {
 
   function scrollToPost(id: Post["id"], instant = false) {
     const el = document.querySelector(`[data-image-id="${id}"]`);
-    console.log("in scrollToPost", instant, el)
+    console.log("in scrollToPost", instant, el);
     if (!el) return;
 
     if (instant) {
-      console.log("instant scroll")
+      console.log("instant scroll");
       el.scrollIntoView({
         behavior: "instant",
         block: "nearest",
@@ -125,16 +125,22 @@ export function EditPosts() {
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
 
   const selectedPost = state.posts.find((p) => p.id === state.selectedPostId)!;
-  const activePost = activeId ? state.posts.find((p) => p.id === activeId) : null;
-  const activeImage = activeImageId ? selectedPost.images.find((img) => img.id === activeImageId) ?? null : null;
+  const activePost = activeId
+    ? state.posts.find((p) => p.id === activeId)
+    : null;
+  const activeImage = activeImageId
+    ? (selectedPost.images.find((img) => img.id === activeImageId) ?? null)
+    : null;
 
   // Get the selected image for the current post from reducer state
-  const currentSelectedImageId = state.postImageSelections.get(state.selectedPostId) ?? 
-    selectedPost.images[0]?.id ?? 
+  const currentSelectedImageId =
+    state.postImageSelections.get(state.selectedPostId) ??
+    selectedPost.images[0]?.id ??
     null;
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { scrollToPost, isScrollingProgrammatically } = useScrollToPost(scrollContainerRef);
+  const { scrollToPost, isScrollingProgrammatically } =
+    useScrollToPost(scrollContainerRef);
 
   const handleImageSelect = (imageId: string) => {
     dispatch({ type: "SELECT_IMAGE", payload: imageId });
@@ -207,11 +213,12 @@ export function EditPosts() {
     flushSync(() => {
       dispatch({ type: "START_EDITING", payload: post.id });
     });
-    
-    const selectedImageId = state.postImageSelections.get(post.id) ?? post.images[0]?.id;
-    
+
+    const selectedImageId =
+      state.postImageSelections.get(post.id) ?? post.images[0]?.id;
+
     if (selectedImageId) {
-        scrollToPost(selectedImageId, true);
+      scrollToPost(selectedImageId, true);
     }
   }
 
@@ -236,7 +243,7 @@ export function EditPosts() {
         payload: { activeId: active.id as string, overId: over.id as string },
       });
     }
-    
+
     setActiveId(null);
   }
 
@@ -250,10 +257,13 @@ export function EditPosts() {
     if (over && active.id !== over.id) {
       dispatch({
         type: "REORDER_IMAGES",
-        payload: { activeImageId: active.id as string, overImageId: over.id as string },
+        payload: {
+          activeImageId: active.id as string,
+          overImageId: over.id as string,
+        },
       });
     }
-    
+
     setActiveImageId(null);
   }
 
@@ -271,8 +281,8 @@ export function EditPosts() {
 
   return (
     <div className="flex gap-4">
-      <DndContext 
-        sensors={sensors} 
+      <DndContext
+        sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
         onDragStart={handleDragStart}
@@ -294,7 +304,7 @@ export function EditPosts() {
           activeImageId={activeImageId}
           activeImage={activeImage}
         />
-        <SortableContext 
+        <SortableContext
           items={state.posts.map((post) => ({ id: post.id }))}
           strategy={verticalListSortingStrategy}
         >
@@ -409,7 +419,7 @@ function SelectedPostView({
           items={selectedPostForm.images.map((img) => ({ id: img.id }))}
           strategy={horizontalListSortingStrategy}
         >
-          <ul className="flex items-center justify-center gap-1 h-12">
+          <ul className="flex h-12 items-center justify-center gap-1">
             {selectedPostForm.images.map((image: Post["images"][number]) => {
               return (
                 <SortableItem key={image.id} id={image.id}>
@@ -426,16 +436,16 @@ function SelectedPostView({
                           opacity: props.isDragging ? 0 : 1,
                         }}
                         className={cn(
-                          "block aspect-square h-10 w-10 rounded border-2 overflow-hidden transition-all cursor-grab active:cursor-grabbing",
-                          image.id === selectedImageId 
-                            ? "border-blue-500 ring-2 ring-blue-300 scale-110" 
-                            : "border-gray-300 hover:border-gray-400"
+                          "block aspect-square h-10 w-10 cursor-grab overflow-hidden rounded border-2 transition-all active:cursor-grabbing",
+                          image.id === selectedImageId
+                            ? "scale-110 border-blue-500 ring-2 ring-blue-300"
+                            : "border-gray-300 hover:border-gray-400",
                         )}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={image.dataUrl}
-                          className="h-full w-full object-cover pointer-events-none"
+                          className="pointer-events-none h-full w-full object-cover"
                           alt={image.name}
                         />
                       </button>
@@ -448,7 +458,7 @@ function SelectedPostView({
         </SortableContext>
         <DragOverlay>
           {activeImage ? (
-            <div className="aspect-square h-10 w-10 rounded border-2 border-blue-500 overflow-hidden shadow-lg rotate-6 transform opacity-90">
+            <div className="aspect-square h-10 w-10 rotate-6 transform overflow-hidden rounded border-2 border-blue-500 opacity-90 shadow-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={activeImage.dataUrl}
@@ -585,7 +595,7 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
 
 function DragOverlayItem({ post }: { post: Post }) {
   return (
-    <div className="rounded border-2 border-black p-2 bg-white shadow-lg opacity-90 rotate-3 transform">
+    <div className="rotate-3 transform rounded border-2 border-black bg-white p-2 opacity-90 shadow-lg">
       <ul className="flex flex-col gap-2">
         {post.images.map((image) => (
           <li

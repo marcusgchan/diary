@@ -30,7 +30,10 @@ type PostsAction =
   | { type: "SELECT_IMAGE"; payload: string }
   | { type: "DELETE_POST" }
   | { type: "REORDER_POSTS"; payload: { activeId: string; overId: string } }
-  | { type: "REORDER_IMAGES"; payload: { activeImageId: string; overImageId: string } };
+  | {
+      type: "REORDER_IMAGES";
+      payload: { activeImageId: string; overImageId: string };
+    };
 
 const emptyPost: Omit<Post, "id" | "order"> = {
   images: [],
@@ -52,12 +55,17 @@ export const initialState: PostsState = {
   postImageSelections: new Map(),
 };
 
-export function postsReducer(state: PostsState, action: PostsAction): PostsState {
-  const currentSelectedPost = state.posts.find(p => p.id === state.selectedPostId)!;
+export function postsReducer(
+  state: PostsState,
+  action: PostsAction,
+): PostsState {
+  const currentSelectedPost = state.posts.find(
+    (p) => p.id === state.selectedPostId,
+  )!;
 
   switch (action.type) {
     case "START_NEW_POST": {
-      const maxOrder = Math.max(...state.posts.map(p => p.order), -1);
+      const maxOrder = Math.max(...state.posts.map((p) => p.order), -1);
       const newPostToSelect = createNewEmptyPost(maxOrder + 1);
 
       return {
@@ -69,22 +77,27 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
 
     case "START_EDITING": {
       const postIdToEdit = action.payload;
-      
+
       if (currentSelectedPost.id === postIdToEdit) {
         return state;
       }
 
       let updatedPosts = state.posts;
       if (currentSelectedPost.images.length === 0 && state.posts.length > 1) {
-        updatedPosts = state.posts.filter(p => p.id !== currentSelectedPost.id);
+        updatedPosts = state.posts.filter(
+          (p) => p.id !== currentSelectedPost.id,
+        );
       }
 
-      const newPostToFocus = updatedPosts.find(p => p.id === postIdToEdit);
-      
+      const newPostToFocus = updatedPosts.find((p) => p.id === postIdToEdit);
+
       // Check if current selectedImageId is valid for the new post
-      let newSelectedImageId = state.postImageSelections.get(postIdToEdit) ?? null;
+      let newSelectedImageId =
+        state.postImageSelections.get(postIdToEdit) ?? null;
       if (newPostToFocus && newSelectedImageId) {
-        const imageExists = newPostToFocus.images.some(img => img.id === newSelectedImageId);
+        const imageExists = newPostToFocus.images.some(
+          (img) => img.id === newSelectedImageId,
+        );
         if (!imageExists) {
           // If current selected image doesn't exist in new post, select first image or null
           newSelectedImageId = newPostToFocus.images[0]?.id ?? null;
@@ -106,7 +119,9 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
 
     case "SAVE_POST": {
       if (currentSelectedPost.images.length === 0 && state.posts.length > 1) {
-        const remainingPosts = state.posts.filter(p => p.id !== currentSelectedPost.id);
+        const remainingPosts = state.posts.filter(
+          (p) => p.id !== currentSelectedPost.id,
+        );
         const lastPost = remainingPosts[remainingPosts.length - 1]!;
         const newPostImageSelections = new Map(state.postImageSelections);
         newPostImageSelections.set(lastPost.id, lastPost.images[0]?.id ?? null);
@@ -117,12 +132,12 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
         };
       }
 
-      const maxOrder = Math.max(...state.posts.map(p => p.order), -1);
+      const maxOrder = Math.max(...state.posts.map((p) => p.order), -1);
       const newPost = createNewEmptyPost(maxOrder + 1);
       const newPostImageSelections = new Map(state.postImageSelections);
       newPostImageSelections.set(newPost.id, null);
       return {
-        ...state, 
+        ...state,
         posts: [...state.posts, newPost],
         selectedPostId: newPost.id,
         postImageSelections: newPostImageSelections,
@@ -132,32 +147,37 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
     case "UPDATE_POST":
       return {
         ...state,
-        posts: state.posts.map(post =>
+        posts: state.posts.map((post) =>
           post.id === state.selectedPostId
             ? { ...post, ...action.payload.updates }
-            : post
+            : post,
         ),
       };
 
     case "ADD_IMAGES": {
-      let newSelectedImageId = state.postImageSelections.get(state.selectedPostId) ?? null;
-      if (action.payload.length > 0 && !state.postImageSelections.get(state.selectedPostId) && currentSelectedPost.images.length === 0) {
+      let newSelectedImageId =
+        state.postImageSelections.get(state.selectedPostId) ?? null;
+      if (
+        action.payload.length > 0 &&
+        !state.postImageSelections.get(state.selectedPostId) &&
+        currentSelectedPost.images.length === 0
+      ) {
         newSelectedImageId = action.payload[0]?.id ?? null;
       }
-      
+
       const newPostImageSelections = new Map(state.postImageSelections);
       newPostImageSelections.set(state.selectedPostId, newSelectedImageId);
-      
+
       return {
         ...state,
-        posts: state.posts.map(post => {
+        posts: state.posts.map((post) => {
           if (post.id === state.selectedPostId) {
             const currentImageCount = post.images.length;
             const imagesWithOrder = action.payload.map((image, index) => ({
               ...image,
               order: currentImageCount + index,
             }));
-            
+
             return { ...post, images: [...post.images, ...imagesWithOrder] };
           }
           return post;
@@ -177,7 +197,9 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
 
     case "CANCEL_EDITING": {
       if (currentSelectedPost.images.length === 0 && state.posts.length > 1) {
-        const remainingPosts = state.posts.filter(p => p.id !== currentSelectedPost.id);
+        const remainingPosts = state.posts.filter(
+          (p) => p.id !== currentSelectedPost.id,
+        );
         const lastPost = remainingPosts[remainingPosts.length - 1]!;
         const newPostImageSelections = new Map(state.postImageSelections);
         newPostImageSelections.set(lastPost.id, lastPost.images[0]?.id ?? null);
@@ -187,7 +209,7 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
           postImageSelections: newPostImageSelections,
         };
       }
-      const maxOrder = Math.max(...state.posts.map(p => p.order), -1);
+      const maxOrder = Math.max(...state.posts.map((p) => p.order), -1);
       const newPost = createNewEmptyPost(maxOrder + 1);
       const newPostImageSelections = new Map(state.postImageSelections);
       newPostImageSelections.set(newPost.id, null);
@@ -209,8 +231,10 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
           postImageSelections: new Map(),
         };
       }
-      
-      const remainingPosts = state.posts.filter(p => p.id !== currentSelectedPost.id);
+
+      const remainingPosts = state.posts.filter(
+        (p) => p.id !== currentSelectedPost.id,
+      );
       if (remainingPosts.length === 0) {
         // Fallback: create a new empty post if somehow no posts remain
         const newPost = createNewEmptyPost(0);
@@ -220,7 +244,7 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
           postImageSelections: new Map(),
         };
       }
-      
+
       const lastPost = remainingPosts[remainingPosts.length - 1]!;
       const newPostImageSelections = new Map(state.postImageSelections);
       newPostImageSelections.set(lastPost.id, lastPost.images[0]?.id ?? null);
@@ -234,8 +258,8 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
     case "REORDER_POSTS": {
       const { activeId, overId } = action.payload;
       const updatedPosts = [...state.posts];
-      const activeIndex = updatedPosts.findIndex(p => p.id === activeId);
-      const overIndex = updatedPosts.findIndex(p => p.id === overId);
+      const activeIndex = updatedPosts.findIndex((p) => p.id === activeId);
+      const overIndex = updatedPosts.findIndex((p) => p.id === overId);
 
       if (activeIndex !== -1 && overIndex !== -1) {
         const [activePost] = updatedPosts.splice(activeIndex, 1);
@@ -258,11 +282,13 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
 
     case "REORDER_IMAGES": {
       const { activeImageId, overImageId } = action.payload;
-      const updatedPosts = state.posts.map(post => {
+      const updatedPosts = state.posts.map((post) => {
         if (post.id === state.selectedPostId) {
           const images = [...post.images];
-          const activeIndex = images.findIndex(img => img.id === activeImageId);
-          const overIndex = images.findIndex(img => img.id === overImageId);
+          const activeIndex = images.findIndex(
+            (img) => img.id === activeImageId,
+          );
+          const overIndex = images.findIndex((img) => img.id === overImageId);
 
           if (activeIndex !== -1 && overIndex !== -1) {
             const [activeImage] = images.splice(activeIndex, 1);
@@ -291,4 +317,4 @@ export function postsReducer(state: PostsState, action: PostsAction): PostsState
     default:
       return state;
   }
-} 
+}

@@ -23,8 +23,14 @@ export function SortableItem({
     isDragging: boolean;
   }) => React.JSX.Element;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
