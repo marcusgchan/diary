@@ -64,7 +64,6 @@ export function EditPosts() {
     handleDescriptionChange,
     handleStartNewPost,
     handleEditPost,
-    handleSavePost,
     handleDeletePost,
   } = usePostActions({ dispatch, state, scrollToPost: scrollToImage });
 
@@ -150,7 +149,6 @@ export function EditPosts() {
           handleTitleChange={handleTitleChange}
           handleDescriptionChange={handleDescriptionChange}
           handleFilesChange={handleFilesChange}
-          onSave={handleSavePost}
           onDelete={handleDeletePost}
           scrollContainerRef={scrollContainerRef}
           onImageDragStart={handleImageDragStart}
@@ -185,7 +183,6 @@ type SelectedPostViewProps = {
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  onSave: () => void;
   onDelete: () => void;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   onImageDragStart: (event: DragStartEvent) => void;
@@ -314,7 +311,6 @@ function SelectedPostView({
   handleTitleChange,
   handleDescriptionChange,
   handleFilesChange,
-  onSave,
   onDelete,
   scrollContainerRef,
   onImageDragStart,

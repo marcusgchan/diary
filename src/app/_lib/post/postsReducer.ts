@@ -23,7 +23,6 @@ export type PostsState = {
 export type PostsAction =
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
-  | { type: "SAVE_POST" }
   | { type: "UPDATE_POST"; payload: { updates: Partial<Post> } }
   | { type: "ADD_IMAGES"; payload: Post["images"] }
   | { type: "CANCEL_EDITING" }
@@ -113,33 +112,6 @@ export function postsReducer(
       return {
         posts: updatedPosts,
         selectedPostId: postIdToEdit,
-        postImageSelections: newPostImageSelections,
-      };
-    }
-
-    case "SAVE_POST": {
-      if (currentSelectedPost.images.length === 0 && state.posts.length > 1) {
-        const remainingPosts = state.posts.filter(
-          (p) => p.id !== currentSelectedPost.id,
-        );
-        const lastPost = remainingPosts[remainingPosts.length - 1]!;
-        const newPostImageSelections = new Map(state.postImageSelections);
-        newPostImageSelections.set(lastPost.id, lastPost.images[0]?.id ?? null);
-        return {
-          posts: remainingPosts,
-          selectedPostId: lastPost.id,
-          postImageSelections: newPostImageSelections,
-        };
-      }
-
-      const maxOrder = Math.max(...state.posts.map((p) => p.order), -1);
-      const newPost = createNewEmptyPost(maxOrder + 1);
-      const newPostImageSelections = new Map(state.postImageSelections);
-      newPostImageSelections.set(newPost.id, null);
-      return {
-        ...state,
-        posts: [...state.posts, newPost],
-        selectedPostId: newPost.id,
         postImageSelections: newPostImageSelections,
       };
     }

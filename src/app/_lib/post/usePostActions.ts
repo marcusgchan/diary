@@ -9,7 +9,6 @@ type PostActions = {
   handleDescriptionChange: (value: string) => void;
   handleStartNewPost: () => void;
   handleEditPost: (post: Post) => void;
-  handleSavePost: () => void;
   handleDeletePost: () => void;
 };
 
@@ -90,10 +89,6 @@ export function usePostActions({
     }
   }
 
-  function handleSavePost() {
-    dispatch({ type: "SAVE_POST" });
-  }
-
   function handleDeletePost() {
     dispatch({ type: "DELETE_POST" });
   }
@@ -104,7 +99,6 @@ export function usePostActions({
     handleDescriptionChange,
     handleStartNewPost,
     handleEditPost,
-    handleSavePost,
     handleDeletePost,
   };
 }
