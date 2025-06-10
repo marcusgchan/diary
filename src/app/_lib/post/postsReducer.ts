@@ -14,13 +14,13 @@ export type Post = {
   }[];
 };
 
-type PostsState = {
+export type PostsState = {
   posts: Post[];
   selectedPostId: string;
   postImageSelections: Map<string, string | null>;
 };
 
-type PostsAction =
+export type PostsAction =
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
   | { type: "SAVE_POST" }

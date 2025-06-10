@@ -6,12 +6,12 @@ import {
   type RefObject,
   useRef,
   useState,
-  useEffect,
   useReducer,
   useCallback,
 } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import {
   DndContext,
   KeyboardSensor,
@@ -31,93 +31,9 @@ import {
 import { SortableItem } from "../shared/SortableItem";
 import { cn } from "../utils/cx";
 import { postsReducer, initialState, type Post } from "./postsReducer";
-import { flushSync } from "react-dom";
-
-function useScrollToPost(containerRef: RefObject<HTMLElement | null>) {
-  const [isScrollingProgrammatically, setIsScrollingProgrammatically] =
-    useState(false);
-
-  function scrollToPost(id: Post["id"], instant = false) {
-    const el = document.querySelector(`[data-image-id="${id}"]`);
-    console.log("in scrollToPost", instant, el);
-    if (!el) return;
-
-    if (instant) {
-      console.log("instant scroll");
-      el.scrollIntoView({
-        behavior: "instant",
-        block: "nearest",
-        inline: "center",
-      });
-      return;
-    }
-
-    setIsScrollingProgrammatically(true);
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleScrollEnd = () => {
-      setIsScrollingProgrammatically(false);
-      container.removeEventListener("scrollend", handleScrollEnd);
-    };
-    container.addEventListener("scrollend", handleScrollEnd);
-
-    el.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "center",
-    });
-  }
-
-  return { scrollToPost, isScrollingProgrammatically };
-}
-
-type IntersectionObserverReturn<T extends Element> = {
-  ref: RefObject<T | null>;
-};
-
-function useIntersectionObserver<T extends Element, U extends Element>(
-  onIntersect: (element: Element) => void,
-  disabled: boolean,
-  rootRef?: RefObject<U | null>,
-): IntersectionObserverReturn<T> {
-  const ref = useRef<T>(null);
-  const observerRef = useRef<IntersectionObserver>(null);
-
-  useEffect(() => {
-    if (disabled) return;
-    if (ref.current === null) {
-      throw new Error("ref not set");
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const centerEntry = entries.find(
-          (entry) => entry.intersectionRatio > 0.8,
-        );
-
-        if (centerEntry) {
-          const element = centerEntry.target;
-          if (element) {
-            onIntersect(element);
-          }
-        }
-      },
-      {
-        root: rootRef?.current,
-        threshold: 0.8,
-      },
-    );
-
-    observerRef.current = observer;
-    observerRef.current.observe(ref.current);
-
-    return () => observerRef.current!.disconnect();
-  }, [ref, onIntersect, disabled, rootRef]);
-
-  return { ref: ref };
-}
+import { useScrollToImage } from "./useScrollToImage";
+import { useIntersectionObserver } from "../utils/useIntersectionObserver";
+import { usePostActions } from "./usePostActions";
 
 export function EditPosts() {
   const [state, dispatch] = useReducer(postsReducer, initialState);
@@ -139,12 +55,22 @@ export function EditPosts() {
     null;
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { scrollToPost, isScrollingProgrammatically } =
-    useScrollToPost(scrollContainerRef);
+  const { scrollToImage, isScrollingProgrammatically } =
+    useScrollToImage(scrollContainerRef);
+
+  const {
+    handleFilesChange,
+    handleTitleChange,
+    handleDescriptionChange,
+    handleStartNewPost,
+    handleEditPost,
+    handleSavePost,
+    handleDeletePost,
+  } = usePostActions({ dispatch, state, scrollToPost: scrollToImage });
 
   const handleImageSelect = (imageId: string) => {
     dispatch({ type: "SELECT_IMAGE", payload: imageId });
-    scrollToPost(imageId);
+    scrollToImage(imageId);
   };
 
   const onImageIntersect = useCallback(
@@ -157,78 +83,6 @@ export function EditPosts() {
     },
     [dispatch],
   );
-
-  async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const success: Post["images"] = [];
-    const failed = [];
-    for (const file of files) {
-      const { name, type, size } = file;
-      await new Promise<void>((resolve) => {
-        const fileReader = new FileReader();
-        fileReader.readAsDataURL(file);
-        fileReader.onload = () => {
-          const dataUrl = fileReader.result as string;
-          const id = crypto.randomUUID();
-          success.push({
-            id,
-            name,
-            type,
-            size,
-            dataUrl,
-            order: 0, // Placeholder, will be set properly in reducer
-          });
-          resolve();
-        };
-        fileReader.onerror = () => {
-          failed.push({ name, type, size, error: fileReader.error });
-          resolve();
-        };
-      });
-    }
-    dispatch({ type: "ADD_IMAGES", payload: success });
-  }
-
-  function handleTitleChange(value: string) {
-    dispatch({
-      type: "UPDATE_POST",
-      payload: { updates: { title: value } },
-    });
-  }
-
-  function handleDescriptionChange(value: string) {
-    dispatch({
-      type: "UPDATE_POST",
-      payload: { updates: { description: value } },
-    });
-  }
-
-  function handleStartNewPost() {
-    dispatch({ type: "START_NEW_POST" });
-  }
-
-  function handleEditPost(post: Post) {
-    flushSync(() => {
-      dispatch({ type: "START_EDITING", payload: post.id });
-    });
-
-    const selectedImageId =
-      state.postImageSelections.get(post.id) ?? post.images[0]?.id;
-
-    if (selectedImageId) {
-      scrollToPost(selectedImageId, true);
-    }
-  }
-
-  function handleSavePost() {
-    dispatch({ type: "SAVE_POST" });
-  }
-
-  function handleDeletePost() {
-    dispatch({ type: "DELETE_POST" });
-  }
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);
@@ -342,6 +196,115 @@ type SelectedPostViewProps = {
 
 type PostImage = Post["images"][number];
 
+function ImageUpload({
+  onChange,
+  children,
+}: {
+  onChange: (files: FileList) => void;
+  children: ({
+    handleDrop,
+    handleDragOver,
+    handleFileChange,
+  }: {
+    handleDrop: (e: React.DragEvent) => void;
+    handleDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
+    handleFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  }) => React.ReactNode;
+}) {
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (files === null || files.length === 0) {
+      return;
+    }
+    onChange(files);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    // Filter for image files only
+    const imageFiles = Array.from(files).filter((file) =>
+      file.type.includes("image/"),
+    );
+
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    // Create a new FileList-like object
+    const dt = new DataTransfer();
+    imageFiles.forEach((file) => dt.items.add(file));
+    onChange(dt.files);
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+  }
+
+  return children({ handleDragOver, handleDrop, handleFileChange });
+}
+
+function Dropzone({
+  handleDrop,
+  handleDragOver,
+  children,
+}: {
+  handleDrop: (e: React.DragEvent) => void;
+  handleDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      className="grid h-full place-items-center"
+    >
+      {children}
+    </div>
+  );
+}
+
+function DropzoneContent({
+  children,
+  id,
+}: {
+  children: React.ReactNode;
+  id: string;
+}) {
+  return (
+    <Label
+      htmlFor={id}
+      className="grid h-full w-full cursor-pointer content-center justify-center gap-2 rounded border-2 border-dashed border-accent-foreground p-4 text-center text-accent-foreground backdrop-blur-sm  [grid-auto-rows:max-content]"
+    >
+      {children}
+    </Label>
+  );
+}
+
+function ImgLogo() {
+  return (
+    <svg
+      className="mx-auto h-8 w-8 text-accent-foreground"
+      stroke="currentColor"
+      fill="none"
+      viewBox="0 0 48 48"
+      aria-hidden="true"
+    >
+      <path
+        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function SelectedPostView({
   onImageIntersect,
   isScrollingProgrammatically,
@@ -371,6 +334,14 @@ function SelectedPostView({
     }),
   );
 
+  const handleDropzoneFilesChange = (files: FileList) => {
+    // Convert FileList to ChangeEvent format for compatibility
+    const mockEvent = {
+      target: { files },
+    } as ChangeEvent<HTMLInputElement>;
+    void handleFilesChange(mockEvent);
+  };
+
   return (
     <div className="flex w-80 flex-col gap-2 rounded border-2 border-black p-2">
       <div className="relative">
@@ -378,35 +349,53 @@ function SelectedPostView({
           className="hide-scrollbar h-[200px] snap-x snap-mandatory overflow-x-auto scroll-smooth"
           ref={scrollContainerRef}
         >
-          <label className="absolute bottom-2 right-2 grid place-items-center">
-            <Input
-              type="file"
-              onChange={handleFilesChange}
-              multiple
-              className="w-0 opacity-0 [grid-area:1/1]"
-            />
-            <Images className="[grid-area:1/1]" />
-          </label>
-          <ul className="flex h-full bg-blue-300">
-            {selectedPostForm.images.map((image) => {
-              return (
-                <ImageItem
-                  key={image.id}
-                  image={image}
-                  isScrollingProgrammatically={isScrollingProgrammatically}
-                  onImageIntersect={onImageIntersect}
-                  scrollableContainerRef={scrollContainerRef}
+          {selectedPostForm.images.length === 0 && (
+            <ImageUpload onChange={handleDropzoneFilesChange}>
+              {({ handleDragOver, handleDrop, handleFileChange }) => (
+                <Dropzone
+                  handleDragOver={handleDragOver}
+                  handleDrop={handleDrop}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="h-full w-full object-cover"
-                    src={image.dataUrl}
-                    alt={image.name}
-                  />
-                </ImageItem>
-              );
-            })}
-          </ul>
+                  <DropzoneContent id="image-upload">
+                    <ImgLogo />
+                    <p className="text-xs leading-tight">
+                      Drop images or click
+                    </p>
+                    <Input
+                      id="image-upload"
+                      type="file"
+                      onChange={handleFileChange}
+                      multiple
+                      accept="image/*"
+                      className="sr-only"
+                    />
+                  </DropzoneContent>
+                </Dropzone>
+              )}
+            </ImageUpload>
+          )}
+          {selectedPostForm.images.length > 0 && (
+            <ul className="flex h-full">
+              {selectedPostForm.images.map((image) => {
+                return (
+                  <ImageItem
+                    key={image.id}
+                    image={image}
+                    isScrollingProgrammatically={isScrollingProgrammatically}
+                    onImageIntersect={onImageIntersect}
+                    scrollableContainerRef={scrollContainerRef}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      className="h-full w-full object-cover"
+                      src={image.dataUrl}
+                      alt={image.name}
+                    />
+                  </ImageItem>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
       <DndContext
