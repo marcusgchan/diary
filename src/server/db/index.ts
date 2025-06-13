@@ -1,6 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgress from "postgres";
-import type { RefObject } from "react";
 import { env } from "~/env.mjs";
 
 declare global {

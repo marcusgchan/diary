@@ -1,11 +1,10 @@
 // move active id to reducer, scroll not selecting right active img
 "use client";
-import { Images, Plus, Trash } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import {
   type ChangeEvent,
   type RefObject,
   useRef,
-  useState,
   useReducer,
   useCallback,
 } from "react";
@@ -34,11 +33,20 @@ import { postsReducer, initialState, type Post } from "./postsReducer";
 import { useScrollToImage } from "./useScrollToImage";
 import { useIntersectionObserver } from "../utils/useIntersectionObserver";
 import { usePostActions } from "./usePostActions";
+import { usePostDnD } from "./usePostDnD";
 
 export function EditPosts() {
   const [state, dispatch] = useReducer(postsReducer, initialState);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeImageId, setActiveImageId] = useState<string | null>(null);
+
+  const {
+    activeId,
+    activeImageId,
+    handleDragStart,
+    handleDragEnd,
+    handleImageDragStart,
+    handleImageDragEnd,
+    sensors,
+  } = usePostDnD(dispatch);
 
   const selectedPost = state.posts.find((p) => p.id === state.selectedPostId)!;
   const activePost = activeId
@@ -65,12 +73,8 @@ export function EditPosts() {
     handleStartNewPost,
     handleEditPost,
     handleDeletePost,
+    handleImageSelect,
   } = usePostActions({ dispatch, state, scrollToPost: scrollToImage });
-
-  const handleImageSelect = (imageId: string) => {
-    dispatch({ type: "SELECT_IMAGE", payload: imageId });
-    scrollToImage(imageId);
-  };
 
   const onImageIntersect = useCallback(
     (element: Element) => {
@@ -81,55 +85,6 @@ export function EditPosts() {
       dispatch({ type: "SELECT_IMAGE", payload: imageId });
     },
     [dispatch],
-  );
-
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string);
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      dispatch({
-        type: "REORDER_POSTS",
-        payload: { activeId: active.id as string, overId: over.id as string },
-      });
-    }
-
-    setActiveId(null);
-  }
-
-  function handleImageDragStart(event: DragStartEvent) {
-    setActiveImageId(event.active.id as string);
-  }
-
-  function handleImageDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      dispatch({
-        type: "REORDER_IMAGES",
-        payload: {
-          activeImageId: active.id as string,
-          overImageId: over.id as string,
-        },
-      });
-    }
-
-    setActiveImageId(null);
-  }
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        delay: 300,
-        tolerance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
   );
 
   return (
@@ -153,7 +108,6 @@ export function EditPosts() {
           scrollContainerRef={scrollContainerRef}
           onImageDragStart={handleImageDragStart}
           onImageDragEnd={handleImageDragEnd}
-          activeImageId={activeImageId}
           activeImage={activeImage}
         />
         <SortableContext
@@ -187,7 +141,6 @@ type SelectedPostViewProps = {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   onImageDragStart: (event: DragStartEvent) => void;
   onImageDragEnd: (event: DragEndEvent) => void;
-  activeImageId: string | null;
   activeImage: PostImage | null;
 };
 
@@ -315,7 +268,6 @@ function SelectedPostView({
   scrollContainerRef,
   onImageDragStart,
   onImageDragEnd,
-  activeImageId,
   activeImage,
 }: SelectedPostViewProps) {
   const imageSensors = useSensors(

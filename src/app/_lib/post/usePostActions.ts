@@ -10,6 +10,7 @@ type PostActions = {
   handleStartNewPost: () => void;
   handleEditPost: (post: Post) => void;
   handleDeletePost: () => void;
+  handleImageSelect: (imageId: string) => void;
 };
 
 type ScrollToPost = ReturnType<typeof useScrollToImage>["scrollToImage"];
@@ -93,6 +94,11 @@ export function usePostActions({
     dispatch({ type: "DELETE_POST" });
   }
 
+  function handleImageSelect(imageId: string) {
+    dispatch({ type: "SELECT_IMAGE", payload: imageId });
+    scrollToPost(imageId);
+  }
+
   return {
     handleFilesChange,
     handleTitleChange,
@@ -100,5 +106,6 @@ export function usePostActions({
     handleStartNewPost,
     handleEditPost,
     handleDeletePost,
+    handleImageSelect,
   };
 }
