@@ -1,17 +1,40 @@
 //TODO:invarirant with post length cannot be empty (refactor deleate and maybe others)
+
+export type ImageLoadedState = {
+  type: "loaded";
+  id: string;
+  name: string;
+  size: number;
+  mimetype: string;
+  url: string;
+  order: number;
+  key: string;
+};
+
+export type ImageUploadingState = {
+  type: "uploading";
+  id: string;
+  name: string;
+  size: number;
+  mimetype: string;
+  order: number;
+  key: string;
+};
+
+export type ImageErrorState = {
+  type: "error";
+  id: string;
+  key?: string;
+};
+
+export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
+
 export type Post = {
   id: string;
   title: string;
   description: string;
   order: number;
-  images: {
-    id: string;
-    dataUrl: string;
-    name: string;
-    type: string;
-    size: number;
-    order: number;
-  }[];
+  images: Image[];
 };
 
 export type PostsState = {
@@ -24,7 +47,7 @@ export type PostsAction =
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
   | { type: "UPDATE_POST"; payload: { updates: Partial<Post> } }
-  | { type: "ADD_IMAGES"; payload: Post["images"] }
+  | { type: "ADD_IMAGES"; payload: (ImageUploadingState | ImageErrorState)[] }
   | { type: "CANCEL_EDITING" }
   | { type: "SELECT_IMAGE"; payload: string }
   | { type: "DELETE_POST" }
@@ -32,7 +55,9 @@ export type PostsAction =
   | {
       type: "REORDER_IMAGES";
       payload: { activeImageId: string; overImageId: string };
-    };
+    }
+  | { type: "UPDATE_IMAGE_STATUS"; payload: { imageId: string; status: Image } }
+  | { type: "DELETE_IMAGE"; payload: { imageId: string } };
 
 const emptyPost: Omit<Post, "id" | "order"> = {
   images: [],
@@ -127,18 +152,16 @@ export function postsReducer(
       };
 
     case "ADD_IMAGES": {
-      let newSelectedImageId =
-        state.postImageSelections.get(state.selectedPostId) ?? null;
-      if (
-        action.payload.length > 0 &&
-        !state.postImageSelections.get(state.selectedPostId) &&
-        currentSelectedPost.images.length === 0
-      ) {
-        newSelectedImageId = action.payload[0]?.id ?? null;
-      }
+      const currentSelectedImageId = state.postImageSelections.get(
+        state.selectedPostId,
+      );
 
-      const newPostImageSelections = new Map(state.postImageSelections);
-      newPostImageSelections.set(state.selectedPostId, newSelectedImageId);
+      if (!currentSelectedImageId) {
+        state.postImageSelections.set(
+          state.selectedPostId,
+          action.payload[0]!.id,
+        );
+      }
 
       return {
         ...state,
@@ -154,7 +177,6 @@ export function postsReducer(
           }
           return post;
         }),
-        postImageSelections: newPostImageSelections,
       };
     }
 
@@ -283,6 +305,40 @@ export function postsReducer(
       return {
         ...state,
         posts: updatedPosts,
+      };
+    }
+
+    case "UPDATE_IMAGE_STATUS": {
+      const { imageId, status } = action.payload;
+      return {
+        ...state,
+        posts: state.posts.map((post) => {
+          if (post.id === state.selectedPostId) {
+            return {
+              ...post,
+              images: post.images.map((img) =>
+                img.id === imageId ? status : img,
+              ),
+            };
+          }
+          return post;
+        }),
+      };
+    }
+
+    case "DELETE_IMAGE": {
+      const { imageId } = action.payload;
+      return {
+        ...state,
+        posts: state.posts.map((post) => {
+          if (post.id === state.selectedPostId) {
+            return {
+              ...post,
+              images: post.images.filter((img) => img.id !== imageId),
+            };
+          }
+          return post;
+        }),
       };
     }
 

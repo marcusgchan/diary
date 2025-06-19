@@ -1,9 +1,17 @@
 import { type ChangeEvent } from "react";
 import { flushSync } from "react-dom";
-import type { Post, PostsState, PostsAction } from "./postsReducer";
+import type {
+  Post,
+  PostsState,
+  PostsAction,
+  ImageUploadingState,
+  ImageErrorState,
+} from "./postsReducer";
 import { type useScrollToImage } from "./useScrollToImage";
+import { api } from "~/trpc/TrpcProvider";
+import { useParams } from "next/navigation";
 
-type PostActions = {
+export type PostActions = {
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
@@ -13,50 +21,71 @@ type PostActions = {
   handleImageSelect: (imageId: string) => void;
 };
 
-type ScrollToPost = ReturnType<typeof useScrollToImage>["scrollToImage"];
+type ScrollToImage = ReturnType<typeof useScrollToImage>["scrollToImage"];
 
 type UsePostActionsParams = {
   dispatch: React.Dispatch<PostsAction>;
   state: PostsState;
-  scrollToPost: ScrollToPost;
+  scrollToImage: ScrollToImage;
 };
 
 export function usePostActions({
   dispatch,
   state,
-  scrollToPost,
+  scrollToImage,
 }: UsePostActionsParams): PostActions {
+  const utils = api.useUtils();
+  const params = useParams();
+
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const success: Post["images"] = [];
-    const failed = [];
-    for (const file of files) {
-      const { name, type, size } = file;
-      await new Promise<void>((resolve) => {
-        const fileReader = new FileReader();
-        fileReader.readAsDataURL(file);
-        fileReader.onload = () => {
-          const dataUrl = fileReader.result as string;
-          const id = crypto.randomUUID();
-          success.push({
-            id,
-            name,
-            type,
-            size,
-            dataUrl,
-            order: 0, // Placeholder, will be set properly in reducer
-          });
-          resolve();
-        };
-        fileReader.onerror = () => {
-          failed.push({ name, type, size, error: fileReader.error });
-          resolve();
-        };
-      });
-    }
-    dispatch({ type: "ADD_IMAGES", payload: success });
+    const metadata = Array.from(files).map((file) => ({
+      name: file.name,
+      size: file.size,
+      mimetype: file.type,
+    }));
+
+    const diaryId = Number(params.diaryId);
+    const entryId = Number(params.entryId);
+
+    const res = await Promise.allSettled(
+      metadata.map(async (meta) => {
+        const data = utils.diary.createPresignedPostUrl.fetch(
+          {
+            diaryId,
+            entryId,
+            imageMetadata: meta,
+          },
+          { staleTime: 0 },
+        );
+        return data;
+      }),
+    );
+
+    const payload: (ImageUploadingState | ImageErrorState)[] = res.map(
+      (res, index) => {
+        const meta = metadata[index]!;
+        if (res.status === "fulfilled") {
+          return {
+            type: "uploading" as const,
+            id: crypto.randomUUID(),
+            name: meta.name,
+            size: meta.size,
+            mimetype: meta.mimetype,
+            order: index + 1,
+            key: res.value.key,
+          } satisfies ImageUploadingState;
+        }
+        return {
+          type: "error" as const,
+          id: crypto.randomUUID(),
+        } satisfies ImageErrorState;
+      },
+    );
+
+    dispatch({ type: "ADD_IMAGES", payload });
   }
 
   function handleTitleChange(value: string) {
@@ -86,7 +115,7 @@ export function usePostActions({
       state.postImageSelections.get(post.id) ?? post.images[0]?.id;
 
     if (selectedImageId) {
-      scrollToPost(selectedImageId, true);
+      scrollToImage(selectedImageId, true);
     }
   }
 
@@ -96,7 +125,7 @@ export function usePostActions({
 
   function handleImageSelect(imageId: string) {
     dispatch({ type: "SELECT_IMAGE", payload: imageId });
-    scrollToPost(imageId);
+    scrollToImage(imageId);
   }
 
   return {
