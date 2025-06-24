@@ -2,25 +2,25 @@
 "use client";
 import { Plus, Trash } from "lucide-react";
 import { type ChangeEvent, type RefObject, useRef, useCallback } from "react";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+import { Button } from "../../ui/button";
+import { Input } from "../../ui/input";
+import { Label } from "../../ui/label";
 import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { SortableItem } from "../shared/SortableItem";
-import { cn } from "../utils/cx";
-import { type Post, type Image } from "./postsReducer";
-import { useScrollToImage } from "./useScrollToImage";
-import { useIntersectionObserver } from "../utils/useIntersectionObserver";
-import { usePostActions } from "./usePostActions";
-import { usePostDnD } from "./usePostDnD";
-import { Skeleton } from "../ui/skeleton";
-import { usePosts } from "./PostsContext";
-import { useImageDnd } from "./useImageDnD";
+import { SortableItem } from "../../shared/SortableItem";
+import { cn } from "../../utils/cx";
+import { type Post, type Image } from "../reducers/postsReducer";
+import { useScrollToImage } from "../hooks/useScrollToImage";
+import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
+import { usePostActions } from "../hooks/usePostActions";
+import { usePostDnD } from "../hooks/usePostDnD";
+import { Skeleton } from "../../ui/skeleton";
+import { usePosts } from "../contexts/PostsContext";
+import { useImageDnd } from "../hooks/useImageDnD";
 
 export function EditPosts() {
   const { state, dispatch } = usePosts();

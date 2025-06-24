@@ -21,7 +21,7 @@ import {
 } from "~/app/_lib/ui/alert-dialog";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "~/app/_lib/ui/input";
-import { INSERT_IMAGE_COMMAND } from "~/app/_lib/editor/ImagePlugin";
+import { INSERT_IMAGE_COMMAND } from "~/app/_lib/editor/components/ImagePlugin";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "~/app/_lib/ui/use-toast";

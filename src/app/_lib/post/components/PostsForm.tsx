@@ -37,7 +37,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { SortableItem } from "../shared/SortableItem";
+import { SortableItem } from "../../shared/SortableItem";
 import { api } from "~/trpc/TrpcProvider";
 import { Skeleton } from "~/app/_lib/ui/skeleton";
 import { toast } from "~/app/_lib/ui/use-toast";

@@ -6,7 +6,7 @@ import type {
   PostsAction,
   ImageUploadingState,
   ImageErrorState,
-} from "./postsReducer";
+} from "../reducers/postsReducer";
 import { type useScrollToImage } from "./useScrollToImage";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";

@@ -1,6 +1,6 @@
 import { api } from "~/trpc/server";
-import { EditPosts } from "~/app/_lib/post/EditPosts";
-import { PostsProvider } from "~/app/_lib/post/PostsContext";
+import { EditPosts } from "~/app/_lib/post/components/EditPosts";
+import { PostsProvider } from "~/app/_lib/post/contexts/PostsContext";
 
 export default async function EditMapPage(props: {
   params: Promise<{ diaryId: string; entryId: string }>;

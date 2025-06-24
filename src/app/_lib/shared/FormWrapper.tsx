@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { PostsForm } from "../post/PostsForm";
-import type { PostsFormHandle } from "../post/PostsForm";
+import { PostsForm } from "../post/components/PostsForm";
+import type { PostsFormHandle } from "../post/components/PostsForm";
 import { api } from "~/trpc/TrpcProvider";
 import { useEffect, useRef } from "react";
 import type { RouterInputs } from "~/server/trpc";

@@ -6,7 +6,7 @@ import {
   type PostsAction,
   postsReducer,
   type PostsState,
-} from "./postsReducer";
+} from "../reducers/postsReducer";
 
 type PostsContextValue = {
   state: PostsState;

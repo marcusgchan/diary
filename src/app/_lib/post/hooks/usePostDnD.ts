@@ -7,35 +7,32 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import type { PostsAction } from "./postsReducer";
+import type { PostsAction } from "../reducers/postsReducer";
 
-export function useImageDnd(dispatch: React.ActionDispatch<[PostsAction]>) {
-  const [activeImageId, setActiveImageId] = useState<string | null>(null);
+export function usePostDnD(dispatch: React.ActionDispatch<[PostsAction]>) {
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  function handleImageDragStart(event: DragStartEvent) {
-    setActiveImageId(event.active.id as string);
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
   }
 
-  function handleImageDragEnd(event: DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
       dispatch({
-        type: "REORDER_IMAGES",
-        payload: {
-          activeImageId: active.id as string,
-          overImageId: over.id as string,
-        },
+        type: "REORDER_POSTS",
+        payload: { activeId: active.id as string, overId: over.id as string },
       });
     }
 
-    setActiveImageId(null);
+    setActiveId(null);
   }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 100,
+        delay: 300,
         tolerance: 5,
       },
     }),
@@ -45,9 +42,9 @@ export function useImageDnd(dispatch: React.ActionDispatch<[PostsAction]>) {
   );
 
   return {
-    activeImageId,
-    handleImageDragStart,
-    handleImageDragEnd,
+    activeId,
+    handleDragStart,
+    handleDragEnd,
     sensors,
   };
 }
