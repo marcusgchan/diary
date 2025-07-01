@@ -7,7 +7,7 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import type { PostsAction } from "../reducers/postsReducer";
+import type { PostsAction } from "./postsReducer";
 
 export function usePostDnD(dispatch: React.ActionDispatch<[PostsAction]>) {
   const [activeId, setActiveId] = useState<string | null>(null);

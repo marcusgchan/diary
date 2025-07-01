@@ -6,7 +6,7 @@ import type {
   PostsAction,
   ImageUploadingState,
   ImageErrorState,
-} from "../reducers/postsReducer";
+} from "@/_lib/post/reducers/postsReducer";
 import { type useScrollToImage } from "./useScrollToImage";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
@@ -64,25 +64,38 @@ export function usePostActions({
       }),
     );
 
-    const payload: (ImageUploadingState | ImageErrorState)[] = res.map(
-      (res, index) => {
+    const payload: ImageUploadingState[] = res
+      .filter((res) => res.status === "fulfilled")
+      .map((res, index) => {
         const meta = metadata[index]!;
-        if (res.status === "fulfilled") {
-          return {
-            type: "uploading" as const,
-            id: crypto.randomUUID(),
-            name: meta.name,
-            size: meta.size,
-            mimetype: meta.mimetype,
-            order: index + 1,
-            key: res.value.key,
-          } satisfies ImageUploadingState;
-        }
         return {
-          type: "error" as const,
+          type: "uploading" as const,
           id: crypto.randomUUID(),
-        } satisfies ImageErrorState;
-      },
+          name: meta.name,
+          size: meta.size,
+          mimetype: meta.mimetype,
+          order: index + 1,
+          key: res.value.key,
+        } satisfies ImageUploadingState;
+      });
+
+    await Promise.allSettled(
+      res.map((item, index) => {
+        if (item.status === "rejected") {
+          return Promise.reject(new Error(item.reason));
+        }
+
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(item.value.fields)) {
+          formData.append(key, value);
+        }
+        formData.append("file", files[index]!);
+
+        return fetch(item.value.url, {
+          method: "post",
+          body: formData,
+        });
+      }),
     );
 
     dispatch({ type: "ADD_IMAGES", payload });

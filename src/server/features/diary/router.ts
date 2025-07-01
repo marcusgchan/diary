@@ -639,21 +639,30 @@ export const diaryRouter = createTRPCRouter({
             }
 
             if (el.compressionStatus === "failure") {
-              return [id, { key: el.key, url, status: "failure" }] as const;
+              return [id, { type: "failure", key: el.key, url }] as const;
             }
 
-            return [id, { key: el.key, url, status: "success" }] as const;
+            return [id, { type: "success", key: el.key, url }] as const;
           } catch (_) {
             return [
               input.keyToIdMap.get(el.key)!,
               {
-                status: "failure",
+                type: "error",
               },
             ] as const;
           }
         });
       const res = await Promise.all(unlinkedTransformed);
-      return typeSafeObjectFromEntries(res);
+      const resultMap = new Map<
+        string,
+        | { type: "success"; key: string; url: string }
+        | { type: "failure"; key: string; url: string }
+        | { type: "error" }
+      >();
+      for (const [key, value] of res) {
+        resultMap.set(key, value);
+      }
+      return resultMap;
     }),
   getImageUploadStatus: protectedProcedure
     .input(z.object({ key: z.string().or(z.undefined()) }))

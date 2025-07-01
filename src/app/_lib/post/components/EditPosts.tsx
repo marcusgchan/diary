@@ -1,7 +1,13 @@
 // move active id to reducer, scroll not selecting right active img
 "use client";
 import { Plus, Trash } from "lucide-react";
-import { type ChangeEvent, type RefObject, useRef, useCallback } from "react";
+import {
+  type ChangeEvent,
+  type RefObject,
+  useRef,
+  useCallback,
+  useEffect,
+} from "react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
@@ -21,6 +27,9 @@ import { usePostDnD } from "../hooks/usePostDnD";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { useImageDnd } from "../hooks/useImageDnD";
+import { api } from "~/trpc/TrpcProvider";
+import { useParams } from "next/navigation";
+import { uploadImage } from "~/server/features/shared/s3ImagesService";
 
 export function EditPosts() {
   const { state, dispatch } = usePosts();
@@ -238,6 +247,31 @@ function SelectedPostView({
     } as ChangeEvent<HTMLInputElement>;
     void handleFilesChange(mockEvent);
   };
+
+  const params = useParams();
+  const diaryId = Number(params.diaryId);
+  const entryId = Number(params.entryId);
+  const { data: uploadingState } =
+    api.diary.getMultipleImageUploadStatus.useQuery(
+      {
+        entryId,
+        diaryId,
+        keys: Array.from(state.imageKeyToImageId.keys()),
+        keyToIdMap: state.imageKeyToImageId,
+      },
+      {
+        enabled: state.imageKeyToImageId.size > 0,
+        refetchInterval: 3000,
+      },
+    );
+  console.log(state.imageKeyToImageId.size > 0);
+  useEffect(() => {
+    console.log("effect");
+    if (!uploadingState) {
+      return;
+    }
+    dispatch({ type: "UPDATE_IMAGES_STATUS", payload: uploadingState });
+  }, [uploadingState, dispatch]);
 
   return (
     <div className="flex w-80 flex-col gap-2 rounded border-2 border-black p-2">

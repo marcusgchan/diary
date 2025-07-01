@@ -1,5 +1,7 @@
 //TODO:invarirant with post length cannot be empty (refactor deleate and maybe others)
 
+import { RouterOutputs } from "~/server/trpc";
+
 export type ImageLoadedState = {
   type: "loaded";
   id: string;
@@ -41,13 +43,14 @@ export type PostsState = {
   posts: Post[];
   selectedPostId: string;
   postImageSelections: Map<string, string | null>;
+  imageKeyToImageId: Map<NonNullable<Image["key"]>, Image["id"]>;
 };
 
 export type PostsAction =
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
   | { type: "UPDATE_POST"; payload: { updates: Partial<Post> } }
-  | { type: "ADD_IMAGES"; payload: (ImageUploadingState | ImageErrorState)[] }
+  | { type: "ADD_IMAGES"; payload: ImageUploadingState[] }
   | { type: "CANCEL_EDITING" }
   | { type: "SELECT_IMAGE"; payload: string }
   | { type: "DELETE_POST" }
@@ -56,7 +59,10 @@ export type PostsAction =
       type: "REORDER_IMAGES";
       payload: { activeImageId: string; overImageId: string };
     }
-  | { type: "UPDATE_IMAGE_STATUS"; payload: { imageId: string; status: Image } }
+  | {
+      type: "UPDATE_IMAGES_STATUS";
+      payload: RouterOutputs["diary"]["getMultipleImageUploadStatus"];
+    }
   | { type: "DELETE_IMAGE"; payload: { imageId: string } };
 
 const emptyPost: Omit<Post, "id" | "order"> = {
@@ -77,6 +83,7 @@ export const initialState: PostsState = {
   posts: [firstPost],
   selectedPostId: firstPost.id,
   postImageSelections: new Map(),
+  imageKeyToImageId: new Map(),
 };
 
 export function postsReducer(
@@ -93,9 +100,9 @@ export function postsReducer(
       const newPostToSelect = createNewEmptyPost(maxOrder + 1);
 
       return {
+        ...state,
         posts: [...state.posts, newPostToSelect],
         selectedPostId: newPostToSelect.id,
-        postImageSelections: new Map(state.postImageSelections),
       };
     }
 
@@ -135,6 +142,7 @@ export function postsReducer(
       newPostImageSelections.set(postIdToEdit, newSelectedImageId);
 
       return {
+        ...state,
         posts: updatedPosts,
         selectedPostId: postIdToEdit,
         postImageSelections: newPostImageSelections,
@@ -162,6 +170,10 @@ export function postsReducer(
           action.payload[0]!.id,
         );
       }
+
+      action.payload.forEach((image) =>
+        state.imageKeyToImageId.set(image.key, image.id),
+      );
 
       return {
         ...state,
@@ -198,6 +210,7 @@ export function postsReducer(
         const newPostImageSelections = new Map(state.postImageSelections);
         newPostImageSelections.set(lastPost.id, lastPost.images[0]?.id ?? null);
         return {
+          ...state,
           posts: remainingPosts,
           selectedPostId: lastPost.id,
           postImageSelections: newPostImageSelections,
@@ -220,9 +233,9 @@ export function postsReducer(
         // If only one post, replace it with a new empty post
         const newPost = createNewEmptyPost(0);
         return {
+          ...state,
           posts: [newPost],
           selectedPostId: newPost.id,
-          postImageSelections: new Map(),
         };
       }
 
@@ -233,9 +246,9 @@ export function postsReducer(
         // Fallback: create a new empty post if somehow no posts remain
         const newPost = createNewEmptyPost(0);
         return {
+          ...state,
           posts: [newPost],
           selectedPostId: newPost.id,
-          postImageSelections: new Map(),
         };
       }
 
@@ -243,6 +256,7 @@ export function postsReducer(
       const newPostImageSelections = new Map(state.postImageSelections);
       newPostImageSelections.set(lastPost.id, lastPost.images[0]?.id ?? null);
       return {
+        ...state,
         posts: remainingPosts,
         selectedPostId: lastPost.id,
         postImageSelections: newPostImageSelections,
@@ -308,21 +322,27 @@ export function postsReducer(
       };
     }
 
-    case "UPDATE_IMAGE_STATUS": {
-      const { imageId, status } = action.payload;
+    case "UPDATE_IMAGES_STATUS": {
+      state.posts.forEach((post) => {
+        post.images.forEach((image, i) => {
+          const imagePayload = action.payload.get(image.id);
+          if (!imagePayload) {
+            return;
+          }
+
+          if (imagePayload.type === "success") {
+            const newImage = {
+              ...(image as ImageUploadingState),
+              type: "loaded",
+              url: imagePayload.url,
+            } satisfies ImageLoadedState;
+            post.images[i] = newImage;
+            state.imageKeyToImageId.delete(newImage.key);
+          }
+        });
+      });
       return {
         ...state,
-        posts: state.posts.map((post) => {
-          if (post.id === state.selectedPostId) {
-            return {
-              ...post,
-              images: post.images.map((img) =>
-                img.id === imageId ? status : img,
-              ),
-            };
-          }
-          return post;
-        }),
       };
     }
 
