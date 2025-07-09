@@ -27,7 +27,6 @@ import {
   S3ImageService,
 } from "../shared/s3ImagesService";
 import { randomUUID } from "crypto";
-import { typeSafeObjectFromEntries } from "~/app/_lib/utils/typeSafeObjectFromEntries";
 import { type Span } from "@opentelemetry/api";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { getUserIdFromKey } from "./utils";

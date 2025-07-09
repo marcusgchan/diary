@@ -5,11 +5,11 @@ import type {
   PostsState,
   PostsAction,
   ImageUploadingState,
-  ImageErrorState,
 } from "@/_lib/post/reducers/postsReducer";
 import { type useScrollToImage } from "./useScrollToImage";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
+import { useToast } from "../../ui/use-toast";
 
 export type PostActions = {
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -36,6 +36,7 @@ export function usePostActions({
 }: UsePostActionsParams): PostActions {
   const utils = api.useUtils();
   const params = useParams();
+  const { toast } = useToast();
 
   async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -82,7 +83,10 @@ export function usePostActions({
     await Promise.allSettled(
       res.map((item, index) => {
         if (item.status === "rejected") {
-          return Promise.reject(new Error(item.reason));
+          toast({ title: "Unable to add file " + files[index]!.name });
+          return Promise.reject(
+            item.reason instanceof Error ? item.reason : new Error(),
+          );
         }
 
         const formData = new FormData();

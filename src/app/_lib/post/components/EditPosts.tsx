@@ -29,7 +29,6 @@ import { usePosts } from "../contexts/PostsContext";
 import { useImageDnd } from "../hooks/useImageDnD";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
-import { uploadImage } from "~/server/features/shared/s3ImagesService";
 
 export function EditPosts() {
   const { state, dispatch } = usePosts();
