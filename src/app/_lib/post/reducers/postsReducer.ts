@@ -1,6 +1,6 @@
 //TODO:invarirant with post length cannot be empty (refactor deleate and maybe others)
 
-import { RouterOutputs } from "~/server/trpc";
+import { type RouterOutputs } from "~/server/trpc";
 
 export type ImageLoadedState = {
   type: "loaded";
