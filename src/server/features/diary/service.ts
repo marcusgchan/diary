@@ -265,8 +265,9 @@ export class DiaryServiceRepo {
             ...(post.id && { id: post.id }),
             entryId: entryId,
             title: post.title,
-            description: post.description,
             imageKey: post.key,
+            description: post.description,
+            isSelected: post.isSelected,
             order: index,
           };
         }),
@@ -277,6 +278,7 @@ export class DiaryServiceRepo {
           title: sql.raw(`excluded.${posts.title.name}`),
           imageKey: sql.raw(`excluded."${posts.imageKey.name}"`),
           description: sql.raw(`excluded.${posts.description.name}`),
+          isSelected: sql.raw(`excluded.${posts.isSelected.name}`),
           order: sql.raw(`excluded.${posts.order.name}`),
         },
       })
@@ -462,6 +464,7 @@ export async function insertImageMetadata({
       size: 0,
       lat: gps?.lat,
       lon: gps?.lon,
+      isSelected: false, // add for now but journal section doesn't have selected for images
       datetimeTaken:
         dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
     })
@@ -478,6 +481,7 @@ export async function createMetadataOnImageCallback({
   size, // bytes
   dateTimeTaken,
   compressionStatus,
+  isSelected,
   gps,
 }: {
   db: TRPCContext["db"];
@@ -489,6 +493,7 @@ export async function createMetadataOnImageCallback({
   size: number;
   gps?: { lat: number; lon: number };
   compressionStatus: ImageKeys["compressionStatus"];
+  isSelected: boolean;
   dateTimeTaken?: string | undefined;
 }) {
   const res = await db
@@ -511,6 +516,7 @@ export async function createMetadataOnImageCallback({
       entryId,
       lat: gps?.lat,
       lon: gps?.lon,
+      isSelected,
       compressionStatus: compressionStatus,
       datetimeTaken:
         dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
@@ -596,6 +602,7 @@ export async function insertImageMetadataWithGps({
     entryId,
     lat,
     lon,
+    isSelected: false, // add for now but journal section doesn't have selected for images
     datetimeTaken:
       dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
   });

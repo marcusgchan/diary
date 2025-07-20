@@ -11,28 +11,26 @@ import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "../../ui/use-toast";
 
+type ScrollToImage = ReturnType<typeof useScrollToImage>["scrollToImage"];
+
 export type PostActions = {
   handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
   handleStartNewPost: () => void;
-  handleEditPost: (post: Post) => void;
+  handleEditPost: (post: Post, scrollToImage: ScrollToImage) => void;
   handleDeletePost: () => void;
-  handleImageSelect: (imageId: string) => void;
+  handleImageSelect: (imageId: string, scrollToImage: ScrollToImage) => void;
 };
-
-type ScrollToImage = ReturnType<typeof useScrollToImage>["scrollToImage"];
 
 type UsePostActionsParams = {
   dispatch: React.Dispatch<PostsAction>;
   state: PostsState;
-  scrollToImage: ScrollToImage;
 };
 
 export function usePostActions({
   dispatch,
   state,
-  scrollToImage,
 }: UsePostActionsParams): PostActions {
   const utils = api.useUtils();
   const params = useParams();
@@ -65,6 +63,8 @@ export function usePostActions({
       }),
     );
 
+    const selectedPost = state.posts.find((post) => post.isSelected)!;
+
     const payload: ImageUploadingState[] = res
       .filter((res) => res.status === "fulfilled")
       .map((res, index) => {
@@ -77,6 +77,7 @@ export function usePostActions({
           mimetype: meta.mimetype,
           order: index + 1,
           key: res.value.key,
+          isSelected: selectedPost.images.length === 0 && index === 0,
         } satisfies ImageUploadingState;
       });
 
@@ -123,24 +124,23 @@ export function usePostActions({
     dispatch({ type: "START_NEW_POST" });
   }
 
-  function handleEditPost(post: Post) {
+  function handleEditPost(post: Post, scrollToImage: ScrollToImage) {
     flushSync(() => {
       dispatch({ type: "START_EDITING", payload: post.id });
     });
 
-    const selectedImageId =
-      state.postImageSelections.get(post.id) ?? post.images[0]?.id;
+    const selectedImage = post.images.find((image) => image.isSelected);
 
-    if (selectedImageId) {
-      scrollToImage(selectedImageId, true);
+    if (selectedImage?.id) {
+      scrollToImage(selectedImage.id, true);
     }
   }
 
   function handleDeletePost() {
-    dispatch({ type: "DELETE_POST" });
+    dispatch({ type: "DELETE_CURRENT_POST" });
   }
 
-  function handleImageSelect(imageId: string) {
+  function handleImageSelect(imageId: string, scrollToImage: ScrollToImage) {
     dispatch({ type: "SELECT_IMAGE", payload: imageId });
     scrollToImage(imageId);
   }

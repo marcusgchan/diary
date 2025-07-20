@@ -11,6 +11,7 @@ export type ImageLoadedState = {
   url: string;
   order: number;
   key: string;
+  isSelected: boolean;
 };
 
 export type ImageUploadingState = {
@@ -21,12 +22,14 @@ export type ImageUploadingState = {
   mimetype: string;
   order: number;
   key: string;
+  isSelected: boolean;
 };
 
 export type ImageErrorState = {
   type: "error";
   id: string;
   key?: string;
+  isSelected: boolean;
 };
 
 export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
@@ -36,24 +39,23 @@ export type Post = {
   title: string;
   description: string;
   order: number;
+  isSelected: boolean;
   images: Image[];
 };
 
 export type PostsState = {
   posts: Post[];
-  selectedPostId: string;
-  postImageSelections: Map<string, string | null>;
   imageKeyToImageId: Map<NonNullable<Image["key"]>, Image["id"]>;
 };
 
 export type PostsAction =
+  | { type: "LOAD_POSTS"; payload: Post[] }
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
   | { type: "UPDATE_POST"; payload: { updates: Partial<Post> } }
   | { type: "ADD_IMAGES"; payload: ImageUploadingState[] }
-  | { type: "CANCEL_EDITING" }
   | { type: "SELECT_IMAGE"; payload: string }
-  | { type: "DELETE_POST" }
+  | { type: "DELETE_CURRENT_POST" }
   | { type: "REORDER_POSTS"; payload: { activeId: string; overId: string } }
   | {
       type: "REORDER_IMAGES";
@@ -63,11 +65,12 @@ export type PostsAction =
       type: "UPDATE_IMAGES_STATUS";
       payload: RouterOutputs["diary"]["getMultipleImageUploadStatus"];
     }
-  | { type: "DELETE_IMAGE"; payload: { imageId: string } };
+  | { type: "DELETE_CURRENT_IMAGE"; payload: { imageId: string } };
 
 const emptyPost: Omit<Post, "id" | "order"> = {
   images: [],
   title: "",
+  isSelected: true,
   description: "",
 };
 
@@ -81,8 +84,6 @@ const firstPost = createNewEmptyPost(0);
 
 export const initialState: PostsState = {
   posts: [firstPost],
-  selectedPostId: firstPost.id,
-  postImageSelections: new Map(),
   imageKeyToImageId: new Map(),
 };
 
@@ -90,10 +91,6 @@ export function postsReducer(
   state: PostsState,
   action: PostsAction,
 ): PostsState {
-  const currentSelectedPost = state.posts.find(
-    (p) => p.id === state.selectedPostId,
-  )!;
-
   switch (action.type) {
     case "START_NEW_POST": {
       const maxOrder = Math.max(...state.posts.map((p) => p.order), -1);
@@ -102,50 +99,13 @@ export function postsReducer(
       return {
         ...state,
         posts: [...state.posts, newPostToSelect],
-        selectedPostId: newPostToSelect.id,
       };
     }
 
+    // Invariant: Post guaranteed to exist
     case "START_EDITING": {
-      const postIdToEdit = action.payload;
-
-      if (currentSelectedPost.id === postIdToEdit) {
-        return state;
-      }
-
-      let updatedPosts = state.posts;
-      if (currentSelectedPost.images.length === 0 && state.posts.length > 1) {
-        updatedPosts = state.posts.filter(
-          (p) => p.id !== currentSelectedPost.id,
-        );
-      }
-
-      const newPostToFocus = updatedPosts.find((p) => p.id === postIdToEdit);
-
-      // Check if current selectedImageId is valid for the new post
-      let newSelectedImageId =
-        state.postImageSelections.get(postIdToEdit) ?? null;
-      if (newPostToFocus && newSelectedImageId) {
-        const imageExists = newPostToFocus.images.some(
-          (img) => img.id === newSelectedImageId,
-        );
-        if (!imageExists) {
-          // If current selected image doesn't exist in new post, select first image or null
-          newSelectedImageId = newPostToFocus.images[0]?.id ?? null;
-        }
-      } else if (newPostToFocus && !newSelectedImageId) {
-        // If no image was selected, select first image of new post
-        newSelectedImageId = newPostToFocus.images[0]?.id ?? null;
-      }
-
-      const newPostImageSelections = new Map(state.postImageSelections);
-      newPostImageSelections.set(postIdToEdit, newSelectedImageId);
-
       return {
         ...state,
-        posts: updatedPosts,
-        selectedPostId: postIdToEdit,
-        postImageSelections: newPostImageSelections,
       };
     }
 
@@ -153,24 +113,11 @@ export function postsReducer(
       return {
         ...state,
         posts: state.posts.map((post) =>
-          post.id === state.selectedPostId
-            ? { ...post, ...action.payload.updates }
-            : post,
+          post.isSelected ? { ...post, ...action.payload.updates } : post,
         ),
       };
 
     case "ADD_IMAGES": {
-      const currentSelectedImageId = state.postImageSelections.get(
-        state.selectedPostId,
-      );
-
-      if (!currentSelectedImageId) {
-        state.postImageSelections.set(
-          state.selectedPostId,
-          action.payload[0]!.id,
-        );
-      }
-
       action.payload.forEach((image) =>
         state.imageKeyToImageId.set(image.key, image.id),
       );
@@ -178,10 +125,11 @@ export function postsReducer(
       return {
         ...state,
         posts: state.posts.map((post) => {
-          if (post.id === state.selectedPostId) {
+          if (post.isSelected) {
             const currentImageCount = post.images.length;
             const imagesWithOrder = action.payload.map((image, index) => ({
               ...image,
+              isSelected: post.images.length === 0 && index === 0,
               order: currentImageCount + index,
             }));
 
@@ -193,73 +141,37 @@ export function postsReducer(
     }
 
     case "SELECT_IMAGE": {
-      const newPostImageSelections = new Map(state.postImageSelections);
-      newPostImageSelections.set(state.selectedPostId, action.payload);
       return {
         ...state,
-        postImageSelections: newPostImageSelections,
+        posts: state.posts.map((post) => {
+          if (post.isSelected) {
+            return {
+              ...post,
+              images: post.images.map((image) =>
+                image.id === action.payload
+                  ? { ...image, isSelected: true }
+                  : { ...image, isSelected: false },
+              ),
+            };
+          }
+          return post;
+        }),
       };
     }
 
-    case "CANCEL_EDITING": {
-      if (currentSelectedPost.images.length === 0 && state.posts.length > 1) {
-        const remainingPosts = state.posts.filter(
-          (p) => p.id !== currentSelectedPost.id,
-        );
-        const lastPost = remainingPosts[remainingPosts.length - 1]!;
-        const newPostImageSelections = new Map(state.postImageSelections);
-        newPostImageSelections.set(lastPost.id, lastPost.images[0]?.id ?? null);
-        return {
-          ...state,
-          posts: remainingPosts,
-          selectedPostId: lastPost.id,
-          postImageSelections: newPostImageSelections,
-        };
-      }
-      const maxOrder = Math.max(...state.posts.map((p) => p.order), -1);
-      const newPost = createNewEmptyPost(maxOrder + 1);
-      const newPostImageSelections = new Map(state.postImageSelections);
-      newPostImageSelections.set(newPost.id, null);
-      return {
-        ...state,
-        posts: [...state.posts, newPost],
-        selectedPostId: newPost.id,
-        postImageSelections: newPostImageSelections,
-      };
-    }
-
-    case "DELETE_POST": {
-      if (state.posts.length === 1) {
-        // If only one post, replace it with a new empty post
-        const newPost = createNewEmptyPost(0);
-        return {
-          ...state,
-          posts: [newPost],
-          selectedPostId: newPost.id,
-        };
-      }
-
-      const remainingPosts = state.posts.filter(
-        (p) => p.id !== currentSelectedPost.id,
-      );
+    case "DELETE_CURRENT_POST": {
+      const remainingPosts = state.posts.filter((p) => !p.isSelected);
       if (remainingPosts.length === 0) {
-        // Fallback: create a new empty post if somehow no posts remain
-        const newPost = createNewEmptyPost(0);
+        const newPost = createNewEmptyPost();
         return {
           ...state,
           posts: [newPost],
-          selectedPostId: newPost.id,
         };
       }
 
-      const lastPost = remainingPosts[remainingPosts.length - 1]!;
-      const newPostImageSelections = new Map(state.postImageSelections);
-      newPostImageSelections.set(lastPost.id, lastPost.images[0]?.id ?? null);
       return {
         ...state,
         posts: remainingPosts,
-        selectedPostId: lastPost.id,
-        postImageSelections: newPostImageSelections,
       };
     }
 
@@ -291,7 +203,7 @@ export function postsReducer(
     case "REORDER_IMAGES": {
       const { activeImageId, overImageId } = action.payload;
       const updatedPosts = state.posts.map((post) => {
-        if (post.id === state.selectedPostId) {
+        if (post.isSelected) {
           const images = [...post.images];
           const activeIndex = images.findIndex(
             (img) => img.id === activeImageId,
@@ -346,12 +258,12 @@ export function postsReducer(
       };
     }
 
-    case "DELETE_IMAGE": {
+    case "DELETE_CURRENT_IMAGE": {
       const { imageId } = action.payload;
       return {
         ...state,
         posts: state.posts.map((post) => {
-          if (post.id === state.selectedPostId) {
+          if (post.isSelected) {
             return {
               ...post,
               images: post.images.filter((img) => img.id !== imageId),
@@ -363,6 +275,6 @@ export function postsReducer(
     }
 
     default:
-      return state;
+      throw new Error("Invalid PostsAction in postsReducer");
   }
 }

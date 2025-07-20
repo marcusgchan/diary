@@ -30,37 +30,24 @@ import { useImageDnd } from "../hooks/useImageDnD";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 
-export function EditPosts() {
+export function Posts() {
   const { state, dispatch } = usePosts();
 
   const { activeId, handleDragStart, handleDragEnd, sensors } =
     usePostDnD(dispatch);
 
-  const selectedPost = state.posts.find((p) => p.id === state.selectedPostId)!;
   const activePost = activeId
     ? state.posts.find((p) => p.id === activeId)
     : null;
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { scrollToImage, isScrollingProgrammatically } =
-    useScrollToImage(scrollContainerRef);
-
   const { handleStartNewPost, handleEditPost } = usePostActions({
     dispatch,
     state,
-    scrollToImage: scrollToImage,
   });
 
-  const onImageIntersect = useCallback(
-    (element: Element) => {
-      const imageId = element.getAttribute("data-image-id");
-      if (!imageId) {
-        throw new Error("Image is missing data-image-id attribute");
-      }
-      dispatch({ type: "SELECT_IMAGE", payload: imageId });
-    },
-    [dispatch],
-  );
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { scrollToImage, isScrollingProgrammatically } =
+    useScrollToImage(scrollContainerRef);
 
   return (
     <div className="flex gap-4">
@@ -71,11 +58,9 @@ export function EditPosts() {
         onDragStart={handleDragStart}
       >
         <SelectedPostView
-          isScrollingProgrammatically={isScrollingProgrammatically}
-          scrollToImage={scrollToImage}
-          onImageIntersect={onImageIntersect}
-          selectedPostForm={selectedPost}
           scrollContainerRef={scrollContainerRef}
+          scrollToImage={scrollToImage}
+          isScrollingProgrammatically={isScrollingProgrammatically}
         />
         <SortableContext
           items={state.posts.map((post) => ({ id: post.id }))}
@@ -84,7 +69,7 @@ export function EditPosts() {
           <PostsAside
             posts={state.posts.filter((p) => p.images.length > 0)}
             onNewPost={handleStartNewPost}
-            onEditPost={handleEditPost}
+            onEditPost={(post) => handleEditPost(post, scrollToImage)}
           />
         </SortableContext>
         <DragOverlay>
@@ -207,37 +192,33 @@ function ImgLogo() {
 }
 
 type SelectedPostViewProps = {
-  onImageIntersect: (image: Element) => void;
   isScrollingProgrammatically: boolean;
   scrollToImage: ReturnType<typeof useScrollToImage>["scrollToImage"];
-  selectedPostForm: Post;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
 };
 
 function SelectedPostView({
-  onImageIntersect,
-  isScrollingProgrammatically,
   scrollToImage,
-  selectedPostForm,
+  isScrollingProgrammatically,
   scrollContainerRef,
 }: SelectedPostViewProps) {
   const { state, dispatch } = usePosts();
+
   const {
     handleDeletePost,
     handleFilesChange,
     handleTitleChange,
     handleDescriptionChange,
     handleImageSelect: setSelectedImageId,
-  } = usePostActions({ dispatch, state, scrollToImage: scrollToImage });
+  } = usePostActions({ dispatch, state });
 
   const { sensors, activeImageId, handleImageDragEnd, handleImageDragStart } =
     useImageDnd(dispatch);
 
-  const selectedImageId =
-    state.postImageSelections.get(state.selectedPostId) ?? null;
-  const draggedImage = state.posts
-    .find((post) => post.id === state.selectedPostId)!
-    .images.find((image) => image.id === activeImageId)!;
+  const selectedPostForm = state.posts.find((post) => post.isSelected)!;
+  const draggedImage = selectedPostForm.images.find(
+    (image) => image.id === activeImageId,
+  );
 
   const handleDropzoneFilesChange = (files: FileList) => {
     // Convert FileList to ChangeEvent format for compatibility
@@ -246,6 +227,17 @@ function SelectedPostView({
     } as ChangeEvent<HTMLInputElement>;
     void handleFilesChange(mockEvent);
   };
+
+  const onImageIntersect = useCallback(
+    (element: Element) => {
+      const imageId = element.getAttribute("data-image-id");
+      if (!imageId) {
+        throw new Error("Image is missing data-image-id attribute");
+      }
+      dispatch({ type: "SELECT_IMAGE", payload: imageId });
+    },
+    [dispatch],
+  );
 
   const params = useParams();
   const diaryId = Number(params.diaryId);
@@ -265,7 +257,7 @@ function SelectedPostView({
     );
   console.log(state.imageKeyToImageId.size > 0);
   useEffect(() => {
-    console.log("effect");
+    console.log("effect", uploadingState);
     if (!uploadingState) {
       return;
     }
@@ -341,7 +333,9 @@ function SelectedPostView({
                     <li key={image.id} className="">
                       <button
                         type="button"
-                        onClick={() => setSelectedImageId(image.id)}
+                        onClick={() =>
+                          setSelectedImageId(image.id, scrollToImage)
+                        }
                         {...props.listeners}
                         {...props.attributes}
                         ref={props.setNodeRef}
@@ -351,7 +345,7 @@ function SelectedPostView({
                         }}
                         className={cn(
                           "block aspect-square h-10 w-10 cursor-grab overflow-hidden rounded border-2 transition-all active:cursor-grabbing",
-                          image.id === selectedImageId
+                          image.isSelected
                             ? "scale-110 border-blue-500 ring-2 ring-blue-300"
                             : "border-gray-300 hover:border-gray-400",
                         )}
@@ -366,11 +360,11 @@ function SelectedPostView({
           </ul>
         </SortableContext>
         <DragOverlay>
-          {activeImageId ? (
+          {draggedImage && (
             <div className="aspect-square h-10 w-10 rotate-6 transform overflow-hidden rounded border-2 border-blue-500 opacity-90 shadow-lg">
               <ImageRenderer image={draggedImage} />
             </div>
-          ) : null}
+          )}
         </DragOverlay>
       </DndContext>
       <input

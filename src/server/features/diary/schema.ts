@@ -54,6 +54,7 @@ export const createPostSchema = z.object({
       title: z.string(),
       key: z.string(),
       description: z.string(),
+      isSelected: z.boolean(),
     })
     .array(),
 });
@@ -67,6 +68,7 @@ export const updatePostSchema = z.object({
       title: z.string(),
       key: z.string(),
       description: z.string(),
+      isSelected: z.boolean(),
     })
     .array(),
 });

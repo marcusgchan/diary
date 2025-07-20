@@ -141,6 +141,7 @@ export const imageKeys = pgTable("image_key", {
     .default("success")
     .$type<"success" | "failure">()
     .notNull(),
+  isSelected: boolean().notNull(),
   deleting: boolean().notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
@@ -156,6 +157,7 @@ export const posts = pgTable("posts", {
   description: varchar({ length: 2048 }).notNull(),
   imageKey: text().references(() => imageKeys.key),
   order: integer().notNull(),
+  isSelected: boolean().notNull(),
   deleting: boolean("deleting").notNull().default(false),
 }).enableRLS();
 export type Posts = typeof posts.$inferSelect;

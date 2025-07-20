@@ -32,6 +32,8 @@ export class PostService {
         title: posts.title,
         description: posts.description,
         imageKey: posts.imageKey,
+        isPostSelected: posts.isSelected,
+        isImageSelected: imageKeys.isSelected,
       })
       .from(posts)
       .innerJoin(entries, eq(entries.id, posts.entryId))
@@ -52,6 +54,9 @@ export class PostService {
         id: posts.id,
         title: posts.title,
         description: posts.description,
+        order: posts.order,
+        isSelected: posts.isSelected,
+        // Image state
         imageKey: imageKeys.key,
         name: imageKeys.name,
         mimetype: imageKeys.mimetype,
