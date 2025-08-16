@@ -52,10 +52,7 @@ export async function getPostsController(
     }),
   );
 
-  return {
-    header,
-    posts: postsView(postWithImage),
-  };
+  return postsView(postWithImage);
 }
 
 function postsView(posts: GetPostWithImageState[]): GetPostGroupByImages[] {
