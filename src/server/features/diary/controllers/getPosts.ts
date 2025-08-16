@@ -52,7 +52,112 @@ export async function getPostsController(
     }),
   );
 
-  return postsView(postWithImage);
+  // return postsView(postWithImage);
+
+  return [
+    {
+      id: "post-1",
+      title: "Mountain Adventure",
+      description:
+        "A beautiful hiking trip through the Rocky Mountains. The weather was perfect and the views were breathtaking. We saw wildlife including deer and various bird species.",
+      images: [
+        {
+          type: "loaded",
+          id: "img-1",
+          url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/mountain-view-1.jpg",
+          name: "mountain-view-1.jpg",
+        },
+        {
+          type: "loaded",
+          id: "img-2",
+          url: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/mountain-trail-2.jpg",
+          name: "mountain-trail-2.jpg",
+        },
+      ],
+    },
+    {
+      id: "post-2",
+      title: "City Lights",
+      description:
+        "An evening walk through downtown. The city comes alive at night with all the neon signs and bustling streets.",
+      images: [
+        {
+          type: "loaded",
+          id: "img-3",
+          url: "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/city-night-1.jpg",
+          name: "city-night-1.jpg",
+        },
+      ],
+    },
+    {
+      id: "post-3",
+      title: "Beach Day",
+      description:
+        "Relaxing day at the beach with friends. Perfect weather for swimming and volleyball.",
+      images: [
+        {
+          type: "error",
+          id: "img-4",
+          key: "user-123/diary-456/entry-789/beach-1.jpg",
+          name: "beach-1.jpg",
+        },
+        {
+          type: "loaded",
+          id: "img-5",
+          url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/beach-sunset-2.jpg",
+          name: "beach-sunset-2.jpg",
+        },
+      ],
+    },
+    {
+      id: "post-4",
+      title: "Coffee Shop Vibes",
+      description:
+        "Working from my favorite local coffee shop. The atmosphere is perfect for productivity.",
+      images: [
+        {
+          type: "loaded",
+          id: "img-6",
+          url: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/coffee-shop-1.jpg",
+          name: "coffee-shop-1.jpg",
+        },
+      ],
+    },
+    {
+      id: "post-5",
+      title: "Garden Progress",
+      description:
+        "My tomatoes are finally starting to grow! It's been a rewarding experience learning about gardening.",
+      images: [
+        {
+          type: "loaded",
+          id: "img-7",
+          url: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/garden-tomatoes-1.jpg",
+          name: "garden-tomatoes-1.jpg",
+        },
+        {
+          type: "loaded",
+          id: "img-8",
+          url: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/garden-tools-2.jpg",
+          name: "garden-tools-2.jpg",
+        },
+        {
+          type: "loaded",
+          id: "img-9",
+          url: "https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/garden-overview-3.jpg",
+          name: "garden-overview-3.jpg",
+        },
+      ],
+    },
+  ];
 }
 
 function postsView(posts: GetPostWithImageState[]): GetPostGroupByImages[] {
