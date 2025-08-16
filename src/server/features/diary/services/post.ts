@@ -66,17 +66,15 @@ export class PostService {
         id: posts.id,
         title: posts.title,
         description: posts.description,
-        order: posts.order,
-        isSelected: posts.isSelected,
-        // Image state
-        imageKey: imageKeys.key,
-        name: imageKeys.name,
-        mimetype: imageKeys.mimetype,
-        size: imageKeys.size,
+        image: {
+          id: postImages.id,
+          key: imageKeys.key,
+          name: imageKeys.name,
+        },
       })
       .from(posts)
       .innerJoin(postImages, eq(postImages.postId, posts.id))
-      .leftJoin(imageKeys, eq(imageKeys.key, postImages.imageKey))
+      .innerJoin(imageKeys, eq(imageKeys.key, postImages.imageKey))
       .innerJoin(entries, eq(entries.id, posts.entryId))
       .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
       .where(

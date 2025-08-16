@@ -5,50 +5,12 @@ import { TRPCError } from "@trpc/server";
 import { PostService } from "../services/post";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { getImageSignedUrl } from "../../shared/s3ImagesService";
-
-type PostWithoutImage = Awaited<
-  ReturnType<PostService["getPostsForForm"]>
->[number];
-
-export type ImageLoadedState = {
-  type: "loaded";
-  id: string;
-  name: string;
-  size: number;
-  mimetype: string;
-  url: string;
-  order: number;
-  key: string;
-  isSelected: boolean;
-};
-export type ImageUploadingState = {
-  type: "uploading";
-  id: string;
-  name: string;
-  size: number;
-  mimetype: string;
-  order: number;
-  key: string;
-  isSelected: boolean;
-};
-export type ImageErrorState = {
-  type: "error";
-  id: string;
-  key?: string;
-  isSelected: boolean;
-};
-type PostWithImage = Omit<PostWithoutImage, "imageKey"> & {
-  image: ImageLoadedState | ImageErrorState;
-};
-
-export type PostGroupByImages = Pick<
-  PostWithImage,
-  "id" | "title" | "description" | "order" | "isSelected"
-> & {
-  images: ((ImageLoadedState | ImageErrorState) & {
-    isSelected: boolean;
-  })[];
-};
+import type {
+  ImageErrorState,
+  ImageLoadedState,
+  EditPostWithNonEmptyImage,
+  EditPostGroupByNonEmptyImages,
+} from "../types";
 
 export async function getPostsForFormController(
   ctx: ProtectedContext,
@@ -64,7 +26,7 @@ export async function getPostsForFormController(
   const postService = new PostService(ctx);
   const posts = await postService.getPostsForForm(input.entryId);
 
-  const postWithImage: PostWithImage[] = await Promise.all(
+  const postWithImage: EditPostWithNonEmptyImage[] = await Promise.all(
     posts.map(async (post) => {
       const { image, ...restOfPost } = post;
 
@@ -96,17 +58,19 @@ export async function getPostsForFormController(
   };
 }
 
-function postsView(posts: PostWithImage[]): PostGroupByImages[] {
+function postsView(
+  posts: EditPostWithNonEmptyImage[],
+): EditPostGroupByNonEmptyImages[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);
     if (!post) {
       acc.set(cur.id, {
         ...cur,
-        images: [{ ...cur.image, isSelected: cur.isSelected }],
+        images: [{ ...cur.image }],
       });
     }
     return acc;
-  }, new Map<string, PostGroupByImages>());
+  }, new Map<string, EditPostGroupByNonEmptyImages>());
 
   const postArray = Array.from(postMap.values());
 

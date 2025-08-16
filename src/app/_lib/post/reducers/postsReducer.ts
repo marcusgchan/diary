@@ -1,35 +1,29 @@
 //TODO:invarirant with post length cannot be empty (refactor deleate and maybe others)
 
-import { type PostGroupByImages } from "~/server/features/diary/controllers/getPostsForForm";
 import { type RouterOutputs } from "~/server/trpc";
-import {
-  type ImageErrorState,
-  type ImageLoadedState,
-  type ImageUploadingState,
-} from "~/server/features/diary/controllers/getPostsForForm";
+import type {
+  ImageErrorState,
+  ImageLoadedState,
+  ImageUploadingState,
+  PostGroupByNonEmptyImages,
+  PostGroupByImages,
+} from "~/server/features/diary/types";
 
 export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
 
-// TODO: refactor to backend
-export type Post = {
-  id: string;
-  title: string;
-  description: string;
-  order: number;
-  isSelected: boolean;
-  images: Image[];
-};
-
 export type PostsState = {
-  posts: Post[];
+  posts: PostGroupByImages[];
   imageKeyToImageId: Map<NonNullable<Image["key"]>, Image["id"]>;
 };
 
 export type PostsAction =
-  | { type: "LOAD_POSTS"; payload: PostGroupByImages[] }
+  | { type: "LOAD_POSTS"; payload: PostGroupByNonEmptyImages[] }
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
-  | { type: "UPDATE_POST"; payload: { updates: Partial<Post> } }
+  | {
+      type: "UPDATE_POST";
+      payload: { updates: Partial<PostGroupByNonEmptyImages> };
+    }
   | { type: "ADD_IMAGES"; payload: ImageUploadingState[] }
   | { type: "SELECT_IMAGE"; payload: string }
   | { type: "DELETE_CURRENT_POST" }
@@ -44,7 +38,7 @@ export type PostsAction =
     }
   | { type: "DELETE_CURRENT_IMAGE"; payload: { imageId: string } };
 
-const emptyPost: Omit<Post, "id" | "order"> = {
+const emptyPost: Omit<PostGroupByNonEmptyImages, "id" | "order"> = {
   images: [],
   title: "",
   isSelected: true,

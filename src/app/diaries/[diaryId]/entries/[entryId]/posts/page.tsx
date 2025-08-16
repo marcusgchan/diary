@@ -1,4 +1,4 @@
-import { Posts } from "~/app/_lib/post/components/EditPosts";
+import { Posts } from "~/app/_lib/post/components/Posts";
 import { PostLoader } from "~/app/_lib/post/components/PostsLoader";
 import { PostsProvider } from "~/app/_lib/post/contexts/PostsContext";
 

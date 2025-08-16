@@ -5,52 +5,14 @@ import { TRPCError } from "@trpc/server";
 import { PostService } from "../services/post";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { getImageSignedUrl } from "../../shared/s3ImagesService";
+import type {
+  GetPostWithImageKey,
+  GetPostImageLoaded,
+  GetPostImageError,
+  GetPostGroupByImages,
+} from "../types";
 
-type PostWithoutImage = Awaited<
-  ReturnType<PostService["getPostsForForm"]>
->[number];
-
-export type ImageLoadedState = {
-  type: "loaded";
-  id: string;
-  name: string;
-  size: number;
-  mimetype: string;
-  url: string;
-  order: number;
-  key: string;
-  isSelected: boolean;
-};
-export type ImageUploadingState = {
-  type: "uploading";
-  id: string;
-  name: string;
-  size: number;
-  mimetype: string;
-  order: number;
-  key: string;
-  isSelected: boolean;
-};
-export type ImageErrorState = {
-  type: "error";
-  id: string;
-  key?: string;
-  isSelected: boolean;
-};
-type PostWithImage = Omit<PostWithoutImage, "imageKey"> & {
-  image: ImageLoadedState | ImageErrorState;
-};
-
-export type PostGroupByImages = Pick<
-  PostWithImage,
-  "id" | "title" | "description" | "order" | "isSelected"
-> & {
-  images: ((ImageLoadedState | ImageErrorState) & {
-    isSelected: boolean;
-  })[];
-};
-
-export async function getPostsForFormController(
+export async function getPostsController(
   ctx: ProtectedContext,
   input: GetPostsSchema,
 ) {
@@ -62,9 +24,9 @@ export async function getPostsForFormController(
   }
 
   const postService = new PostService(ctx);
-  const posts = await postService.getPostsForForm(input.entryId);
+  const posts = await postService.getPosts(input.entryId);
 
-  const postWithImage: PostWithImage[] = await Promise.all(
+  const postWithImage: GetPostWithImageKey[] = await Promise.all(
     posts.map(async (post) => {
       const { image, ...restOfPost } = post;
 
@@ -73,19 +35,19 @@ export async function getPostsForFormController(
         return {
           ...restOfPost,
           image: {
-            type: "error" as const,
+            type: "error",
             ...image,
-          } satisfies ImageErrorState,
+          } satisfies GetPostImageError,
         };
       }
 
       return {
         ...restOfPost,
         image: {
-          type: "loaded" as const,
+          type: "loaded",
           url: data,
           ...image,
-        } satisfies ImageLoadedState,
+        } satisfies GetPostImageLoaded,
       };
     }),
   );
@@ -96,30 +58,18 @@ export async function getPostsForFormController(
   };
 }
 
-function postsView(posts: PostWithImage[]): PostGroupByImages[] {
+function postsView(posts: GetPostWithImageKey[]): GetPostGroupByImages[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);
     if (!post) {
       acc.set(cur.id, {
         ...cur,
-        images: [{ ...cur.image, isSelected: cur.isSelected }],
+        images: [{ ...cur.image }],
       });
     }
     return acc;
-  }, new Map<string, PostGroupByImages>());
+  }, new Map<string, GetPostGroupByImages>());
 
   const postArray = Array.from(postMap.values());
-
-  return postArray.length === 0
-    ? [
-        {
-          id: crypto.randomUUID(),
-          order: 0,
-          title: "",
-          isSelected: true,
-          description: "",
-          images: [],
-        },
-      ]
-    : postArray;
+  return postArray;
 }
