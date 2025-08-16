@@ -8,7 +8,7 @@ import { getImageSignedUrl } from "../../shared/s3ImagesService";
 import type {
   ImageErrorState,
   ImageLoadedState,
-  EditPostWithNonEmptyImage,
+  EditPostWithNonEmptyImageState,
   EditPostGroupByNonEmptyImages,
 } from "../types";
 
@@ -26,7 +26,7 @@ export async function getPostsForFormController(
   const postService = new PostService(ctx);
   const posts = await postService.getPostsForForm(input.entryId);
 
-  const postWithImage: EditPostWithNonEmptyImage[] = await Promise.all(
+  const postWithImage: EditPostWithNonEmptyImageState[] = await Promise.all(
     posts.map(async (post) => {
       const { image, ...restOfPost } = post;
 
@@ -59,7 +59,7 @@ export async function getPostsForFormController(
 }
 
 function postsView(
-  posts: EditPostWithNonEmptyImage[],
+  posts: EditPostWithNonEmptyImageState[],
 ): EditPostGroupByNonEmptyImages[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);

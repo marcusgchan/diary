@@ -6,7 +6,7 @@ import { PostService } from "../services/post";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { getImageSignedUrl } from "../../shared/s3ImagesService";
 import type {
-  GetPostWithImageKey,
+  GetPostWithImageState,
   GetPostImageLoaded,
   GetPostImageError,
   GetPostGroupByImages,
@@ -26,7 +26,7 @@ export async function getPostsController(
   const postService = new PostService(ctx);
   const posts = await postService.getPosts(input.entryId);
 
-  const postWithImage: GetPostWithImageKey[] = await Promise.all(
+  const postWithImage: GetPostWithImageState[] = await Promise.all(
     posts.map(async (post) => {
       const { image, ...restOfPost } = post;
 
@@ -58,7 +58,7 @@ export async function getPostsController(
   };
 }
 
-function postsView(posts: GetPostWithImageKey[]): GetPostGroupByImages[] {
+function postsView(posts: GetPostWithImageState[]): GetPostGroupByImages[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);
     if (!post) {
