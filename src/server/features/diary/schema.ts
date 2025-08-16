@@ -75,6 +75,6 @@ export const updatePostSchema = z.object({
 export type UpdatePost = z.infer<typeof updatePostSchema>;
 
 export const getPostsSchema = z.object({
-  diaryId: z.number(),
   entryId: z.number(),
 });
+export type GetPostsSchema = z.infer<typeof getPostsSchema>;

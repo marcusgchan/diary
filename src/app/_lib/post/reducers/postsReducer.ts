@@ -1,39 +1,16 @@
 //TODO:invarirant with post length cannot be empty (refactor deleate and maybe others)
 
+import { type PostGroupByImages } from "~/server/features/diary/controllers/getPostsForForm";
 import { type RouterOutputs } from "~/server/trpc";
-
-export type ImageLoadedState = {
-  type: "loaded";
-  id: string;
-  name: string;
-  size: number;
-  mimetype: string;
-  url: string;
-  order: number;
-  key: string;
-  isSelected: boolean;
-};
-
-export type ImageUploadingState = {
-  type: "uploading";
-  id: string;
-  name: string;
-  size: number;
-  mimetype: string;
-  order: number;
-  key: string;
-  isSelected: boolean;
-};
-
-export type ImageErrorState = {
-  type: "error";
-  id: string;
-  key?: string;
-  isSelected: boolean;
-};
+import {
+  type ImageErrorState,
+  type ImageLoadedState,
+  type ImageUploadingState,
+} from "~/server/features/diary/controllers/getPostsForForm";
 
 export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
 
+// TODO: refactor to backend
 export type Post = {
   id: string;
   title: string;
@@ -49,7 +26,7 @@ export type PostsState = {
 };
 
 export type PostsAction =
-  | { type: "LOAD_POSTS"; payload: Post[] }
+  | { type: "LOAD_POSTS"; payload: PostGroupByImages[] }
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
   | { type: "UPDATE_POST"; payload: { updates: Partial<Post> } }
@@ -92,14 +69,22 @@ export function postsReducer(
   action: PostsAction,
 ): PostsState {
   switch (action.type) {
+    case "LOAD_POSTS": {
+      console.log("loading");
+      return { ...state, posts: action.payload };
+    }
     case "START_NEW_POST": {
       const maxOrder = Math.max(...state.posts.map((p) => p.order), -1);
       const newPostToSelect = createNewEmptyPost(maxOrder + 1);
-
-      return {
+      const updatedState = {
         ...state,
-        posts: [...state.posts, newPostToSelect],
+        posts: [
+          ...state.posts.map((post) => ({ ...post, isSelected: false })),
+          newPostToSelect,
+        ],
       };
+      console.log("start", updatedState);
+      return updatedState;
     }
 
     // Invariant: Post guaranteed to exist

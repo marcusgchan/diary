@@ -123,7 +123,7 @@ export const entries = pgTable("entry", {
 
 export type Entries = typeof entries.$inferSelect;
 
-export const imageKeys = pgTable("image_key", {
+export const imageKeys = pgTable("image_keys", {
   key: text("key").primaryKey(),
 
   // name, mimetype, size are for populating edit form image field
@@ -131,22 +131,26 @@ export const imageKeys = pgTable("image_key", {
   mimetype: text().notNull(),
   size: integer().notNull(),
 
-  entryId: bigint("entryId", { mode: "number" })
+  userId: text("userId")
     .notNull()
-    .references(() => entries.id),
-  lon: doublePrecision("lon"),
-  lat: doublePrecision("lat"),
-  datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
+    .references(() => users.id),
+
   compressionStatus: text("compressionStatus")
     .default("success")
     .$type<"success" | "failure">()
     .notNull(),
-  isSelected: boolean().notNull(),
   deleting: boolean().notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
 
 export type ImageKeys = typeof imageKeys.$inferSelect;
+
+export const geoData = pgTable("geo_data", {
+  id: bigserial({ mode: "number" }).primaryKey(),
+  lon: doublePrecision("lon"),
+  lat: doublePrecision("lat"),
+  datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
+});
 
 export const posts = pgTable("posts", {
   id: uuid().primaryKey().defaultRandom(),
@@ -155,12 +159,24 @@ export const posts = pgTable("posts", {
     .references(() => entries.id),
   title: varchar({ length: 255 }).notNull(),
   description: varchar({ length: 2048 }).notNull(),
-  imageKey: text().references(() => imageKeys.key),
   order: integer().notNull(),
   isSelected: boolean().notNull(),
   deleting: boolean("deleting").notNull().default(false),
 }).enableRLS();
 export type Posts = typeof posts.$inferSelect;
+
+export const postImages = pgTable("post_images", {
+  id: uuid().primaryKey(),
+  postId: uuid()
+    .notNull()
+    .references(() => posts.id),
+  geoDataId: bigserial({ mode: "number" }).references(() => geoData.id),
+  imageKey: text("key")
+    .notNull()
+    .references(() => imageKeys.key),
+  isSelected: boolean().notNull(),
+  order: integer().notNull(),
+});
 
 export const editorStates = pgTable("editor_state", {
   data: json("editorState").$type<

@@ -180,9 +180,10 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
  * @see https://trpc.io/docs/procedures
  */
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
-export type ProtectedContext = inferProcedureBuilderResolverOptions<
+export type ProtectedProcedureOptions = inferProcedureBuilderResolverOptions<
   typeof protectedProcedure
->["ctx"];
+>;
+export type ProtectedContext = ProtectedProcedureOptions["ctx"];
 
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type RouterInputs = inferRouterInputs<AppRouter>;

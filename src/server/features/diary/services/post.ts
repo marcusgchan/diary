@@ -5,6 +5,7 @@ import {
   type Entries,
   entries,
   imageKeys,
+  postImages,
   posts,
   type Posts,
   type Users,
@@ -25,19 +26,30 @@ export class PostService {
     this.ctx = context;
   }
 
-  public async getPosts(entryId: Entries["id"]) {
+  public async getPostsForForm(entryId: Entries["id"]) {
     return await this.db
       .select({
         id: posts.id,
         title: posts.title,
         description: posts.description,
-        imageKey: posts.imageKey,
-        isPostSelected: posts.isSelected,
-        isImageSelected: imageKeys.isSelected,
+        isSelected: posts.isSelected,
+        order: posts.order,
+        // Image state
+        image: {
+          id: postImages.id,
+          isSelected: postImages.isSelected,
+          key: imageKeys.key,
+          name: imageKeys.name,
+          mimetype: imageKeys.mimetype,
+          size: imageKeys.size,
+          order: postImages.order,
+        },
       })
       .from(posts)
       .innerJoin(entries, eq(entries.id, posts.entryId))
       .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+      .innerJoin(postImages, eq(postImages.postId, posts.id))
+      .innerJoin(imageKeys, eq(imageKeys.key, postImages.imageKey))
       .where(
         and(
           eq(posts.entryId, entryId),
@@ -48,7 +60,7 @@ export class PostService {
       .orderBy(asc(posts.order));
   }
 
-  public async getPostsForForm(entryId: Entries["id"]) {
+  public async getPosts(entryId: Entries["id"]) {
     return await this.db
       .select({
         id: posts.id,
@@ -63,7 +75,8 @@ export class PostService {
         size: imageKeys.size,
       })
       .from(posts)
-      .leftJoin(imageKeys, eq(imageKeys.key, posts.imageKey))
+      .innerJoin(postImages, eq(postImages.postId, posts.id))
+      .leftJoin(imageKeys, eq(imageKeys.key, postImages.imageKey))
       .innerJoin(entries, eq(entries.id, posts.entryId))
       .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
       .where(
@@ -128,8 +141,8 @@ export class PostService {
             entryId: entryId,
             title: post.title,
             description: post.description,
-            imageKey: post.key,
             order: index,
+            isSelected: post.isSelected,
           };
         }),
       )
@@ -137,9 +150,9 @@ export class PostService {
         target: posts.id,
         set: {
           title: sql.raw(`excluded.${posts.title.name}`),
-          imageKey: sql.raw(`excluded."${posts.imageKey.name}"`),
           description: sql.raw(`excluded.${posts.description.name}`),
           order: sql.raw(`excluded.${posts.order.name}`),
+          isSelected: sql.raw(`excluded."${posts.isSelected.name}"`),
         },
       })
       .returning({ id: posts.id });

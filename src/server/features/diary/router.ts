@@ -16,6 +16,7 @@ import {
   createPostSchema,
   editDiaryNameSchema,
   editEntryDateSchema,
+  getPostsSchema,
   saveEditorStateSchema,
   updateEntryTitleSchema,
   updatePostSchema,
@@ -35,6 +36,7 @@ import { EntryService } from "./services/entry";
 import { ImageService } from "./services/image";
 import { PostService } from "./services/post";
 import { EditorStateService } from "./services/editorState";
+import { getPostsForFormController } from "./controllers/getPostsForForm";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -219,69 +221,25 @@ export const diaryRouter = createTRPCRouter({
         await postService.deletePostById(input.postId);
       }
     }),
+  getPostsForForm: protectedProcedure
+    .input(getPostsSchema)
+    .query(async ({ ctx, input }) => {
+      return await getPostsForFormController(ctx, input);
+    }),
   getPosts: protectedProcedure
     .input(z.object({ entryId: z.number() }))
     .query(async ({ ctx, input }) => {
       const entryService = new EntryService(ctx);
-      const [header] = await entryService.getEntryHeader(input.entryId);
-
-      if (!header) {
-        throw new TRPCError({ code: "BAD_REQUEST" });
+      const entry = await entryService.getEntryIdById(input.entryId);
+      if (!entry) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Entry does not exist",
+        });
       }
 
       const postService = new PostService(ctx);
       const posts = await postService.getPosts(input.entryId);
-
-      const postWithImage = await Promise.all(
-        posts.map(async (post) => {
-          const { imageKey: _, ...restOfPost } = post;
-
-          if (!post.imageKey) {
-            return {
-              ...restOfPost,
-              image: {
-                type: "EMPTY" as const,
-              },
-            };
-          }
-
-          const [err, data] = await tryCatch(getImageSignedUrl(post.imageKey));
-          if (err) {
-            return {
-              ...restOfPost,
-              image: {
-                type: "FAILED" as const,
-              },
-            };
-          }
-
-          return {
-            ...restOfPost,
-            image: {
-              type: "SUCCESS" as const,
-              url: data,
-            },
-          };
-        }),
-      );
-
-      return {
-        header,
-        posts: postWithImage,
-      };
-    }),
-  getPostsForForm: protectedProcedure
-    .input(z.object({ entryId: z.number() }))
-    .query(async ({ ctx, input }) => {
-      const entryService = new EntryService(ctx);
-      const [header] = await entryService.getEntryHeader(input.entryId);
-
-      if (!header) {
-        throw new TRPCError({ code: "BAD_REQUEST" });
-      }
-
-      const postService = new PostService(ctx);
-      const posts = await postService.getPostsForForm(input.entryId);
 
       const postWithImage = await Promise.all(
         posts.map(async (post) => {
@@ -344,7 +302,7 @@ export const diaryRouter = createTRPCRouter({
       }
 
       const postService = new PostService(ctx);
-      const posts = await postService.getPosts(input.entryId);
+      const posts = await postService.getPostsForForm(input.entryId);
 
       // Find posts that need to be deleted (posts that exist in the database but not in the input)
       const postsToDelete = posts.filter(
@@ -354,8 +312,8 @@ export const diaryRouter = createTRPCRouter({
       if (postsToDelete.length > 0) {
         const postIdsToDelete = postsToDelete.map((p) => p.id);
         const imageKeysToDelete = postsToDelete
-          .filter((p) => p.imageKey !== null)
-          .map((p) => p.imageKey!);
+          .filter((p) => p.image.key !== null)
+          .map((p) => p.image.key);
 
         // First flag the posts for deletion
         await postService.flagPostsToDeleteByIds(postIdsToDelete);

@@ -15,7 +15,7 @@ export function PostLoader({ children }: { children: React.JSX.Element }) {
   const hasLoadedRef = useRef<boolean>(false);
   useEffect(() => {
     if (!hasLoadedRef.current && data) {
-      dispatch({ type: "LOAD_POSTS", payload: data });
+      dispatch({ type: "LOAD_POSTS", payload: data.posts });
     }
   }, [data, hasLoadedRef, dispatch]);
   return children;
