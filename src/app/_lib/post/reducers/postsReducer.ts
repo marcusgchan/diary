@@ -5,24 +5,26 @@ import type {
   ImageErrorState,
   ImageLoadedState,
   ImageUploadingState,
-  PostGroupByNonEmptyImages,
-  PostGroupByImages,
+  EditPostGroupByNonEmptyImages,
+  EditPostGroupByImages,
 } from "~/server/features/diary/types";
 
 export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
 
+export type Post = EditPostGroupByImages;
+
 export type PostsState = {
-  posts: PostGroupByImages[];
+  posts: EditPostGroupByImages[];
   imageKeyToImageId: Map<NonNullable<Image["key"]>, Image["id"]>;
 };
 
 export type PostsAction =
-  | { type: "LOAD_POSTS"; payload: PostGroupByNonEmptyImages[] }
+  | { type: "LOAD_POSTS"; payload: EditPostGroupByNonEmptyImages[] }
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
   | {
       type: "UPDATE_POST";
-      payload: { updates: Partial<PostGroupByNonEmptyImages> };
+      payload: { updates: Partial<EditPostGroupByNonEmptyImages> };
     }
   | { type: "ADD_IMAGES"; payload: ImageUploadingState[] }
   | { type: "SELECT_IMAGE"; payload: string }
@@ -38,7 +40,7 @@ export type PostsAction =
     }
   | { type: "DELETE_CURRENT_IMAGE"; payload: { imageId: string } };
 
-const emptyPost: Omit<PostGroupByNonEmptyImages, "id" | "order"> = {
+const emptyPost: Omit<EditPostGroupByNonEmptyImages, "id" | "order"> = {
   images: [],
   title: "",
   isSelected: true,
