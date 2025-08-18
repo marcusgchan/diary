@@ -231,6 +231,25 @@ export function postsReducer(
             } satisfies ImageLoadedState;
             post.images[i] = newImage;
             state.imageKeyToImageId.delete(newImage.key);
+          } else if (imagePayload.type == "compression_failure") {
+            const newImage = {
+              ...(image as ImageUploadingState),
+              type: "loaded",
+              url: imagePayload.url,
+            } satisfies ImageLoadedState;
+            post.images[i] = newImage;
+            state.imageKeyToImageId.delete(newImage.key);
+          } else {
+            const newImage = {
+              ...(image as ImageErrorState),
+              type: "error",
+            } satisfies ImageErrorState;
+            post.images[i] = newImage;
+            for (const [key, value] of state.imageKeyToImageId.entries()) {
+              if (value === image.id) {
+                state.imageKeyToImageId.delete(key);
+              }
+            }
           }
         });
       });

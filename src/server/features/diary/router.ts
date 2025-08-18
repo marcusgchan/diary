@@ -537,7 +537,10 @@ export const diaryRouter = createTRPCRouter({
             }
 
             if (el.compressionStatus === "failure") {
-              return [id, { type: "failure", key: el.key, url }] as const;
+              return [
+                id,
+                { type: "compression_failure", key: el.key, url },
+              ] as const;
             }
 
             return [id, { type: "success", key: el.key, url }] as const;
@@ -554,7 +557,7 @@ export const diaryRouter = createTRPCRouter({
       const resultMap = new Map<
         string,
         | { type: "success"; key: string; url: string }
-        | { type: "failure"; key: string; url: string }
+        | { type: "compression_failure"; key: string; url: string }
         | { type: "error" }
       >();
       for (const [key, value] of res) {
