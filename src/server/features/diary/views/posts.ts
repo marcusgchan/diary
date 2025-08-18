@@ -1,10 +1,10 @@
 import type {
   EditPostGroupByNonEmptyImages,
-  EditPostWithNonEmptyImage,
+  EditPostWithNonEmptyImageState,
 } from "../types";
 
 export function postsView(
-  posts: EditPostWithNonEmptyImage[],
+  posts: EditPostWithNonEmptyImageState[],
 ): EditPostGroupByNonEmptyImages[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);

@@ -1,4 +1,13 @@
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  not,
+  sql,
+} from "drizzle-orm";
 import type {
   Diaries,
   Entries,
@@ -11,7 +20,9 @@ import {
   diariesToUsers,
   editorStates,
   entries,
+  geoData,
   imageKeys,
+  postImages,
   posts,
 } from "~/server/db/schema";
 import type { TRPCContext } from "../../trpc";
@@ -481,7 +492,6 @@ export async function createMetadataOnImageCallback({
   size, // bytes
   dateTimeTaken,
   compressionStatus,
-  isSelected,
   gps,
 }: {
   db: TRPCContext["db"];
@@ -493,7 +503,6 @@ export async function createMetadataOnImageCallback({
   size: number;
   gps?: { lat: number; lon: number };
   compressionStatus: ImageKeys["compressionStatus"];
-  isSelected: boolean;
   dateTimeTaken?: string | undefined;
 }) {
   const res = await db
@@ -506,22 +515,29 @@ export async function createMetadataOnImageCallback({
     throw new TRPCError({ code: "BAD_REQUEST" });
   }
 
-  await db
-    .insert(imageKeys)
-    .values({
-      key,
-      name,
-      mimetype,
-      size,
-      entryId,
-      lat: gps?.lat,
-      lon: gps?.lon,
-      isSelected,
-      compressionStatus: compressionStatus,
-      datetimeTaken:
-        dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
-    })
-    .onConflictDoNothing();
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(imageKeys)
+      .values({
+        key,
+        name,
+        mimetype,
+        size,
+        userId,
+        compressionStatus: compressionStatus,
+        createdAt:
+          dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
+      })
+      .onConflictDoNothing();
+
+    if (gps) {
+      await tx.insert(geoData).values({
+        key,
+        lat: gps?.lat,
+        lon: gps?.lon,
+      });
+    }
+  });
 }
 
 export async function getUnlinkedImages({
@@ -539,12 +555,18 @@ export async function getUnlinkedImages({
       compressionStatus: imageKeys.compressionStatus,
     })
     .from(imageKeys)
-    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
-    .leftJoin(posts, eq(posts.imageKey, imageKeys.key))
     .where(
       and(
-        eq(entries.id, entryId),
-        isNull(posts.imageKey),
+        not(
+          inArray(
+            imageKeys.key,
+            db
+              .select({ key: postImages.imageKey })
+              .from(postImages)
+              .innerJoin(posts, eq(posts.id, postImages.postId))
+              .where(eq(posts.entryId, entryId)),
+          ),
+        ),
         inArray(imageKeys.key, keys),
       ),
     );

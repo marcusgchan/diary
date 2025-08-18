@@ -146,10 +146,11 @@ export const imageKeys = pgTable("image_keys", {
 export type ImageKeys = typeof imageKeys.$inferSelect;
 
 export const geoData = pgTable("geo_data", {
-  id: bigserial({ mode: "number" }).primaryKey(),
-  lon: doublePrecision("lon"),
-  lat: doublePrecision("lat"),
-  datetimeTaken: timestamp("datetimeTaken", { withTimezone: false }),
+  key: text()
+    .references(() => imageKeys.key)
+    .primaryKey(),
+  lon: doublePrecision("lon").notNull(),
+  lat: doublePrecision("lat").notNull(),
 });
 
 export const posts = pgTable("posts", {
@@ -170,7 +171,7 @@ export const postImages = pgTable("post_images", {
   postId: uuid()
     .notNull()
     .references(() => posts.id),
-  geoDataId: bigserial({ mode: "number" }).references(() => geoData.id),
+  geoDataId: bigserial({ mode: "number" }).references(() => geoData.key),
   imageKey: text("key")
     .notNull()
     .references(() => imageKeys.key),

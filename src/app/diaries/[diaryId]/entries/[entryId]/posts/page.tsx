@@ -7,9 +7,7 @@ export default async function Entry(props: {
 }) {
   return (
     <PostsProvider>
-      <PostLoader>
-        <Posts />
-      </PostLoader>
+      <Posts />
     </PostsProvider>
   );
 }

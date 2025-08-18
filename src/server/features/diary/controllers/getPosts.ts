@@ -15,7 +15,7 @@ import type {
 export async function getPostsController(
   ctx: ProtectedContext,
   input: GetPostsSchema,
-) {
+): Promise<GetPostGroupByImages[]> {
   const entryService = new EntryService(ctx);
   const [header] = await entryService.getEntryHeader(input.entryId);
 
@@ -52,7 +52,7 @@ export async function getPostsController(
     }),
   );
 
-  // return postsView(postWithImage);
+  return postsView(postWithImage);
 
   return [
     {
@@ -71,6 +71,20 @@ export async function getPostsController(
         {
           type: "loaded",
           id: "img-2",
+          url: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/mountain-trail-2.jpg",
+          name: "mountain-trail-2.jpg",
+        },
+        {
+          type: "loaded",
+          id: "img-3",
+          url: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&h=600&fit=crop",
+          key: "user-123/diary-456/entry-789/mountain-trail-2.jpg",
+          name: "mountain-trail-2.jpg",
+        },
+        {
+          type: "loaded",
+          id: "img-4",
           url: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&h=600&fit=crop",
           key: "user-123/diary-456/entry-789/mountain-trail-2.jpg",
           name: "mountain-trail-2.jpg",

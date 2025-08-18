@@ -1,6 +1,6 @@
 // move active id to reducer, scroll not selecting right active img
 "use client";
-import { Plus, Trash } from "lucide-react";
+import { Image as ImageIcon, MapPin, Plus, Trash } from "lucide-react";
 import {
   type ChangeEvent,
   type RefObject,
@@ -29,8 +29,10 @@ import { usePosts } from "../contexts/PostsContext";
 import { useImageDnd } from "../hooks/useImageDnD";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
+import { Separator } from "../../ui/separator";
+import { Textarea } from "../../ui/textarea";
 
-export function Posts() {
+export function EditPosts() {
   const { state, dispatch } = usePosts();
 
   const { activeId, handleDragStart, handleDragEnd, sensors } =
@@ -255,9 +257,7 @@ function SelectedPostView({
         refetchInterval: 3000,
       },
     );
-  console.log(state.imageKeyToImageId.size > 0);
   useEffect(() => {
-    console.log("effect", uploadingState);
     if (!uploadingState) {
       return;
     }
@@ -265,7 +265,7 @@ function SelectedPostView({
   }, [uploadingState, dispatch]);
 
   return (
-    <div className="flex w-80 flex-col gap-2 rounded border-2 border-black p-2">
+    <div className="flex w-80 flex-col gap-2 rounded-xl border border-black bg-card p-6 text-card-foreground">
       <div className="relative">
         <div
           className="hide-scrollbar h-[200px] snap-x snap-mandatory overflow-x-auto scroll-smooth"
@@ -367,15 +367,24 @@ function SelectedPostView({
           )}
         </DragOverlay>
       </DndContext>
-      <input
+      <button type="button" className="text-md flex gap-1">
+        <ImageIcon />
+        Select New Image
+      </button>
+      <Separator />
+      <button type="button" className="flex gap-1">
+        <MapPin />
+        Location
+      </button>
+      <Separator />
+      <Input
         placeholder="Title..."
-        className="text-lg font-bold"
         value={selectedPostForm.title}
         onChange={(e) => handleTitleChange(e.target.value)}
       />
-      <textarea
+      <Textarea
         placeholder="Description..."
-        className="h-[100px] resize-none"
+        className="h-[100px] resize-none p-2"
         value={selectedPostForm.description}
         onChange={(e) => handleDescriptionChange(e.target.value)}
       />

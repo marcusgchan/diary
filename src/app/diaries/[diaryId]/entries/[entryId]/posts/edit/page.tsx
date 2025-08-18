@@ -1,5 +1,5 @@
 import { api } from "~/trpc/server";
-import { Posts } from "~/app/_lib/post/components/EditPosts";
+import { EditPosts } from "~/app/_lib/post/components/EditPosts";
 import { PostsProvider } from "~/app/_lib/post/contexts/PostsContext";
 
 export default async function EditMapPage(props: {
@@ -10,7 +10,7 @@ export default async function EditMapPage(props: {
 
   return (
     <PostsProvider>
-      <Posts />
+      <EditPosts />
     </PostsProvider>
   );
 }

@@ -24,6 +24,8 @@ export type GetPostImageError = {
   name: string;
 };
 
+export type GetPostImage = GetPostImageLoaded | GetPostImageError;
+
 export type GetPostWithImageState = Omit<GetPostQuery, "image"> & {
   image: GetPostImageLoaded | GetPostImageError;
 };

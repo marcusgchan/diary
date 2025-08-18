@@ -5,7 +5,7 @@ import type {
   PostsState,
   PostsAction,
 } from "@/_lib/post/reducers/postsReducer";
-import type { ImageUploadingState } from "~/server/features/diary/controllers/getPostsForForm";
+import type { ImageUploadingState } from "~/server/features/diary/types";
 import { type useScrollToImage } from "./useScrollToImage";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
