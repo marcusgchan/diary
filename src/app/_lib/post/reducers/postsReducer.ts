@@ -241,13 +241,28 @@ export function postsReducer(
 
     case "DELETE_CURRENT_IMAGE": {
       const { imageId } = action.payload;
+
+      const newImageKeyToImageId = new Map<string, string>();
+      for (const [key, value] of state.imageKeyToImageId.entries()) {
+        if (value !== imageId) {
+          newImageKeyToImageId.set(key, value);
+        }
+      }
+
       return {
-        ...state,
+        imageKeyToImageId: newImageKeyToImageId,
         posts: state.posts.map((post) => {
           if (post.isSelected) {
+            const filteredImages = post.images.filter(
+              (img) => img.id !== imageId,
+            );
+            if (filteredImages[0]?.isSelected) {
+              filteredImages[0].isSelected = true;
+            }
+
             return {
               ...post,
-              images: post.images.filter((img) => img.id !== imageId),
+              images: filteredImages,
             };
           }
           return post;

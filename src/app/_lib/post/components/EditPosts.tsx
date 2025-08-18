@@ -31,6 +31,7 @@ import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { Separator } from "../../ui/separator";
 import { Textarea } from "../../ui/textarea";
+import { flushSync } from "react-dom";
 
 export function EditPosts() {
   const { state, dispatch } = usePosts();
@@ -167,7 +168,7 @@ function DropzoneContent({
   return (
     <Label
       htmlFor={id}
-      className="grid h-full w-full cursor-pointer content-center justify-center gap-2 rounded border-2 border-dashed border-accent-foreground p-4 text-center text-accent-foreground backdrop-blur-sm  [grid-auto-rows:max-content]"
+      className="grid h-full w-full cursor-pointer content-center justify-center gap-1 rounded border-2 border-dashed p-4 text-center text-accent-foreground backdrop-blur-sm  [grid-auto-rows:max-content]"
     >
       {children}
     </Label>
@@ -264,11 +265,26 @@ function SelectedPostView({
     dispatch({ type: "UPDATE_IMAGES_STATUS", payload: uploadingState });
   }, [uploadingState, dispatch]);
 
+  const selectedImage = selectedPostForm.images.find(
+    (image) => image.isSelected,
+  );
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  function deleteImage() {
+    flushSync(() => {
+      dispatch({
+        type: "DELETE_CURRENT_IMAGE",
+        payload: { imageId: selectedImage!.id },
+      });
+    });
+    imageInputRef.current!.value = "";
+    imageInputRef.current!.click();
+  }
+
   return (
-    <div className="flex w-80 flex-col gap-2 rounded-xl border border-black bg-card p-6 text-card-foreground">
+    <div className="flex w-80 flex-col gap-2 rounded-xl border bg-card p-6 text-card-foreground">
       <div className="relative">
         <div
-          className="hide-scrollbar h-[200px] snap-x snap-mandatory overflow-x-auto scroll-smooth"
+          className="hide-scrollbar h-[200px] snap-x snap-mandatory overflow-x-auto scroll-smooth rounded"
           ref={scrollContainerRef}
         >
           {selectedPostForm.images.length === 0 && (
@@ -284,6 +300,7 @@ function SelectedPostView({
                       Drop images or click
                     </p>
                     <Input
+                      ref={imageInputRef}
                       id="image-upload"
                       type="file"
                       onChange={handleFileChange}
@@ -367,12 +384,20 @@ function SelectedPostView({
           )}
         </DragOverlay>
       </DndContext>
-      <button type="button" className="text-md flex gap-1">
-        <ImageIcon />
-        Select New Image
-      </button>
-      <Separator />
-      <button type="button" className="flex gap-1">
+      {selectedImage !== undefined && (
+        <>
+          <button
+            type="button"
+            className="text-md flex gap-1 text-muted-foreground"
+            onClick={() => deleteImage()}
+          >
+            <ImageIcon />
+            Select New Image
+          </button>
+          <Separator />
+        </>
+      )}
+      <button type="button" className="flex gap-1 text-muted-foreground">
         <MapPin />
         Location
       </button>

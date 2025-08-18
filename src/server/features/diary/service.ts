@@ -123,67 +123,6 @@ export class DiaryServiceRepo {
     });
   }
 
-  public async deletePosts(entryId: Entries["id"], keys: string[]) {
-    await this.db.transaction(async (tx) => {
-      await tx.delete(posts).where(and(eq(posts.entryId, entryId)));
-      await tx.delete(imageKeys).where(inArray(imageKeys.key, keys));
-    });
-  }
-
-  public async getPosts(entryId: Entries["id"]) {
-    return await this.db
-      .select({
-        id: posts.id,
-        title: posts.title,
-        description: posts.description,
-        imageKey: posts.imageKey,
-      })
-      .from(posts)
-      .innerJoin(entries, eq(entries.id, posts.entryId))
-      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-      .where(
-        and(
-          eq(posts.entryId, entryId),
-          eq(diariesToUsers.userId, this.userId),
-          eq(posts.deleting, false),
-        ),
-      )
-      .orderBy(asc(posts.order));
-  }
-
-  public async getPostById(postId: Posts["id"]) {
-    const [p] = await this.db
-      .select({ postId: posts.id })
-      .from(posts)
-      .innerJoin(entries, eq(entries.id, posts.entryId))
-      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-      .where(and(eq(posts.id, postId), eq(diariesToUsers.userId, this.userId)))
-      .limit(1);
-    return p?.postId;
-  }
-
-  public async flagPostForDeletion(postId: Posts["id"]) {
-    await this.db
-      .update(posts)
-      .set({ deleting: true })
-      .where(eq(posts.id, postId));
-  }
-
-  public async deletePostById(postId: Posts["id"]) {
-    await this.db.delete(posts).where(eq(posts.id, postId));
-  }
-
-  public async flagPostsToDeleteByIds(postIds: Posts["id"][]) {
-    await this.db
-      .update(posts)
-      .set({ deleting: true })
-      .where(inArray(posts.id, postIds));
-  }
-
-  public async deletePostsByIds(postIds: Posts["id"][]) {
-    await this.db.delete(posts).where(inArray(posts.id, postIds));
-  }
-
   public async deleteDiary(diaryId: Diaries["id"]) {
     await this.db.transaction(async (tx) => {
       await tx
@@ -469,14 +408,11 @@ export async function insertImageMetadata({
     .insert(imageKeys)
     .values({
       key,
-      entryId,
       name: "",
       mimetype: "",
+      userId,
       size: 0,
-      lat: gps?.lat,
-      lon: gps?.lon,
-      isSelected: false, // add for now but journal section doesn't have selected for images
-      datetimeTaken:
+      takenAt:
         dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
     })
     .onConflictDoNothing();
@@ -525,7 +461,7 @@ export async function createMetadataOnImageCallback({
         size,
         userId,
         compressionStatus: compressionStatus,
-        createdAt:
+        takenAt:
           dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
       })
       .onConflictDoNothing();

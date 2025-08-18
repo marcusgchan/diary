@@ -18,6 +18,7 @@ import {
   type SerializedLexicalNode,
 } from "lexical";
 import { type AdapterAccount } from "next-auth/adapters";
+import { uploadImage } from "../features/shared/s3ImagesService";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -140,7 +141,8 @@ export const imageKeys = pgTable("image_keys", {
     .$type<"success" | "failure">()
     .notNull(),
   deleting: boolean().notNull().default(false),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  takenAt: timestamp("takenAt").notNull().defaultNow(),
+  uploadAt: timestamp("createdAt").notNull().defaultNow(),
 }).enableRLS();
 
 export type ImageKeys = typeof imageKeys.$inferSelect;
@@ -171,7 +173,7 @@ export const postImages = pgTable("post_images", {
   postId: uuid()
     .notNull()
     .references(() => posts.id),
-  geoDataId: bigserial({ mode: "number" }).references(() => geoData.key),
+  geoDataId: text().references(() => geoData.key),
   imageKey: text("key")
     .notNull()
     .references(() => imageKeys.key),
