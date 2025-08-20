@@ -142,16 +142,30 @@ export function postsReducer(
 
     case "DELETE_CURRENT_POST": {
       const remainingPosts = state.posts.filter((p) => !p.isSelected);
+
+      const imageIds = state.posts
+        .find((post) => post.isSelected)!
+        .images.map((image) => image.id);
+      const newImageKeyToImageId = new Map<string, string>();
+      for (const [key, value] of state.imageKeyToImageId.entries()) {
+        if (imageIds.includes(value)) {
+          newImageKeyToImageId.set(key, value);
+        }
+      }
+
       if (remainingPosts.length === 0) {
         const newPost = createNewEmptyPost();
+
         return {
           ...state,
+          imageKeyToImageId: newImageKeyToImageId,
           posts: [newPost],
         };
       }
 
       return {
         ...state,
+        imageKeyToImageId: newImageKeyToImageId,
         posts: remainingPosts,
       };
     }

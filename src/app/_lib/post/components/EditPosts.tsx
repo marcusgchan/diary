@@ -269,7 +269,7 @@ function SelectedPostView({
     (image) => image.isSelected,
   );
   const imageInputRef = useRef<HTMLInputElement>(null);
-  function deleteImage() {
+  function selectNewImage() {
     flushSync(() => {
       dispatch({
         type: "DELETE_CURRENT_IMAGE",
@@ -363,7 +363,7 @@ function SelectedPostView({
                         className={cn(
                           "block aspect-square h-10 w-10 cursor-grab overflow-hidden rounded border-2 transition-all active:cursor-grabbing",
                           image.isSelected
-                            ? "scale-110 border-blue-500 ring-2 ring-blue-300"
+                            ? "scale-110 border-blue-500 ring-1 ring-blue-200"
                             : "border-gray-300 hover:border-gray-400",
                         )}
                       >
@@ -389,7 +389,7 @@ function SelectedPostView({
           <button
             type="button"
             className="text-md flex gap-1 text-muted-foreground"
-            onClick={() => deleteImage()}
+            onClick={() => selectNewImage()}
           >
             <ImageIcon />
             Select New Image
@@ -470,7 +470,7 @@ function ImageItem<T extends Element>({
       ref={ref}
       key={image.id}
       data-image-id={image.id}
-      className="w-full flex-shrink-0 flex-grow snap-center border-2 border-black"
+      className="w-full flex-shrink-0 flex-grow snap-center"
     >
       {children}
     </li>
@@ -504,13 +504,13 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
                       opacity: props.isDragging ? 0 : 1,
                     }}
                     ref={props.setNodeRef}
-                    className="rounded border-2 border-black p-2"
+                    className="rounded border-2 p-2"
                   >
                     <ul className="flex flex-col gap-2">
                       {post.images.map((image) => (
                         <li
                           key={image.id}
-                          className="aspect-square min-h-0 w-12 flex-shrink-0 flex-grow-0 rounded border-2 border-black"
+                          className="aspect-square min-h-0 w-12 flex-shrink-0 flex-grow-0 rounded border-2"
                         >
                           <ImageRenderer image={image} />
                         </li>
