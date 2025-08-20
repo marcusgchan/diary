@@ -163,7 +163,6 @@ export const posts = pgTable("posts", {
   title: varchar({ length: 255 }).notNull(),
   description: varchar({ length: 2048 }).notNull(),
   order: integer().notNull(),
-  isSelected: boolean().notNull(),
   deleting: boolean("deleting").notNull().default(false),
 }).enableRLS();
 export type Posts = typeof posts.$inferSelect;
@@ -173,11 +172,9 @@ export const postImages = pgTable("post_images", {
   postId: uuid()
     .notNull()
     .references(() => posts.id),
-  geoDataId: text().references(() => geoData.key),
   imageKey: text("key")
     .notNull()
     .references(() => imageKeys.key),
-  isSelected: boolean().notNull(),
   order: integer().notNull(),
 });
 

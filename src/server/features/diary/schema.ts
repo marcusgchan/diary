@@ -51,10 +51,17 @@ export const createPostSchema = z.object({
   entryId: z.number(),
   posts: z
     .object({
+      id: z.string(),
       title: z.string(),
-      key: z.string(),
       description: z.string(),
-      isSelected: z.boolean(),
+      images: z
+        .object({
+          type: z.string(),
+          id: z.string(),
+          key: z.string(),
+          order: z.number().int(),
+        })
+        .array(),
     })
     .array(),
 });
@@ -68,7 +75,14 @@ export const updatePostSchema = z.object({
       title: z.string(),
       key: z.string(),
       description: z.string(),
-      isSelected: z.boolean(),
+      images: z
+        .object({
+          id: z.string(),
+          postId: z.string(),
+          imageKey: z.string(),
+          order: z.number().int(),
+        })
+        .array(),
     })
     .array(),
 });

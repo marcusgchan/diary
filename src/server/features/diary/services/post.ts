@@ -32,12 +32,10 @@ export class PostService {
         id: posts.id,
         title: posts.title,
         description: posts.description,
-        isSelected: posts.isSelected,
         order: posts.order,
         // Image state
         image: {
           id: postImages.id,
-          isSelected: postImages.isSelected,
           key: imageKeys.key,
           name: imageKeys.name,
           mimetype: imageKeys.mimetype,
@@ -128,32 +126,45 @@ export class PostService {
 
   public async upsertPosts(
     entryId: Entries["id"],
-    postsToInsert: (CreatePost["posts"][number] & { id?: Posts["id"] })[],
+    postsToInsert: CreatePost["posts"][number][],
   ) {
-    const query = this.db
-      .insert(posts)
-      .values(
-        postsToInsert.map((post, index) => {
-          return {
-            ...(post.id && { id: post.id }),
-            entryId: entryId,
-            title: post.title,
-            description: post.description,
-            order: index,
-            isSelected: post.isSelected,
-          };
-        }),
-      )
-      .onConflictDoUpdate({
-        target: posts.id,
-        set: {
-          title: sql.raw(`excluded.${posts.title.name}`),
-          description: sql.raw(`excluded.${posts.description.name}`),
-          order: sql.raw(`excluded.${posts.order.name}`),
-          isSelected: sql.raw(`excluded."${posts.isSelected.name}"`),
-        },
-      })
-      .returning({ id: posts.id });
+    const query = this.db.transaction(async (tx) => {
+      await tx
+        .insert(posts)
+        .values(
+          postsToInsert.map((post, index) => {
+            return {
+              id: post.id,
+              entryId: entryId,
+              title: post.title,
+              description: post.description,
+              order: index,
+            };
+          }),
+        )
+        .onConflictDoUpdate({
+          target: posts.id,
+          set: {
+            title: sql.raw(`excluded.${posts.title.name}`),
+            description: sql.raw(`excluded.${posts.description.name}`),
+            order: sql.raw(`excluded.${posts.order.name}`),
+          },
+        })
+        .returning({ id: posts.id });
+
+      await tx
+        .insert(postImages)
+        .values(
+          postsToInsert.flatMap((post) =>
+            post.images.map((image) => ({
+              ...image,
+              postId: post.id,
+              imageKey: image.key,
+            })),
+          ),
+        )
+        .onConflictDoNothing({ target: postImages.id });
+    });
     const [err] = await tryCatch(query);
     if (err) {
       throw new TRPCError({

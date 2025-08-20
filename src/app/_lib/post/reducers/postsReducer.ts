@@ -230,11 +230,13 @@ export function postsReducer(
     }
 
     case "UPDATE_IMAGES_STATUS": {
-      state.posts.forEach((post) => {
-        post.images.forEach((image, i) => {
+      const newImageKeyToImageId = new Map(state.imageKeyToImageId);
+
+      const updatedPosts = state.posts.map((post) => {
+        const updatedImages = post.images.map((image) => {
           const imagePayload = action.payload.get(image.id);
           if (!imagePayload) {
-            return;
+            return image;
           }
 
           if (imagePayload.type === "success") {
@@ -243,32 +245,38 @@ export function postsReducer(
               type: "loaded",
               url: imagePayload.url,
             } satisfies ImageLoadedState;
-            post.images[i] = newImage;
-            state.imageKeyToImageId.delete(newImage.key);
-          } else if (imagePayload.type == "compression_failure") {
+            newImageKeyToImageId.delete(newImage.key);
+            return newImage;
+          } else if (imagePayload.type === "compression_failure") {
             const newImage = {
               ...(image as ImageUploadingState),
               type: "loaded",
               url: imagePayload.url,
             } satisfies ImageLoadedState;
-            post.images[i] = newImage;
-            state.imageKeyToImageId.delete(newImage.key);
+            newImageKeyToImageId.delete(newImage.key);
+            return newImage;
           } else {
             const newImage = {
               ...(image as ImageErrorState),
               type: "error",
             } satisfies ImageErrorState;
-            post.images[i] = newImage;
-            for (const [key, value] of state.imageKeyToImageId.entries()) {
+            // Remove key from map for error state
+            for (const [key, value] of newImageKeyToImageId.entries()) {
               if (value === image.id) {
-                state.imageKeyToImageId.delete(key);
+                newImageKeyToImageId.delete(key);
               }
             }
+            return newImage;
           }
         });
+
+        return { ...post, images: updatedImages };
       });
+
       return {
         ...state,
+        posts: updatedPosts,
+        imageKeyToImageId: newImageKeyToImageId,
       };
     }
 

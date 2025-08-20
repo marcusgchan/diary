@@ -34,18 +34,22 @@ export async function getPostsForFormController(
       if (err) {
         return {
           ...restOfPost,
+          isSelected: restOfPost.order === 0,
           image: {
-            type: "error" as const,
             ...image,
+            type: "error" as const,
+            isSelected: image.order === 0,
           } satisfies ImageErrorState,
         };
       }
 
       return {
         ...restOfPost,
+        isSelected: restOfPost.order === 0,
         image: {
           type: "loaded" as const,
           url: data,
+          isSelected: image.order === 0,
           ...image,
         } satisfies ImageLoadedState,
       };
