@@ -8,6 +8,7 @@ import { EditPosts } from "./EditPosts";
 import { useMemo } from "react";
 import { usePosts } from "../contexts/PostsContext";
 import { createPostSchema } from "~/server/features/diary/schema";
+import { useToast } from "../../ui/use-toast";
 
 export function Posts() {
   return (
@@ -19,7 +20,6 @@ export function Posts() {
 
 function PostsList() {
   const params = useParams();
-  const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
 
   const { data: posts, isError } = api.diary.getPosts.useQuery({ entryId });
@@ -49,15 +49,14 @@ function PostsList() {
       return queryUtils.diary.getPosts.invalidate({ entryId });
     },
   });
+  const { toast } = useToast();
   function handleCreate() {
     const parseResult = createPostSchema.safeParse({
       entryId: entryId,
       posts: state.posts,
     });
     if (!parseResult.success) {
-      console.log("state", state.posts);
-      console.log(parseResult.error);
-      // toast
+      toast({ title: "Unable to create toast" });
       return;
     }
     mutation.mutate(parseResult.data);
@@ -79,11 +78,9 @@ function PostsList() {
   }
 
   if (posts) {
-    console.log("posts", posts);
     return (
       <ul className="space-y-2">
         {posts.map((post) => {
-          console.log("post", post);
           return (
             <li key={post.id} className="space-y-2">
               {post.title.length > 0 && (
@@ -125,14 +122,11 @@ type ImageLoaderProps = {
 
 function ImageLoader({ image }: ImageLoaderProps) {
   if (image.type === "error") {
-    return (
-      <p className="aspect-[4/3] w-[300px]">
-        Unable to load image: {image.name}
-      </p>
-    );
+    return <p className="aspect-[4/3] w-[300px]">Unable to load image </p>;
   }
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img className="aspect-[4/3] w-[300px]" alt={image.name} src={image.url} />
   );
 }
