@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { type db } from "~/server/db";
 import {
   diaries,
@@ -7,7 +7,7 @@ import {
   editorStates,
   type Entries,
   entries,
-  imageKeys,
+  postImages,
   posts,
   type Users,
 } from "~/server/db/schema";
@@ -136,26 +136,22 @@ export class EntryService {
       .limit(1);
   }
 
-  public async flagEntryForDeletion(entryId: Entries["id"]) {
-    await this.db.transaction(async (tx) => {
-      await tx
-        .update(entries)
-        .set({ deleting: true })
-        .where(eq(entries.id, entryId));
-      await tx
-        .update(imageKeys)
-        .set({ deleting: true })
-        .where(eq(imageKeys.entryId, entryId));
-    });
-  }
-
   public async deleteEntry(entryId: Entries["id"]) {
     await this.db.transaction(async (tx) => {
       await tx.delete(editorStates).where(eq(editorStates.entryId, entryId));
 
+      await tx
+        .delete(postImages)
+        .where(
+          inArray(
+            postImages.postId,
+            tx
+              .select({ postId: posts.id })
+              .from(posts)
+              .where(eq(posts.entryId, entryId)),
+          ),
+        );
       await tx.delete(posts).where(eq(posts.entryId, entryId));
-
-      await tx.delete(imageKeys).where(eq(imageKeys.entryId, entryId));
 
       await tx.delete(entries).where(eq(entries.id, entryId));
     });

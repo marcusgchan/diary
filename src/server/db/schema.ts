@@ -18,7 +18,6 @@ import {
   type SerializedLexicalNode,
 } from "lexical";
 import { type AdapterAccount } from "next-auth/adapters";
-import { uploadImage } from "../features/shared/s3ImagesService";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same

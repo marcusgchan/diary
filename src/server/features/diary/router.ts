@@ -84,38 +84,13 @@ export const diaryRouter = createTRPCRouter({
         });
       }
 
-      const s3ImageService = new S3ImageService(ctx);
-
-      await diaryService.flagDiaryForDeletion(input.diaryId);
-
-      const imageService = new ImageService(ctx);
-      const keysToDelete = await imageService.getImageKeysByDiaryId(
-        input.diaryId,
-      );
-
-      if (keysToDelete.length > 0) {
-        let [err] = await tryCatch(s3ImageService.deleteImages(keysToDelete));
-        if (err) {
-          return input.diaryId;
-        }
-
-        [err] = await tryCatch(diaryService.deleteDiary(input.diaryId));
-        if (err) {
-          ctx.log(
-            "deleteDiary",
-            "warn",
-            "unable to delete entry from database: " + err.message,
-          );
-        }
-      } else {
-        const [err] = await tryCatch(diaryService.deleteDiary(input.diaryId));
-        if (err) {
-          ctx.log(
-            "deleteDiary",
-            "warn",
-            "unable to delete entry from database: " + err.message,
-          );
-        }
+      const [err] = await tryCatch(diaryService.deleteDiary(input.diaryId));
+      if (err) {
+        ctx.log(
+          "deleteDiary",
+          "warn",
+          "unable to delete entry from database: " + err.message,
+        );
       }
 
       return input.diaryId;
@@ -153,30 +128,16 @@ export const diaryRouter = createTRPCRouter({
             });
           }
 
-          const imageService = new ImageService(ctx);
-          const keysToDelete = await imageService.getImageKeysByEntryId(
-            input.entryId,
-          );
-
-          const s3ImageService = new S3ImageService(ctx);
-          await entryService.flagEntryForDeletion(input.entryId);
-
-          let [err] = await tryCatch(
-            s3ImageService.deleteImages(expandKeys(keysToDelete)),
-          );
-
           // Only delete entries if image deletion is successful
           // The cron job will retry deletion so we still need key info if s3
           // req fails
-          if (!err) {
-            [err] = await tryCatch(entryService.deleteEntry(input.entryId));
-            if (err) {
-              ctx.log(
-                "deleteEntry",
-                "warn",
-                "unable to delete entry from database: " + err.message,
-              );
-            }
+          const [err] = await tryCatch(entryService.deleteEntry(input.entryId));
+          if (err) {
+            ctx.log(
+              "deleteEntry",
+              "warn",
+              "unable to delete entry from database: " + err.message,
+            );
           }
 
           span.end();
@@ -194,7 +155,8 @@ export const diaryRouter = createTRPCRouter({
       }
 
       const postService = new PostService(ctx);
-      await postService.upsertPosts(input.entryId, input.posts);
+      await postService.createPosts(input.entryId, input.posts);
+      return await postService.getPosts(input.entryId);
     }),
   deletePostById: protectedProcedure
     .input(z.object({ postId: z.string(), imageKey: z.string() }))
@@ -246,33 +208,26 @@ export const diaryRouter = createTRPCRouter({
       const posts = await postService.getPostsForForm(input.entryId);
 
       // Find posts that need to be deleted (posts that exist in the database but not in the input)
-      const postsToDelete = posts.filter(
-        (post) => !input.posts.some(({ id }) => id === post.id),
-      );
+      const postsToDelete = posts
+        .filter((post) => !input.posts.some(({ id }) => id === post.id))
+        .map((post) => post.id);
 
-      if (postsToDelete.length > 0) {
-        const postIdsToDelete = postsToDelete.map((p) => p.id);
-        const imageKeysToDelete = postsToDelete
-          .filter((p) => p.image.key !== null)
-          .map((p) => p.image.key);
-
-        // First flag the posts for deletion
-        await postService.flagPostsToDeleteByIds(postIdsToDelete);
-
-        // Delete the images from S3
-        const s3Service = new S3ImageService(ctx);
-        const [err] = await tryCatch(
-          s3Service.deleteImages(expandKeys(imageKeysToDelete)),
-        );
-
-        // Only delete posts from database if S3 deletion was successful
-        if (!err) {
-          await postService.deletePostsByIds(postIdsToDelete);
-        }
-      }
+      const oldImages = posts.flatMap((post) => post.image);
+      const currentImages = input.posts.flatMap((post) => post.images);
+      const imageKeysToFlag = oldImages
+        .filter(
+          (oldImage) =>
+            !currentImages.some((newImage) => newImage.key === oldImage.key),
+        )
+        .map((image) => image.key);
 
       // Create/update the remaining posts
-      await postService.upsertPosts(input.entryId, input.posts);
+      await postService.upsertPosts(
+        input.entryId,
+        postsToDelete,
+        imageKeysToFlag,
+        input.posts,
+      );
     }),
   getEntryTitle: protectedProcedure
     .input(z.object({ entryId: z.number() }))
@@ -298,29 +253,6 @@ export const diaryRouter = createTRPCRouter({
 
       return day.day;
     }),
-  deleteImage: protectedProcedure
-    .input(
-      z.object({
-        key: z.string(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const userId = getUserIdFromKey(input.key);
-      if (userId === null || userId !== ctx.session.user.id) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const s3ImageService = new S3ImageService(ctx);
-      const [err] = await tryCatch(
-        s3ImageService.deleteImages(expandKeys([input.key])),
-      );
-
-      const imageService = new ImageService(ctx);
-      if (!err) {
-        await tryCatch(imageService.deleteFileByKey(input.key));
-      }
-    }),
-
   saveEditorState: protectedProcedure
     .input(saveEditorStateSchema)
     .mutation(async ({ ctx, input }) => {
@@ -434,7 +366,6 @@ export const diaryRouter = createTRPCRouter({
         await insertImageMetadataWithGps({
           db: ctx.db,
           userId: ctx.session.user.id,
-          entryId: input.entryId,
           key: `${ctx.session.user.id}/${input.diaryId}/${input.entryId}/${uuid}-${input.imageMetadata.name.slice(0, indexOfDot)}`,
           lon,
           lat,
@@ -473,21 +404,21 @@ export const diaryRouter = createTRPCRouter({
   deleteImageMetadata: protectedProcedure
     .input(z.object({ key: z.string(), entryId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const imageService = new ImageService(ctx);
-      const [key] = await imageService.getKeyByKey(input.key);
-      if (!key) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      const s3Service = new S3ImageService(ctx);
-      await Promise.all([
-        s3Service.deleteImage(input.key),
-        deleteImageMetadata({
-          db: ctx.db,
-          key: input.key,
-        }),
-      ]);
-
+      // const imageService = new ImageService(ctx);
+      // const [key] = await imageService.getKeyByKey(input.key);
+      // if (!key) {
+      //   throw new TRPCError({ code: "NOT_FOUND" });
+      // }
+      //
+      // const s3Service = new S3ImageService(ctx);
+      // await Promise.all([
+      //   s3Service.deleteImage(input.key),
+      //   deleteImageMetadata({
+      //     db: ctx.db,
+      //     key: input.key,
+      //   }),
+      // ]);
+      //
       const entryService = new EntryService(ctx);
       return await entryService.getEntry(input.entryId);
     }),
@@ -577,29 +508,29 @@ export const diaryRouter = createTRPCRouter({
   cancelImageUpload: protectedProcedure
     .input(z.object({ key: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const imageService = new ImageService(ctx);
-      const [key] = await imageService.getKeyByKey(input.key);
-      if (!key) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-      const s3Service = new S3ImageService(ctx);
-      await Promise.all([
-        s3Service.deleteImage(input.key),
-        cancelImageUpload({
-          db: ctx.db,
-          key: input.key,
-        }),
-      ]);
+      // const imageService = new ImageService(ctx);
+      // const [key] = await imageService.getKeyByKey(input.key);
+      // if (!key) {
+      //   throw new TRPCError({ code: "NOT_FOUND" });
+      // }
+      // const s3Service = new S3ImageService(ctx);
+      // await Promise.all([
+      //   s3Service.deleteImage(input.key),
+      //   cancelImageUpload({
+      //     db: ctx.db,
+      //     key: input.key,
+      //   }),
+      // ]);
     }),
   confirmImageUpload: protectedProcedure
     .input(z.object({ key: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const imageService = new ImageService(ctx);
-      const [key] = await imageService.getKeyByKey(input.key);
-      if (!key) {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      confirmImageUpload({ db: ctx.db, key: input.key });
+      // const imageService = new ImageService(ctx);
+      // const [key] = await imageService.getKeyByKey(input.key);
+      // if (!key) {
+      //   throw new TRPCError({ code: "NOT_FOUND" });
+      // }
+      //
+      // confirmImageUpload({ db: ctx.db, key: input.key });
     }),
 });

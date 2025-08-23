@@ -35,7 +35,6 @@ import { flushSync } from "react-dom";
 
 export function EditPosts() {
   const { state, dispatch } = usePosts();
-
   const { activeId, handleDragStart, handleDragEnd, sensors } =
     usePostDnD(dispatch);
 

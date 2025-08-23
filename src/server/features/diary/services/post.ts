@@ -4,6 +4,7 @@ import {
   diariesToUsers,
   type Entries,
   entries,
+  type ImageKeys,
   imageKeys,
   postImages,
   posts,
@@ -13,7 +14,7 @@ import {
 import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
-import { type CreatePost } from "../schema";
+import type { UpdatePost, CreatePost } from "../schema";
 
 export class PostService {
   private userId: Users["id"];
@@ -124,11 +125,61 @@ export class PostService {
       .where(eq(posts.entryId, entryId));
   }
 
-  public async upsertPosts(
+  public async createPosts(
     entryId: Entries["id"],
     postsToInsert: CreatePost["posts"][number][],
   ) {
     const query = this.db.transaction(async (tx) => {
+      await tx.insert(posts).values(
+        postsToInsert.map((post, index) => {
+          return {
+            id: post.id,
+            entryId: entryId,
+            title: post.title,
+            description: post.description,
+            order: index,
+          };
+        }),
+      );
+
+      await tx.insert(postImages).values(
+        postsToInsert.flatMap((post) =>
+          post.images.map((image) => ({
+            ...image,
+            postId: post.id,
+            imageKey: image.key,
+          })),
+        ),
+      );
+    });
+    const [err] = await tryCatch(query);
+    if (err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create posts",
+      });
+    }
+  }
+
+  public async upsertPosts(
+    entryId: Entries["id"],
+    postIdsToDelete: Posts["id"][],
+    imageKeysToFlag: ImageKeys["key"][],
+    postsToInsert: UpdatePost["posts"][number][],
+  ) {
+    const query = this.db.transaction(async (tx) => {
+      // delete previous posts
+      await tx
+        .delete(postImages)
+        .where(inArray(postImages.imageKey, imageKeysToFlag));
+      await tx.delete(posts).where(inArray(posts.id, postIdsToDelete));
+
+      // flag prev img id
+      await tx
+        .update(imageKeys)
+        .set({ deleting: true })
+        .where(inArray(imageKeys.key, imageKeysToFlag));
+
       await tx
         .insert(posts)
         .values(

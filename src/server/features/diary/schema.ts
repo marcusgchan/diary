@@ -73,13 +73,11 @@ export const updatePostSchema = z.object({
     .object({
       id: z.string(),
       title: z.string(),
-      key: z.string(),
       description: z.string(),
       images: z
         .object({
           id: z.string(),
-          postId: z.string(),
-          imageKey: z.string(),
+          key: z.string(),
           order: z.number().int(),
         })
         .array(),

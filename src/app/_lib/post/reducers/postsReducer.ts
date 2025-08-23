@@ -1,5 +1,3 @@
-//TODO:invarirant with post length cannot be empty (refactor deleate and maybe others)
-
 import { type RouterOutputs } from "~/server/trpc";
 import type {
   ImageErrorState,
@@ -66,8 +64,8 @@ export function postsReducer(
 ): PostsState {
   switch (action.type) {
     case "LOAD_POSTS": {
-      console.log("loading");
-      return { ...state, posts: action.payload };
+      console.log("loading prev state", state);
+      return { ...state, posts: action.payload, imageKeyToImageId: new Map() };
     }
     case "START_NEW_POST": {
       const maxOrder = Math.max(...state.posts.map((p) => p.order), -1);
@@ -79,7 +77,6 @@ export function postsReducer(
           newPostToSelect,
         ],
       };
-      console.log("start", updatedState);
       return updatedState;
     }
 
@@ -99,12 +96,14 @@ export function postsReducer(
       };
 
     case "ADD_IMAGES": {
+      const newImageKeyToImageId = new Map(state.imageKeyToImageId);
       action.payload.forEach((image) =>
-        state.imageKeyToImageId.set(image.key, image.id),
+        newImageKeyToImageId.set(image.key, image.id),
       );
 
       return {
         ...state,
+        imageKeyToImageId: newImageKeyToImageId,
         posts: state.posts.map((post) => {
           if (post.isSelected) {
             const currentImageCount = post.images.length;
@@ -272,6 +271,21 @@ export function postsReducer(
 
         return { ...post, images: updatedImages };
       });
+
+      // Clean up any orphaned keys - remove keys for images that are no longer uploading
+      const allCurrentImageIds = new Set(
+        updatedPosts.flatMap((post) =>
+          post.images
+            .filter((img) => img.type === "uploading")
+            .map((img) => img.id),
+        ),
+      );
+
+      for (const [key, imageId] of newImageKeyToImageId.entries()) {
+        if (!allCurrentImageIds.has(imageId)) {
+          newImageKeyToImageId.delete(key);
+        }
+      }
 
       return {
         ...state,

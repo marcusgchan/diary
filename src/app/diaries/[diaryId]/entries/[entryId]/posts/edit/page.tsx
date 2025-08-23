@@ -1,16 +1,13 @@
-import { api } from "~/trpc/server";
-import { EditPosts } from "~/app/_lib/post/components/EditPosts";
 import { PostsProvider } from "~/app/_lib/post/contexts/PostsContext";
+import { PostLoader } from "~/app/_lib/post/components/PostsLoader";
+import { EditPostsSection } from "~/app/_lib/post/components/EditPostsSection";
 
-export default async function EditMapPage(props: {
-  params: Promise<{ diaryId: string; entryId: string }>;
-}) {
-  const params = await props.params;
-  await api.diary.getPosts.prefetch({ entryId: Number(params.entryId) });
-
+export default async function EditMapPage() {
   return (
     <PostsProvider>
-      <EditPosts />
+      <PostLoader>
+        <EditPostsSection />
+      </PostLoader>
     </PostsProvider>
   );
 }

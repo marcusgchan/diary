@@ -6,9 +6,9 @@ import {
   diariesToUsers,
   type Users,
   entries,
-  imageKeys,
   editorStates,
   posts,
+  postImages,
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
 
@@ -71,28 +71,6 @@ export class DiaryService {
       .where(eq(diaries.id, diaryId));
   }
 
-  public async flagDiaryForDeletion(diaryId: Diaries["id"]) {
-    await this.db.transaction(async (tx) => {
-      await tx
-        .update(diaries)
-        .set({ deleting: true })
-        .where(eq(diaries.id, diaryId));
-      await tx
-        .update(entries)
-        .set({ deleting: true })
-        .where(eq(entries.diaryId, diaryId));
-      const keys = tx
-        .select({ key: imageKeys.key })
-        .from(diaries)
-        .innerJoin(entries, eq(entries.diaryId, diaries.id))
-        .innerJoin(imageKeys, eq(entries.id, imageKeys.entryId));
-      await tx
-        .update(imageKeys)
-        .set({ deleting: true })
-        .where(inArray(imageKeys.key, keys));
-    });
-  }
-
   public async deleteDiary(diaryId: Diaries["id"]) {
     await this.db.transaction(async (tx) => {
       await tx
@@ -127,17 +105,23 @@ export class DiaryService {
           ),
         );
 
-      await tx
-        .delete(imageKeys)
-        .where(
-          inArray(
-            imageKeys.entryId,
-            tx
-              .select({ id: entries.id })
-              .from(entries)
-              .where(eq(entries.diaryId, diaryId)),
-          ),
-        );
+      await tx.delete(postImages).where(
+        inArray(
+          postImages.postId,
+          tx
+            .select({ postId: posts.id })
+            .from(posts)
+            .where(
+              inArray(
+                editorStates.entryId,
+                tx
+                  .select({ entryId: entries.id })
+                  .from(entries)
+                  .where(eq(entries.diaryId, diaryId)),
+              ),
+            ),
+        ),
+      );
 
       await tx.delete(entries).where(eq(entries.diaryId, diaryId));
 

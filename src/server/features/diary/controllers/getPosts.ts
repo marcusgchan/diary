@@ -51,7 +51,6 @@ export async function getPostsController(
       };
     }),
   );
-
   return postsView(postWithImage);
 }
 
@@ -59,9 +58,10 @@ function postsView(posts: GetPostWithImageState[]): GetPostGroupByImages[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);
     if (!post) {
+      const { image, ...rest } = cur;
       acc.set(cur.id, {
-        ...cur,
-        images: [{ ...cur.image }],
+        ...rest,
+        images: [{ ...image }],
       });
     }
     return acc;
