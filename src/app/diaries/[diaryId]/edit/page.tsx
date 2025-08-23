@@ -26,7 +26,7 @@ export default function EditDiary() {
     data: diary,
     isLoading,
     isError,
-  } = api.diary.getDiary.useQuery(
+  } = api.diaries.getDiary.useQuery(
     { diaryId: Number(params.diaryId) },
     {
       enabled: !!params.diaryId,
@@ -35,10 +35,10 @@ export default function EditDiary() {
   );
   const router = useRouter();
   const queryUtils = api.useUtils();
-  const deleteDiaryMutation = api.diary.deleteDiary.useMutation({
+  const deleteDiaryMutation = api.diaries.deleteDiary.useMutation({
     onSuccess(diaryId) {
-      queryUtils.diary.getDiary.setData({ diaryId }, null);
-      queryUtils.diary.getDiaries.setData(undefined, (diaries = []) => {
+      queryUtils.diaries.getDiary.setData({ diaryId }, null);
+      queryUtils.diaries.getDiaries.setData(undefined, (diaries = []) => {
         return diaries.filter((diary) => diary.id !== diaryId);
       });
       router.push(`/diaries`);
@@ -85,7 +85,7 @@ function Form({
   diary,
   isLoading,
 }: {
-  diary: RouterOutputs["diary"]["getDiary"] | undefined;
+  diary: RouterOutputs["diaries"]["getDiary"] | undefined;
   isLoading: boolean;
 }) {
   const [diaryName, setDiaryName] = useState(diary?.name ?? "");
@@ -93,10 +93,10 @@ function Form({
   const router = useRouter();
   const goToDiaries = () => router.push("./entries");
   const queryUtils = api.useUtils();
-  const editDiaryMutation = api.diary.editDiary.useMutation({
+  const editDiaryMutation = api.diaries.editDiary.useMutation({
     async onSuccess() {
       if (diary?.id !== undefined) {
-        await queryUtils.diary.getDiary.invalidate({ diaryId: diary.id });
+        await queryUtils.diaries.getDiary.invalidate({ diaryId: diary.id });
         router.push(`./entries`);
       }
     },

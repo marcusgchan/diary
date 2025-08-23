@@ -1,13 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { type GetPostImage } from "~/server/features/diary/types";
+import { type GetPostImage } from "~/server/features/posts/types";
 import { api } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
 import { useMemo } from "react";
 import { usePosts } from "../contexts/PostsContext";
-import { createPostSchema } from "~/server/features/diary/schema";
+import { createPostSchema } from "~/server/features/posts/schema";
 import { useToast } from "../../ui/use-toast";
 
 export function Posts() {
@@ -22,7 +22,7 @@ function PostsList() {
   const params = useParams();
   const entryId = Number(params.entryId);
 
-  const { data: posts, isError } = api.diary.getPosts.useQuery({ entryId });
+  const { data: posts, isError } = api.posts.getPosts.useQuery({ entryId });
 
   const { state } = usePosts();
   const disableCreate = useMemo(() => {
@@ -44,9 +44,9 @@ function PostsList() {
   }, [state.posts]);
 
   const queryUtils = api.useUtils();
-  const mutation = api.diary.createPosts.useMutation({
+  const mutation = api.posts.createPosts.useMutation({
     async onSuccess() {
-      return queryUtils.diary.getPosts.invalidate({ entryId });
+      return queryUtils.posts.getPosts.invalidate({ entryId });
     },
   });
   const { toast } = useToast();

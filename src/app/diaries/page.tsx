@@ -30,7 +30,7 @@ export default function Diaries() {
 }
 
 function DiaryList() {
-  const { isLoading, isError, data } = api.diary.getDiaries.useQuery();
+  const { isLoading, isError, data } = api.diaries.getDiaries.useQuery();
 
   if (isLoading) {
     return Array.from({ length: 4 }).map((_, i) => (
@@ -62,24 +62,24 @@ function DiaryList() {
 function Header() {
   const [newDiaryName, setNewDiaryName] = useState("");
   const queryUtils = api.useUtils();
-  const addDiary = api.diary.createDiary.useMutation({
+  const addDiary = api.diaries.createDiary.useMutation({
     async onMutate(newDiary) {
-      await queryUtils.diary.getDiaries.cancel();
-      const previousDiaries = queryUtils.diary.getDiaries.getData() ?? [];
-      queryUtils.diary.getDiaries.setData(undefined, (old) => [
+      await queryUtils.diaries.getDiaries.cancel();
+      const previousDiaries = queryUtils.diaries.getDiaries.getData() ?? [];
+      queryUtils.diaries.getDiaries.setData(undefined, (old) => [
         ...(old ?? []),
         newDiary,
       ]);
       return { previousDiaries };
     },
     onError(_err, _newDiary, context) {
-      queryUtils.diary.getDiaries.setData(
+      queryUtils.diaries.getDiaries.setData(
         undefined,
         context?.previousDiaries ?? [],
       );
     },
     onSettled() {
-      return queryUtils.diary.getDiaries.invalidate();
+      return queryUtils.diaries.getDiaries.invalidate();
     },
   });
   const createDiary = (e: FormEvent) => {

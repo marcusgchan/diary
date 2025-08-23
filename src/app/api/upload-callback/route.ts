@@ -2,8 +2,8 @@ import { z } from "zod";
 import { env } from "~/env.mjs";
 import { timingSafeEqual } from "crypto";
 import { db } from "~/server/db";
-import { createMetadataOnImageCallback } from "~/server/features/diary/service";
-import { getEntryIdByEntryAndDiaryId } from "~/server/features/diary/services/entry";
+import { createMetadataOnImageCallback } from "~/server/features/images";
+import { getEntryIdByEntryAndDiaryId } from "~/server/features/entries";
 import {
   getImage,
   uploadImage,

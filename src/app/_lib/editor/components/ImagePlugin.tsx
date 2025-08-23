@@ -95,12 +95,12 @@ function useRemoveImageMetadataOnDelete(editor: LexicalEditor) {
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const queryUtils = api.useUtils();
-  const deleteImageMetadata = api.diary.deleteImageMetadata.useMutation({
+  const deleteImageMetadata = api.images.deleteImageMetadata.useMutation({
     onSuccess(data) {
       if (!data) {
         return;
       }
-      queryUtils.diary.getEntry.setData({ diaryId, entryId }, data);
+      queryUtils.entries.getEntry.setData({ diaryId, entryId }, data);
     },
   });
   useEffect(() => {

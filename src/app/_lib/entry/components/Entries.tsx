@@ -24,7 +24,7 @@ export function Entries() {
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const router = useRouter();
-  const { data: entries, isError } = api.diary.getEntries.useQuery(
+  const { data: entries, isError } = api.entries.getEntries.useQuery(
     { diaryId: Number(diaryId) },
     {
       enabled: !!diaryId,
@@ -32,10 +32,10 @@ export function Entries() {
     },
   );
   const queryUtils = api.useUtils();
-  const deleteEntryMutation = api.diary.deleteEntry.useMutation({
+  const deleteEntryMutation = api.entries.deleteEntry.useMutation({
     onSuccess(deletedId) {
       if (deletedId) {
-        queryUtils.diary.getEntries.setData(
+        queryUtils.entries.getEntries.setData(
           { diaryId: Number(diaryId) },
           (entries) => {
             if (entries === undefined) {

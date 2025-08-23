@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { type db } from "~/server/db";
 import {
   diaries,
@@ -7,19 +7,35 @@ import {
   editorStates,
   type Entries,
   entries,
-  postImages,
-  posts,
   type Users,
 } from "~/server/db/schema";
-import { type TRPCContext, type ProtectedContext } from "~/server/trpc";
-import {
-  type CreateEntry,
-  type UpdateEntryTitle,
-  type EditEntryDate,
-} from "../schema";
+import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
 
-export class EntryService {
+type TransactionContext = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export interface CreateEntry {
+  diaryId: number;
+  day: string;
+}
+
+export interface UpdateEntryTitle {
+  diaryId: number;
+  entryId: number;
+  title: string;
+}
+
+export interface EditEntryDate {
+  diaryId: number;
+  entryId: number;
+  day: string;
+}
+
+/**
+ * Pure entry domain service - only handles entry-specific operations
+ * Cross-domain operations are handled by orchestrators
+ */
+export class EntryDomainService {
   private userId: Users["id"];
   private db: typeof db;
   private ctx: ProtectedContext;
@@ -70,6 +86,7 @@ export class EntryService {
 
     return entry ?? null;
   }
+
   public async getEntryIdById(entryId: Entries["id"]) {
     const [entry] = await this.db
       .select({ id: entries.id })
@@ -134,27 +151,6 @@ export class EntryService {
         and(eq(entries.id, entryId), eq(diariesToUsers.userId, this.userId)),
       )
       .limit(1);
-  }
-
-  public async deleteEntry(entryId: Entries["id"]) {
-    await this.db.transaction(async (tx) => {
-      await tx.delete(editorStates).where(eq(editorStates.entryId, entryId));
-
-      await tx
-        .delete(postImages)
-        .where(
-          inArray(
-            postImages.postId,
-            tx
-              .select({ postId: posts.id })
-              .from(posts)
-              .where(eq(posts.entryId, entryId)),
-          ),
-        );
-      await tx.delete(posts).where(eq(posts.entryId, entryId));
-
-      await tx.delete(entries).where(eq(entries.id, entryId));
-    });
   }
 
   public async getEntryTitle(entryId: Entries["id"]) {
@@ -245,29 +241,35 @@ export class EntryService {
       );
     return entriesWithSameDateAsInput;
   }
-}
 
-export async function getEntryIdByEntryAndDiaryId({
-  db,
-  userId,
-  entryId,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
-  diaryId: number;
-}) {
-  const [entry] = await db
-    .select({ id: entries.id })
-    .from(entries)
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(
-      and(
-        eq(entries.id, entryId),
-        eq(diariesToUsers.userId, userId),
-        eq(diariesToUsers.diaryId, diaryId),
-      ),
-    );
-  return entry;
+  /**
+   * Pure entry deletion - only deletes entries
+   * Used by orchestrator after all related data is cleaned up
+   */
+  public async deleteEntryOnly(
+    entryId: Entries["id"],
+    tx?: TransactionContext,
+  ) {
+    const database = tx || this.db;
+    await database.delete(entries).where(eq(entries.id, entryId));
+  }
+
+  /**
+   * Delete all entries for a diary - used during diary deletion
+   */
+  public async deleteEntriesByDiaryId(
+    diaryId: Diaries["id"],
+    tx?: TransactionContext,
+  ) {
+    const database = tx || this.db;
+    await database.delete(entries).where(eq(entries.diaryId, diaryId));
+  }
+
+  /**
+   * Verify user has access to entry
+   */
+  public async verifyEntryAccess(entryId: Entries["id"]): Promise<boolean> {
+    const entry = await this.getEntryIdById(entryId);
+    return entry !== undefined;
+  }
 }

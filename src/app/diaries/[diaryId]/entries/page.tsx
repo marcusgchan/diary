@@ -7,7 +7,7 @@ export default async function Page(props: {
   params: Promise<{ diaryId: string; entryId: string }>;
 }) {
   const params = await props.params;
-  await api.diary.getEntry.prefetch({
+  await api.entries.getEntry.prefetch({
     diaryId: Number(params.diaryId),
     entryId: Number(params.entryId),
   });

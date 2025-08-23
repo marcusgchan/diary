@@ -4,7 +4,7 @@ import { api } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
 import { usePosts } from "../contexts/PostsContext";
-import { updatePostSchema } from "~/server/features/diary/schema";
+import { updatePostSchema } from "~/server/features/posts/schema";
 import { useParams, useRouter } from "next/navigation";
 
 export function EditPostsSection() {
@@ -14,7 +14,7 @@ export function EditPostsSection() {
   const entryId = Number(params.entryId);
 
   const { state } = usePosts();
-  const mutation = api.diary.updatePosts.useMutation({
+  const mutation = api.posts.updatePosts.useMutation({
     onSuccess() {
       router.push("../");
     },

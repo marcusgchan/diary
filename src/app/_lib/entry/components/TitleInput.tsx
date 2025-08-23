@@ -7,7 +7,7 @@ import { api } from "~/trpc/TrpcProvider";
 export function TitleInput() {
   const { diaryId, entryId } = useParams();
 
-  const { data } = api.diary.getEntryTitle.useQuery({
+  const { data } = api.entries.getEntryTitle.useQuery({
     entryId: Number(entryId),
   });
   const [title, setTitle] = useState(data ?? "");
@@ -18,9 +18,9 @@ export function TitleInput() {
   }, [data]);
 
   const queryUtils = api.useUtils();
-  const saveTitleMutation = api.diary.updateTitle.useMutation({
+  const saveTitleMutation = api.entries.updateTitle.useMutation({
     onSuccess(data) {
-      queryUtils.diary.getEntry.setData(
+      queryUtils.entries.getEntry.setData(
         { diaryId: Number(diaryId), entryId: Number(entryId) },
         (old) => {
           if (old) {
@@ -30,7 +30,7 @@ export function TitleInput() {
         },
       );
 
-      queryUtils.diary.getEntryTitle.setData(
+      queryUtils.entries.getEntryTitle.setData(
         { entryId: Number(entryId) },
         data,
       );

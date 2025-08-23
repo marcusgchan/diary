@@ -245,7 +245,7 @@ function SelectedPostView({
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const { data: uploadingState } =
-    api.diary.getMultipleImageUploadStatus.useQuery(
+    api.images.getMultipleImageUploadStatus.useQuery(
       {
         entryId,
         diaryId,

@@ -17,7 +17,7 @@ export function DiaryEntry() {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
-  const entryQuery = api.diary.getEntry.useQuery(
+  const entryQuery = api.entries.getEntry.useQuery(
     {
       entryId: Number(entryId),
       diaryId: Number(diaryId),

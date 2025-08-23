@@ -1,8 +1,8 @@
 import { type ProtectedContext } from "~/server/trpc";
-import { EntryService } from "../services/entry";
+import { EntryDomainService } from "~/server/features/entries/service";
 import { type GetPostsSchema } from "../schema";
 import { TRPCError } from "@trpc/server";
-import { PostService } from "../services/post";
+import { PostDomainService } from "~/server/features/posts/service";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { getImageSignedUrl } from "../../shared/s3ImagesService";
 import type {
@@ -16,14 +16,14 @@ export async function getPostsController(
   ctx: ProtectedContext,
   input: GetPostsSchema,
 ): Promise<GetPostGroupByImages[]> {
-  const entryService = new EntryService(ctx);
+  const entryService = new EntryDomainService(ctx);
   const [header] = await entryService.getEntryHeader(input.entryId);
 
   if (!header) {
     throw new TRPCError({ code: "BAD_REQUEST" });
   }
 
-  const postService = new PostService(ctx);
+  const postService = new PostDomainService(ctx);
   const posts = await postService.getPosts(input.entryId);
 
   const postWithImage: GetPostWithImageState[] = await Promise.all(

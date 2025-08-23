@@ -88,9 +88,9 @@ export function Editor({
   const diaryId = params.diaryId as string | undefined;
   const entryId = params.entryId as string | undefined;
   const queryUtils = api.useContext();
-  const saveEditorStateMutation = api.diary.saveEditorState.useMutation({
+  const saveEditorStateMutation = api.editor.saveEditorState.useMutation({
     onSuccess(data) {
-      queryUtils.diary.getEntry.setData(
+      queryUtils.entries.getEntry.setData(
         { diaryId: Number(diaryId), entryId: Number(entryId) },
         data,
       );

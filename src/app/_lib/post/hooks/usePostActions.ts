@@ -5,7 +5,7 @@ import type {
   PostsState,
   PostsAction,
 } from "@/_lib/post/reducers/postsReducer";
-import type { ImageUploadingState } from "~/server/features/diary/types";
+import type { ImageUploadingState } from "~/server/features/posts/types";
 import { type useScrollToImage } from "./useScrollToImage";
 import { api } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
@@ -51,7 +51,7 @@ export function usePostActions({
 
     const res = await Promise.allSettled(
       metadata.map(async (meta) => {
-        const data = utils.diary.createPresignedPostUrl.fetch(
+        const data = utils.images.createPresignedPostUrl.fetch(
           {
             diaryId,
             entryId,

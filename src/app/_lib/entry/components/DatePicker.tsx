@@ -15,7 +15,7 @@ export function DatePicker() {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = Number(params.entryId);
-  const { data } = api.diary.getEntryDay.useQuery({ entryId });
+  const { data } = api.entries.getEntryDay.useQuery({ entryId });
   const [date, setDate] = useState(data ? parseISO(data) : undefined);
   useEffect(() => {
     if (data) {
@@ -25,13 +25,13 @@ export function DatePicker() {
 
   const { toast } = useToast();
   const queryUtils = api.useUtils();
-  const updateEntryDateMutation = api.diary.updateEntryDate.useMutation({
+  const updateEntryDateMutation = api.entries.updateEntryDate.useMutation({
     async onSuccess(data) {
-      await queryUtils.diary.getEntry.invalidate({
+      await queryUtils.entries.getEntry.invalidate({
         entryId: Number(entryId),
         diaryId: Number(diaryId),
       });
-      await queryUtils.diary.getEntries.invalidate({
+      await queryUtils.entries.getEntries.invalidate({
         diaryId: Number(diaryId),
       });
       setDate(new Date(parseISO(data.day)));

@@ -5,7 +5,7 @@ import type {
   ImageUploadingState,
   EditPostGroupByNonEmptyImages,
   EditPostGroupByImages,
-} from "~/server/features/diary/types";
+} from "~/server/features/posts/types";
 
 export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
 
@@ -34,7 +34,7 @@ export type PostsAction =
     }
   | {
       type: "UPDATE_IMAGES_STATUS";
-      payload: RouterOutputs["diary"]["getMultipleImageUploadStatus"];
+      payload: RouterOutputs["images"]["getMultipleImageUploadStatus"];
     }
   | { type: "DELETE_CURRENT_IMAGE"; payload: { imageId: string } };
 

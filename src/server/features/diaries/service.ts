@@ -1,18 +1,20 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { type db } from "~/server/db";
 import {
   diaries,
   type Diaries,
   diariesToUsers,
   type Users,
-  entries,
-  editorStates,
-  posts,
-  postImages,
 } from "~/server/db/schema";
 import { type ProtectedContext } from "~/server/trpc";
 
-export class DiaryService {
+type TransactionContext = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Pure diary domain service - only handles diary-specific operations
+ * Cross-domain operations are handled by orchestrators
+ */
+export class DiaryDomainService {
   private userId: Users["id"];
   private db: typeof db;
   private ctx: ProtectedContext;
@@ -71,64 +73,6 @@ export class DiaryService {
       .where(eq(diaries.id, diaryId));
   }
 
-  public async deleteDiary(diaryId: Diaries["id"]) {
-    await this.db.transaction(async (tx) => {
-      await tx
-        .delete(editorStates)
-        .where(
-          inArray(
-            editorStates.entryId,
-            tx
-              .select({ entryId: entries.id })
-              .from(entries)
-              .where(eq(entries.diaryId, diaryId)),
-          ),
-        );
-      await tx
-        .delete(diariesToUsers)
-        .where(
-          and(
-            eq(diariesToUsers.diaryId, diaryId),
-            eq(diariesToUsers.userId, this.userId),
-          ),
-        );
-
-      await tx
-        .delete(posts)
-        .where(
-          inArray(
-            posts.entryId,
-            tx
-              .select({ id: entries.id })
-              .from(entries)
-              .where(eq(entries.diaryId, diaryId)),
-          ),
-        );
-
-      await tx.delete(postImages).where(
-        inArray(
-          postImages.postId,
-          tx
-            .select({ postId: posts.id })
-            .from(posts)
-            .where(
-              inArray(
-                editorStates.entryId,
-                tx
-                  .select({ entryId: entries.id })
-                  .from(entries)
-                  .where(eq(entries.diaryId, diaryId)),
-              ),
-            ),
-        ),
-      );
-
-      await tx.delete(entries).where(eq(entries.diaryId, diaryId));
-
-      await tx.delete(diaries).where(eq(diaries.id, diaryId));
-    });
-  }
-
   public async getDiaryIdById(diaryId: Diaries["id"]) {
     const [diary] = await this.db
       .select({ id: diaries.id })
@@ -141,5 +85,34 @@ export class DiaryService {
         ),
       );
     return diary;
+  }
+
+  /**
+   * Pure diary deletion - only deletes diary and diary-user relationship
+   * Used by orchestrator after all related data is cleaned up
+   */
+  public async deleteDiaryOnly(
+    diaryId: Diaries["id"],
+    tx?: TransactionContext,
+  ) {
+    const database = tx || this.db;
+
+    await database
+      .delete(diariesToUsers)
+      .where(
+        and(
+          eq(diariesToUsers.diaryId, diaryId),
+          eq(diariesToUsers.userId, this.userId),
+        ),
+      );
+    await database.delete(diaries).where(eq(diaries.id, diaryId));
+  }
+
+  /**
+   * Check if user has access to diary
+   */
+  public async verifyDiaryAccess(diaryId: Diaries["id"]): Promise<boolean> {
+    const diary = await this.getDiaryIdById(diaryId);
+    return diary !== undefined;
   }
 }

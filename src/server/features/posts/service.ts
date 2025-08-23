@@ -14,9 +14,41 @@ import {
 import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
-import type { UpdatePost, CreatePost } from "../schema";
 
-export class PostService {
+type TransactionContext = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export interface CreatePost {
+  posts: Array<{
+    id: string;
+    title: string;
+    description: string;
+    images: Array<{
+      id: string;
+      key: string;
+      order: number;
+    }>;
+  }>;
+}
+
+export interface UpdatePost {
+  entryId: number;
+  posts: Array<{
+    id: string;
+    title: string;
+    description: string;
+    images: Array<{
+      id: string;
+      key: string;
+      order: number;
+    }>;
+  }>;
+}
+
+/**
+ * Pure post domain service - only handles post-specific operations
+ * Cross-domain operations are handled by orchestrators
+ */
+export class PostDomainService {
   private userId: Users["id"];
   private db: typeof db;
   private ctx: ProtectedContext;
@@ -223,5 +255,42 @@ export class PostService {
         message: "Failed to create posts",
       });
     }
+  }
+
+  /**
+   * Delete posts by entry ID - used during entry deletion
+   */
+  public async deletePostsByEntryId(
+    entryId: Entries["id"],
+    tx?: TransactionContext,
+  ) {
+    const database = tx || this.db;
+    await database.delete(posts).where(eq(posts.entryId, entryId));
+  }
+
+  /**
+   * Delete posts by diary ID - used during diary deletion
+   */
+  public async deletePostsByDiaryId(diaryId: number, tx?: TransactionContext) {
+    const database = tx || this.db;
+    await database
+      .delete(posts)
+      .where(
+        inArray(
+          posts.entryId,
+          database
+            .select({ id: entries.id })
+            .from(entries)
+            .where(eq(entries.diaryId, diaryId)),
+        ),
+      );
+  }
+
+  /**
+   * Verify user has access to post
+   */
+  public async verifyPostAccess(postId: Posts["id"]): Promise<boolean> {
+    const post = await this.getPostById(postId);
+    return post !== undefined;
   }
 }

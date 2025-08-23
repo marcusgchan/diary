@@ -107,16 +107,16 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [imageKey, setImageKey] = useState<string>();
   const [disableCancel, setDisableCancel] = useState(false);
   const fileRef = useRef<File>(undefined);
-  const { data } = api.diary.getImageUploadStatus.useQuery(
+  const { data } = api.images.getImageUploadStatus.useQuery(
     { key: imageKey },
     {
       enabled: startPolling,
       refetchInterval: 1000,
     },
   );
-  const cancelUpload = api.diary.cancelImageUpload.useMutation();
-  const confirmUpload = api.diary.confirmImageUpload.useMutation();
-  const insertImageMetadata = api.diary.getPresignedUrl.useMutation();
+  const cancelUpload = api.images.cancelImageUpload.useMutation();
+  const confirmUpload = api.images.confirmImageUpload.useMutation();
+  const insertImageMetadata = api.images.getPresignedUrl.useMutation();
 
   useEffect(() => {
     if (data) {
@@ -195,7 +195,7 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
     };
     const dateTimeTaken = tags?.exif?.DateTimeOriginal?.description;
 
-    let data: RouterOutputs["diary"]["getPresignedUrl"];
+    let data: RouterOutputs["images"]["getPresignedUrl"];
     try {
       data = await insertImageMetadata.mutateAsync({
         diaryId: Number(params.diaryId),

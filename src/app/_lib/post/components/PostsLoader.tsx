@@ -8,7 +8,7 @@ import { usePosts } from "../contexts/PostsContext";
 export function PostLoader({ children }: { children: React.JSX.Element }) {
   const params = useParams();
   const entryId = Number(params.entryId);
-  const { data } = api.diary.getPostsForForm.useQuery({ entryId });
+  const { data } = api.posts.getPostsForForm.useQuery({ entryId });
   const { dispatch } = usePosts();
 
   // Only load data in once

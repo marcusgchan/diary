@@ -10,16 +10,16 @@ export function Header() {
   const queryUtils = api.useUtils();
   const router = useRouter();
   const goToEditDiary = () => router.push(`/diaries/${diaryId}/edit`);
-  const { data: diary } = api.diary.getDiary.useQuery(
+  const { data: diary } = api.diaries.getDiary.useQuery(
     {
       diaryId: Number(params.diaryId),
     },
     { enabled: !!params.diaryId, refetchOnWindowFocus: false },
   );
-  const addEntryMutation = api.diary.createEntry.useMutation({
+  const addEntryMutation = api.entries.createEntry.useMutation({
     async onSuccess(data) {
       router.push(`/diaries/${diaryId}/entries/${data.id}`);
-      await queryUtils.diary.getEntries.invalidate({
+      await queryUtils.entries.getEntries.invalidate({
         diaryId: Number(params.diaryId),
       });
     },
