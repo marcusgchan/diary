@@ -77,7 +77,7 @@ export function Entries() {
               <Link
                 className={cn(
                   "flex justify-between rounded bg-secondary p-1 sm:hidden",
-                  entryId && Number(entryId) === entry.id && "bg-secondary/60",
+                  entryId && Number(entryId) === entry.id && "bg-secondary/15",
                 )}
                 href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
               >

@@ -1,11 +1,13 @@
-import { api } from "~/trpc/server";
-import { FormWrapper } from "@/_lib/shared/FormWrapper";
+import { PostsProvider } from "~/app/_lib/post/contexts/PostsContext";
+import { PostLoader } from "~/app/_lib/post/components/PostsLoader";
+import { EditPostsSection } from "~/app/_lib/post/components/EditPostsSection";
 
-export default async function EditMapPage(props: {
-  params: Promise<{ diaryId: string; entryId: string }>;
-}) {
-  const params = await props.params;
-  await api.diary.getPostsForForm.prefetch({ entryId: Number(params.entryId) });
-
-  return <FormWrapper />;
+export default async function EditMapPage() {
+  return (
+    <PostsProvider>
+      <PostLoader>
+        <EditPostsSection />
+      </PostLoader>
+    </PostsProvider>
+  );
 }

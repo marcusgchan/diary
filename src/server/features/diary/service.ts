@@ -1,431 +1,15 @@
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
-import type {
-  Diaries,
-  Entries,
-  ImageKeys,
-  Posts,
-  Users,
-} from "~/server/db/schema";
+import { and, eq, inArray, not } from "drizzle-orm";
+import type { ImageKeys } from "~/server/db/schema";
 import {
-  diaries,
   diariesToUsers,
-  editorStates,
   entries,
+  geoData,
   imageKeys,
+  postImages,
   posts,
 } from "~/server/db/schema";
 import type { TRPCContext } from "../../trpc";
-import { type ProtectedContext } from "../../trpc";
-import type { CreatePost, EditEntryDate, UpdateEntryTitle } from "./schema";
 import { TRPCError } from "@trpc/server";
-import { type db } from "~/server/db";
-import { tryCatch } from "~/app/_lib/utils/tryCatch";
-
-export async function getEntryTitleDayById({
-  db,
-  userId,
-  entryId,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  entryId: number;
-  diaryId: number;
-}) {
-  const [entry] = await db
-    .select({ title: entries.title, day: entries.day })
-    .from(entries)
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(
-      and(
-        eq(diariesToUsers.diaryId, diaryId),
-        eq(entries.id, entryId),
-        eq(diariesToUsers.userId, userId),
-      ),
-    )
-    .limit(1);
-
-  if (!entry) {
-    return null;
-  }
-
-  return { title: entry.title ?? null, day: entry.day };
-}
-
-export async function getLinkedImageKeys({
-  db,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-}) {
-  return await db
-    .select({ key: imageKeys.key })
-    .from(imageKeys)
-    .leftJoin(posts, eq(posts.imageKey, imageKeys.key))
-    .where(and(eq(imageKeys.entryId, entryId), isNotNull(posts.imageKey)));
-}
-
-export async function updateDiaryEntryStatusToDeleting({
-  db,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-}) {
-  return db
-    .update(entries)
-    .set({ deleting: true })
-    .where(eq(entries.id, entryId));
-}
-
-export class DiaryServiceRepo {
-  private userId: Users["id"];
-  private db: typeof db;
-  private ctx: ProtectedContext;
-
-  constructor(context: ProtectedContext) {
-    this.userId = context.session.user.id;
-    this.db = context.db;
-    this.ctx = context;
-  }
-
-  public async flagDiaryForDeletion(diaryId: Diaries["id"]) {
-    await this.db.transaction(async (tx) => {
-      await tx
-        .update(diaries)
-        .set({ deleting: true })
-        .where(eq(diaries.id, diaryId));
-      await tx
-        .update(entries)
-        .set({ deleting: true })
-        .where(eq(entries.diaryId, diaryId));
-      const keys = tx
-        .select({ key: imageKeys.key })
-        .from(diaries)
-        .innerJoin(entries, eq(entries.diaryId, diaries.id))
-        .innerJoin(imageKeys, eq(entries.id, imageKeys.entryId));
-      await tx
-        .update(imageKeys)
-        .set({ deleting: true })
-        .where(inArray(imageKeys.key, keys));
-    });
-  }
-
-  public async deletePosts(entryId: Entries["id"], keys: string[]) {
-    await this.db.transaction(async (tx) => {
-      await tx.delete(posts).where(and(eq(posts.entryId, entryId)));
-      await tx.delete(imageKeys).where(inArray(imageKeys.key, keys));
-    });
-  }
-
-  public async getPosts(entryId: Entries["id"]) {
-    return await this.db
-      .select({
-        id: posts.id,
-        title: posts.title,
-        description: posts.description,
-        imageKey: posts.imageKey,
-      })
-      .from(posts)
-      .innerJoin(entries, eq(entries.id, posts.entryId))
-      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-      .where(
-        and(
-          eq(posts.entryId, entryId),
-          eq(diariesToUsers.userId, this.userId),
-          eq(posts.deleting, false),
-        ),
-      )
-      .orderBy(asc(posts.order));
-  }
-
-  public async getPostById(postId: Posts["id"]) {
-    const [p] = await this.db
-      .select({ postId: posts.id })
-      .from(posts)
-      .innerJoin(entries, eq(entries.id, posts.entryId))
-      .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-      .where(and(eq(posts.id, postId), eq(diariesToUsers.userId, this.userId)))
-      .limit(1);
-    return p?.postId;
-  }
-
-  public async flagPostForDeletion(postId: Posts["id"]) {
-    await this.db
-      .update(posts)
-      .set({ deleting: true })
-      .where(eq(posts.id, postId));
-  }
-
-  public async deletePostById(postId: Posts["id"]) {
-    await this.db.delete(posts).where(eq(posts.id, postId));
-  }
-
-  public async flagPostsToDeleteByIds(postIds: Posts["id"][]) {
-    await this.db
-      .update(posts)
-      .set({ deleting: true })
-      .where(inArray(posts.id, postIds));
-  }
-
-  public async deletePostsByIds(postIds: Posts["id"][]) {
-    await this.db.delete(posts).where(inArray(posts.id, postIds));
-  }
-
-  public async deleteDiary(diaryId: Diaries["id"]) {
-    await this.db.transaction(async (tx) => {
-      await tx
-        .delete(editorStates)
-        .where(
-          inArray(
-            editorStates.entryId,
-            tx
-              .select({ entryId: entries.id })
-              .from(entries)
-              .where(eq(entries.diaryId, diaryId)),
-          ),
-        );
-      await tx
-        .delete(diariesToUsers)
-        .where(
-          and(
-            eq(diariesToUsers.diaryId, diaryId),
-            eq(diariesToUsers.userId, this.userId),
-          ),
-        );
-
-      await tx
-        .delete(posts)
-        .where(
-          inArray(
-            posts.entryId,
-            tx
-              .select({ id: entries.id })
-              .from(entries)
-              .where(eq(entries.diaryId, diaryId)),
-          ),
-        );
-
-      await tx
-        .delete(imageKeys)
-        .where(
-          inArray(
-            imageKeys.entryId,
-            tx
-              .select({ id: entries.id })
-              .from(entries)
-              .where(eq(entries.diaryId, diaryId)),
-          ),
-        );
-
-      await tx.delete(entries).where(eq(entries.diaryId, diaryId));
-
-      await tx.delete(diaries).where(eq(diaries.id, diaryId));
-    });
-  }
-
-  public async updatePostsToDeleting(entryId: Entries["id"]) {
-    await this.db
-      .update(posts)
-      .set({ deleting: true })
-      .where(eq(posts.entryId, entryId));
-  }
-
-  public async deleteFileByKey(key: string) {
-    const [err] = await tryCatch(
-      this.db.transaction(async (tx) => {
-        await tx
-          .update(posts)
-          .set({ imageKey: null })
-          .where(eq(posts.imageKey, key));
-        await tx.delete(imageKeys).where(eq(imageKeys.key, key));
-      }),
-    );
-    console.log(err);
-    if (err) {
-      this.ctx.log(
-        "deleteFileByKey",
-        "warn",
-        "unable to delete file by key: " + err.message,
-      );
-      throw new Error("unable to delete file by key", { cause: err });
-    }
-  }
-
-  public async upsertPosts(
-    entryId: Entries["id"],
-    postsToInsert: (CreatePost["posts"][number] & { id?: Posts["id"] })[],
-  ) {
-    const query = this.db
-      .insert(posts)
-      .values(
-        postsToInsert.map((post, index) => {
-          return {
-            ...(post.id && { id: post.id }),
-            entryId: entryId,
-            title: post.title,
-            description: post.description,
-            imageKey: post.key,
-            order: index,
-          };
-        }),
-      )
-      .onConflictDoUpdate({
-        target: posts.id,
-        set: {
-          title: sql.raw(`excluded.${posts.title.name}`),
-          imageKey: sql.raw(`excluded."${posts.imageKey.name}"`),
-          description: sql.raw(`excluded.${posts.description.name}`),
-          order: sql.raw(`excluded.${posts.order.name}`),
-        },
-      })
-      .returning({ id: posts.id });
-    const [err] = await tryCatch(query);
-    if (err) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to create posts",
-      });
-    }
-  }
-}
-
-export async function updateDiaryEntryStatusToNotDeleting({
-  db,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-}) {
-  return db
-    .update(entries)
-    .set({ deleting: false })
-    .where(eq(entries.id, entryId));
-}
-
-export async function updateTitle({
-  db,
-  userId,
-  input,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  input: UpdateEntryTitle;
-}) {
-  await db
-    .update(entries)
-    .set({ title: input.title })
-    .where(
-      and(
-        eq(entries.diaryId, input.diaryId),
-        eq(entries.id, input.entryId),
-        eq(
-          entries.diaryId,
-          db
-            .selectDistinct({ diaryId: diariesToUsers.diaryId })
-            .from(diariesToUsers)
-            .where(
-              and(
-                eq(diariesToUsers.diaryId, entries.diaryId),
-                eq(diariesToUsers.userId, userId),
-              ),
-            ),
-        ),
-      ),
-    );
-}
-
-export async function getEntryIdByDate({
-  db,
-  userId,
-  input,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  input: { diaryId: number; entryId: number; day: string };
-}) {
-  const [entriesWithSameDateAsInput] = await db
-    .selectDistinct({
-      id: entries.id,
-    })
-    .from(entries)
-    .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
-    .where(
-      and(
-        eq(entries.diaryId, input.diaryId),
-        eq(entries.day, input.day),
-        eq(diariesToUsers.userId, userId),
-      ),
-    );
-  return entriesWithSameDateAsInput;
-}
-
-export async function updateEntryDate({
-  db,
-  userId,
-  input,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  input: EditEntryDate;
-}) {
-  await db
-    .update(entries)
-    .set({ day: input.day })
-    .where(
-      and(
-        eq(entries.id, input.entryId),
-        eq(
-          entries.diaryId,
-          db
-            .selectDistinct({ diaryId: diariesToUsers.diaryId })
-            .from(diariesToUsers)
-            .where(
-              and(
-                eq(diariesToUsers.diaryId, entries.diaryId),
-                eq(diariesToUsers.userId, userId),
-              ),
-            ),
-        ),
-      ),
-    );
-}
-
-export async function getDiaryIdById({
-  db,
-  userId,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  diaryId: number;
-}) {
-  const [diary] = await db
-    .select({ id: diaries.id })
-    .from(diaries)
-    .innerJoin(diariesToUsers, eq(diaries.id, diariesToUsers.diaryId))
-    .where(
-      and(
-        eq(diariesToUsers.diaryId, diaryId),
-        eq(diariesToUsers.userId, userId),
-      ),
-    );
-  return diary;
-}
-
-export async function updateDiaryStatusToNotDeleting({
-  db,
-  diaryId,
-}: {
-  db: TRPCContext["db"];
-  diaryId: number;
-}) {
-  return db
-    .update(diaries)
-    .set({ deleting: false })
-    .where(eq(diaries.id, diaryId));
-}
 
 export async function insertImageMetadata({
   db,
@@ -433,7 +17,6 @@ export async function insertImageMetadata({
   entryId,
   key,
   dateTimeTaken,
-  gps,
 }: {
   db: TRPCContext["db"];
   userId: string;
@@ -456,13 +39,11 @@ export async function insertImageMetadata({
     .insert(imageKeys)
     .values({
       key,
-      entryId,
       name: "",
       mimetype: "",
+      userId,
       size: 0,
-      lat: gps?.lat,
-      lon: gps?.lon,
-      datetimeTaken:
+      takenAt:
         dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
     })
     .onConflictDoNothing();
@@ -501,21 +82,29 @@ export async function createMetadataOnImageCallback({
     throw new TRPCError({ code: "BAD_REQUEST" });
   }
 
-  await db
-    .insert(imageKeys)
-    .values({
-      key,
-      name,
-      mimetype,
-      size,
-      entryId,
-      lat: gps?.lat,
-      lon: gps?.lon,
-      compressionStatus: compressionStatus,
-      datetimeTaken:
-        dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
-    })
-    .onConflictDoNothing();
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(imageKeys)
+      .values({
+        key,
+        name,
+        mimetype,
+        size,
+        userId,
+        compressionStatus: compressionStatus,
+        takenAt:
+          dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
+      })
+      .onConflictDoNothing();
+
+    if (gps) {
+      await tx.insert(geoData).values({
+        key,
+        lat: gps?.lat,
+        lon: gps?.lon,
+      });
+    }
+  });
 }
 
 export async function getUnlinkedImages({
@@ -533,48 +122,26 @@ export async function getUnlinkedImages({
       compressionStatus: imageKeys.compressionStatus,
     })
     .from(imageKeys)
-    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
-    .leftJoin(posts, eq(posts.imageKey, imageKeys.key))
     .where(
       and(
-        eq(entries.id, entryId),
-        isNull(posts.imageKey),
+        not(
+          inArray(
+            imageKeys.key,
+            db
+              .select({ key: postImages.imageKey })
+              .from(postImages)
+              .innerJoin(posts, eq(posts.id, postImages.postId))
+              .where(eq(posts.entryId, entryId)),
+          ),
+        ),
         inArray(imageKeys.key, keys),
       ),
     );
 }
 
-export async function deletePosts({
-  db,
-  entryId,
-}: {
-  db: TRPCContext["db"];
-  entryId: number;
-}) {
-  await db.transaction(async (tx) => {
-    await tx.delete(posts).where(eq(posts.entryId, entryId));
-    await tx.delete(imageKeys).where(eq(imageKeys.entryId, entryId));
-  });
-}
-
-export async function setCompressionStatus({
-  db,
-  key,
-  compressionStatus,
-}: {
-  db: TRPCContext["db"];
-  key: string;
-  compressionStatus: ImageKeys["compressionStatus"];
-}) {
-  return db
-    .update(imageKeys)
-    .set({ compressionStatus })
-    .where(eq(imageKeys.key, key));
-}
-
 export async function insertImageMetadataWithGps({
   db,
-  entryId,
+  userId,
   lat,
   lon,
   key,
@@ -582,22 +149,28 @@ export async function insertImageMetadataWithGps({
 }: {
   db: TRPCContext["db"];
   userId: string;
-  entryId: number;
   key: string;
   lat: number;
   lon: number;
   dateTimeTaken: string | undefined;
 }) {
-  return db.insert(imageKeys).values({
-    key,
-    name: "",
-    mimetype: "",
-    size: 0,
-    entryId,
-    lat,
-    lon,
-    datetimeTaken:
-      dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
+  await db.transaction(async (tx) => {
+    await tx.insert(imageKeys).values({
+      key,
+      name: "",
+      compressionStatus: "failure",
+      mimetype: "",
+      size: 0,
+      userId,
+      takenAt:
+        dateTimeTaken !== undefined ? new Date(dateTimeTaken) : undefined,
+    });
+
+    await tx.insert(geoData).values({
+      key,
+      lat,
+      lon,
+    });
   });
 }
 
@@ -621,23 +194,6 @@ export async function deleteImageMetadata({
       cause: e,
     });
   }
-}
-
-export async function getKeyByKey({
-  db,
-  key,
-  userId,
-}: {
-  db: TRPCContext["db"];
-  userId: string;
-  key: string;
-}) {
-  return await db
-    .select({ key: imageKeys.key })
-    .from(imageKeys)
-    .innerJoin(entries, eq(entries.id, imageKeys.entryId))
-    .innerJoin(diariesToUsers, eq(entries.diaryId, diariesToUsers.diaryId))
-    .where(and(eq(imageKeys.key, key), eq(diariesToUsers.userId, userId)));
 }
 
 export async function getImageUploadStatus({

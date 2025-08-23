@@ -1,38 +1,41 @@
-import React from "react";
+import type React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { type DraggableAttributes } from "@dnd-kit/core";
+import { type SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 export function SortableItem({
   id,
   children,
 }: {
   id: string;
-  children: React.ReactNode;
+  children: ({
+    attributes,
+    listeners,
+    style,
+    setNodeRef,
+    isDragging,
+  }: {
+    attributes: DraggableAttributes;
+    listeners: SyntheticListenerMap | undefined;
+    style: { transform: string | undefined; transition: string | undefined };
+    setNodeRef: (node: HTMLElement | null) => void;
+    isDragging: boolean;
+  }) => React.JSX.Element;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="col-span-2 grid grid-cols-subgrid"
-    >
-      {children}
-      <button
-        type="button"
-        className="justify-self-center px-2"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical />
-      </button>
-    </div>
-  );
+  return children({ attributes, listeners, style, setNodeRef, isDragging });
 }
