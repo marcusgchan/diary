@@ -3,10 +3,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/trpc";
 import {
   insertImageMetadata,
-  deleteImageMetadata,
   getImageUploadStatus,
-  cancelImageUpload,
-  confirmImageUpload,
   insertImageMetadataWithGps,
   getUnlinkedImages,
 } from "./service";
@@ -33,7 +30,6 @@ import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { getUserIdFromKey } from "./utils";
 import { DiaryService } from "./services/diary";
 import { EntryService } from "./services/entry";
-import { ImageService } from "./services/image";
 import { PostService } from "./services/post";
 import { EditorStateService } from "./services/editorState";
 import { getPostsForFormController } from "./controllers/getPostsForForm";
