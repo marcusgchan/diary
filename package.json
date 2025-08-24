@@ -75,7 +75,7 @@
     "server-only": "^0.0.1",
     "sharp": "^0.33.5",
     "superjson": "^2.2.2",
-    "tailwind-merge": "^2.6.0",
+    "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.2"
   },
