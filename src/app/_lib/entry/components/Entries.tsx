@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { Trash } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -28,30 +28,34 @@ export function Entries() {
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const router = useRouter();
-  const { data: entries, isError } = useQuery(api.diary.getEntries.queryOptions(
-    { diaryId: Number(diaryId) },
-    {
-      enabled: !!diaryId,
-      refetchOnWindowFocus: false,
-    },
-  ));
+  const { data: entries, isError } = useQuery(
+    api.diary.getEntries.queryOptions(
+      { diaryId: Number(diaryId) },
+      {
+        enabled: !!diaryId,
+        refetchOnWindowFocus: false,
+      },
+    ),
+  );
   const queryClient = useQueryClient();
-  const deleteEntryMutation = useMutation(api.diary.deleteEntry.mutationOptions({
-    onSuccess(deletedId) {
-      if (deletedId) {
-        queryClient.setQueryData(
-          api.diary.getEntries.queryKey({ diaryId: Number(diaryId) }),
-          (entries) => {
-            if (entries === undefined) {
-              return [];
-            }
-            return entries.filter((entry) => entry.id !== deletedId);
-          }
-        );
-        router.push(`/diaries/${diaryId}/entries`);
-      }
-    },
-  }));
+  const deleteEntryMutation = useMutation(
+    api.diary.deleteEntry.mutationOptions({
+      onSuccess(deletedId) {
+        if (deletedId) {
+          queryClient.setQueryData(
+            api.diary.getEntries.queryKey({ diaryId: Number(diaryId) }),
+            (entries) => {
+              if (entries === undefined) {
+                return [];
+              }
+              return entries.filter((entry) => entry.id !== deletedId);
+            },
+          );
+          router.push(`/diaries/${diaryId}/entries`);
+        }
+      },
+    }),
+  );
   const handleDelete = (diaryId: number, entryId: number) =>
     deleteEntryMutation.mutate({
       diaryId: diaryId,

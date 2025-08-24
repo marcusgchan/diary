@@ -111,16 +111,24 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [imageKey, setImageKey] = useState<string>();
   const [disableCancel, setDisableCancel] = useState(false);
   const fileRef = useRef<File>(undefined);
-  const { data } = useQuery(api.diary.getImageUploadStatus.queryOptions(
-    { key: imageKey },
-    {
-      enabled: startPolling,
-      refetchInterval: 1000,
-    },
-  ));
-  const cancelUpload = useMutation(api.diary.cancelImageUpload.mutationOptions());
-  const confirmUpload = useMutation(api.diary.confirmImageUpload.mutationOptions());
-  const insertImageMetadata = useMutation(api.diary.getPresignedUrl.mutationOptions());
+  const { data } = useQuery(
+    api.diary.getImageUploadStatus.queryOptions(
+      { key: imageKey },
+      {
+        enabled: startPolling,
+        refetchInterval: 1000,
+      },
+    ),
+  );
+  const cancelUpload = useMutation(
+    api.diary.cancelImageUpload.mutationOptions(),
+  );
+  const confirmUpload = useMutation(
+    api.diary.confirmImageUpload.mutationOptions(),
+  );
+  const insertImageMetadata = useMutation(
+    api.diary.getPresignedUrl.mutationOptions(),
+  );
 
   useEffect(() => {
     if (data) {

@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import {
   $createParagraphNode,
   $createRangeSelection,
@@ -98,14 +98,19 @@ function useRemoveImageMetadataOnDelete(editor: LexicalEditor) {
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const queryClient = useQueryClient();
-  const deleteImageMetadata = useMutation(api.diary.deleteImageMetadata.mutationOptions({
-    onSuccess(data) {
-      if (!data) {
-        return;
-      }
-      queryClient.setQueryData(api.diary.getEntry.queryKey({ diaryId, entryId }), data);
-    },
-  }));
+  const deleteImageMetadata = useMutation(
+    api.diary.deleteImageMetadata.mutationOptions({
+      onSuccess(data) {
+        if (!data) {
+          return;
+        }
+        queryClient.setQueryData(
+          api.diary.getEntry.queryKey({ diaryId, entryId }),
+          data,
+        );
+      },
+    }),
+  );
   useEffect(() => {
     const removeMutationListener = editor.registerMutationListener(
       ImageNode,

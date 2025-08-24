@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { format, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useParams } from "next/navigation";
@@ -29,21 +29,27 @@ export function DatePicker() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const updateEntryDateMutation = useMutation(api.diary.updateEntryDate.mutationOptions({
-    async onSuccess(data) {
-      await queryClient.invalidateQueries(api.diary.getEntry.queryFilter({
-        entryId: Number(entryId),
-        diaryId: Number(diaryId),
-      }));
-      await queryClient.invalidateQueries(api.diary.getEntries.queryFilter({
-        diaryId: Number(diaryId),
-      }));
-      setDate(new Date(parseISO(data.day)));
-    },
-    onError(e) {
-      toast({ variant: "destructive", title: e.message });
-    },
-  }));
+  const updateEntryDateMutation = useMutation(
+    api.diary.updateEntryDate.mutationOptions({
+      async onSuccess(data) {
+        await queryClient.invalidateQueries(
+          api.diary.getEntry.queryFilter({
+            entryId: Number(entryId),
+            diaryId: Number(diaryId),
+          }),
+        );
+        await queryClient.invalidateQueries(
+          api.diary.getEntries.queryFilter({
+            diaryId: Number(diaryId),
+          }),
+        );
+        setDate(new Date(parseISO(data.day)));
+      },
+      onError(e) {
+        toast({ variant: "destructive", title: e.message });
+      },
+    }),
+  );
   function handleChangeDate(date: Date | undefined) {
     setIsOpen(false);
     if (!date) {

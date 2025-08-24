@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useParams, useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useId, useState } from "react";
@@ -30,24 +30,34 @@ export default function EditDiary() {
     data: diary,
     isLoading,
     isError,
-  } = useQuery(api.diary.getDiary.queryOptions(
-    { diaryId: Number(params.diaryId) },
-    {
-      enabled: !!params.diaryId,
-      staleTime: Infinity,
-    },
-  ));
+  } = useQuery(
+    api.diary.getDiary.queryOptions(
+      { diaryId: Number(params.diaryId) },
+      {
+        enabled: !!params.diaryId,
+        staleTime: Infinity,
+      },
+    ),
+  );
   const router = useRouter();
   const queryClient = useQueryClient();
-  const deleteDiaryMutation = useMutation(api.diary.deleteDiary.mutationOptions({
-    onSuccess(diaryId) {
-      queryClient.setQueryData(api.diary.getDiary.queryKey({ diaryId }), null);
-      queryClient.setQueryData(api.diary.getDiaries.queryKey(), (diaries = []) => {
-        return diaries.filter((diary) => diary.id !== diaryId);
-      });
-      router.push(`/diaries`);
-    },
-  }));
+  const deleteDiaryMutation = useMutation(
+    api.diary.deleteDiary.mutationOptions({
+      onSuccess(diaryId) {
+        queryClient.setQueryData(
+          api.diary.getDiary.queryKey({ diaryId }),
+          null,
+        );
+        queryClient.setQueryData(
+          api.diary.getDiaries.queryKey(),
+          (diaries = []) => {
+            return diaries.filter((diary) => diary.id !== diaryId);
+          },
+        );
+        router.push(`/diaries`);
+      },
+    }),
+  );
   const deleteDiary = () => {
     if (diary?.id !== undefined) {
       deleteDiaryMutation.mutate({ diaryId: diary.id });
@@ -98,14 +108,18 @@ function Form({
   const router = useRouter();
   const goToDiaries = () => router.push("./entries");
   const queryClient = useQueryClient();
-  const editDiaryMutation = useMutation(api.diary.editDiary.mutationOptions({
-    async onSuccess() {
-      if (diary?.id !== undefined) {
-        await queryClient.invalidateQueries(api.diary.getDiary.queryFilter({ diaryId: diary.id }));
-        router.push(`./entries`);
-      }
-    },
-  }));
+  const editDiaryMutation = useMutation(
+    api.diary.editDiary.mutationOptions({
+      async onSuccess() {
+        if (diary?.id !== undefined) {
+          await queryClient.invalidateQueries(
+            api.diary.getDiary.queryFilter({ diaryId: diary.id }),
+          );
+          router.push(`./entries`);
+        }
+      },
+    }),
+  );
   const editDiary = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (diary?.id && diary.id !== undefined) {

@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
@@ -16,11 +16,13 @@ export function EditPostsSection() {
   const entryId = Number(params.entryId);
 
   const { state } = usePosts();
-  const mutation = useMutation(api.diary.updatePosts.mutationOptions({
-    onSuccess() {
-      router.push("../");
-    },
-  }));
+  const mutation = useMutation(
+    api.diary.updatePosts.mutationOptions({
+      onSuccess() {
+        router.push("../");
+      },
+    }),
+  );
 
   function handleUpdate() {
     const parseResult = updatePostSchema.safeParse({

@@ -54,14 +54,16 @@ export function usePostActions({
 
     const res = await Promise.allSettled(
       metadata.map(async (meta) => {
-        const data = queryClient.fetchQuery(api.diary.createPresignedPostUrl.queryOptions(
-          {
-            diaryId,
-            entryId,
-            imageMetadata: meta,
-          },
-          { staleTime: 0 },
-        ));
+        const data = queryClient.fetchQuery(
+          api.diary.createPresignedPostUrl.queryOptions(
+            {
+              diaryId,
+              entryId,
+              imageMetadata: meta,
+            },
+            { staleTime: 0 },
+          ),
+        );
         return data;
       }),
     );

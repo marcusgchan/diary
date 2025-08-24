@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "~/app/_lib/ui/button";
 import { useTRPC } from "~/trpc/TrpcProvider";
@@ -14,20 +14,26 @@ export function Header() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const goToEditDiary = () => router.push(`/diaries/${diaryId}/edit`);
-  const { data: diary } = useQuery(api.diary.getDiary.queryOptions(
-    {
-      diaryId: Number(params.diaryId),
-    },
-    { enabled: !!params.diaryId, refetchOnWindowFocus: false },
-  ));
-  const addEntryMutation = useMutation(api.diary.createEntry.mutationOptions({
-    async onSuccess(data) {
-      router.push(`/diaries/${diaryId}/entries/${data.id}`);
-      await queryClient.invalidateQueries(api.diary.getEntries.queryFilter({
+  const { data: diary } = useQuery(
+    api.diary.getDiary.queryOptions(
+      {
         diaryId: Number(params.diaryId),
-      }));
-    },
-  }));
+      },
+      { enabled: !!params.diaryId, refetchOnWindowFocus: false },
+    ),
+  );
+  const addEntryMutation = useMutation(
+    api.diary.createEntry.mutationOptions({
+      async onSuccess(data) {
+        router.push(`/diaries/${diaryId}/entries/${data.id}`);
+        await queryClient.invalidateQueries(
+          api.diary.getEntries.queryFilter({
+            diaryId: Number(params.diaryId),
+          }),
+        );
+      },
+    }),
+  );
   const addEntry = () => {
     addEntryMutation.mutate({
       day: new Date().toLocaleDateString("en-CA"),

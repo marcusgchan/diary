@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import { useParams } from "next/navigation";
 import { type GetPostImage } from "~/server/lib/types";
 import { useTRPC } from "~/trpc/TrpcProvider";
@@ -53,11 +53,15 @@ function PostsList() {
   }, [state.posts]);
 
   const queryClient = useQueryClient();
-  const mutation = useMutation(api.diary.createPosts.mutationOptions({
-    async onSuccess() {
-      return queryClient.invalidateQueries(api.diary.getPosts.queryFilter({ entryId }));
-    },
-  }));
+  const mutation = useMutation(
+    api.diary.createPosts.mutationOptions({
+      async onSuccess() {
+        return queryClient.invalidateQueries(
+          api.diary.getPosts.queryFilter({ entryId }),
+        );
+      },
+    }),
+  );
   const { toast } = useToast();
   function handleCreate() {
     const parseResult = createPostSchema.safeParse({

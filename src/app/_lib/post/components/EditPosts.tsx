@@ -1,5 +1,5 @@
 // move active id to reducer, scroll not selecting right active img
-"use client";;
+"use client";
 import { Image as ImageIcon, MapPin, Plus, Trash } from "lucide-react";
 import {
   type ChangeEvent,
@@ -247,8 +247,8 @@ function SelectedPostView({
   const params = useParams();
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
-  const { data: uploadingState } =
-    useQuery(api.diary.getMultipleImageUploadStatus.queryOptions(
+  const { data: uploadingState } = useQuery(
+    api.diary.getMultipleImageUploadStatus.queryOptions(
       {
         entryId,
         diaryId,
@@ -259,7 +259,8 @@ function SelectedPostView({
         enabled: state.imageKeyToImageId.size > 0,
         refetchInterval: 3000,
       },
-    ));
+    ),
+  );
   useEffect(() => {
     if (!uploadingState) {
       return;

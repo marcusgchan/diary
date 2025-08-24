@@ -92,14 +92,19 @@ export function Editor({
   const diaryId = params.diaryId as string | undefined;
   const entryId = params.entryId as string | undefined;
   const queryClient = useQueryClient();
-  const saveEditorStateMutation = useMutation(api.diary.saveEditorState.mutationOptions({
-    onSuccess(data) {
-      queryClient.setQueryData(
-        api.diary.getEntry.queryKey({ diaryId: Number(diaryId), entryId: Number(entryId) }),
-        data
-      );
-    },
-  }));
+  const saveEditorStateMutation = useMutation(
+    api.diary.saveEditorState.mutationOptions({
+      onSuccess(data) {
+        queryClient.setQueryData(
+          api.diary.getEntry.queryKey({
+            diaryId: Number(diaryId),
+            entryId: Number(entryId),
+          }),
+          data,
+        );
+      },
+    }),
+  );
   function handleSave(editorState: EditorState) {
     if (diaryId === undefined || entryId === undefined) {
       console.error("diaryId or entryId is undefined");

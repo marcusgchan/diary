@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { Skeleton } from "~/app/_lib/ui/skeleton";
@@ -19,15 +19,17 @@ export function DiaryEntry() {
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
-  const entryQuery = useQuery(api.diary.getEntry.queryOptions(
-    {
-      entryId: Number(entryId),
-      diaryId: Number(diaryId),
-    },
-    {
-      refetchOnWindowFocus: false,
-    },
-  ));
+  const entryQuery = useQuery(
+    api.diary.getEntry.queryOptions(
+      {
+        entryId: Number(entryId),
+        diaryId: Number(diaryId),
+      },
+      {
+        refetchOnWindowFocus: false,
+      },
+    ),
+  );
 
   if (entryQuery.isPending) {
     return (
