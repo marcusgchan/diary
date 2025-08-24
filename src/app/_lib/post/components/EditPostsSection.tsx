@@ -4,7 +4,7 @@ import { api } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
 import { usePosts } from "../contexts/PostsContext";
-import { updatePostSchema } from "~/server/features/diary/schema";
+import { updatePostSchema } from "~/server/lib/schema";
 import { useParams, useRouter } from "next/navigation";
 
 export function EditPostsSection() {

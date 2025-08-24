@@ -1,13 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { type GetPostImage } from "~/server/features/diary/types";
+import { type GetPostImage } from "~/server/lib/types";
 import { api } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
 import { useMemo } from "react";
 import { usePosts } from "../contexts/PostsContext";
-import { createPostSchema } from "~/server/features/diary/schema";
+import { createPostSchema } from "~/server/lib/schema";
 import { useToast } from "../../ui/use-toast";
 
 export function Posts() {
@@ -127,6 +127,10 @@ function ImageLoader({ image }: ImageLoaderProps) {
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img className="aspect-[4/3] w-[300px]" alt={image.name} src={image.url} />
+    <img
+      className="aspect-[4/3] w-[300px] object-cover"
+      alt={image.name}
+      src={image.url}
+    />
   );
 }

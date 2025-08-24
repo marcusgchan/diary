@@ -8,7 +8,7 @@ import {
   postImages,
   posts,
 } from "~/server/db/schema";
-import type { TRPCContext } from "../../trpc";
+import type { TRPCContext } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 export async function insertImageMetadata({

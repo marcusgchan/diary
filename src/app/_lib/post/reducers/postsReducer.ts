@@ -5,7 +5,7 @@ import type {
   ImageUploadingState,
   EditPostGroupByNonEmptyImages,
   EditPostGroupByImages,
-} from "~/server/features/diary/types";
+} from "~/server/lib/types";
 
 export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
 

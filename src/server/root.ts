@@ -1,4 +1,4 @@
-import { diaryRouter } from "~/server/features/diary/router";
+import { diaryRouter } from "~/server/lib/router";
 import { createTRPCRouter } from "~/server/trpc";
 
 /**
