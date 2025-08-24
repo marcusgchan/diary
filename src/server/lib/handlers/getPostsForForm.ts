@@ -1,10 +1,10 @@
 import { type ProtectedContext } from "~/server/trpc";
-import { EntryService } from "../services/entry";
+import { EntryService } from "../repositories/entry";
 import { type GetPostsSchema } from "../schema";
 import { TRPCError } from "@trpc/server";
-import { PostService } from "../services/post";
+import { PostService } from "../repositories/post";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
-import { getImageSignedUrl } from "../../shared/s3ImagesService";
+import { getImageSignedUrl } from "../integrations/s3Service";
 import type {
   ImageErrorState,
   ImageLoadedState,
@@ -12,7 +12,7 @@ import type {
   EditPostGroupByNonEmptyImages,
 } from "../types";
 
-export async function getPostsForFormController(
+export async function getPostsForFormHandler(
   ctx: ProtectedContext,
   input: GetPostsSchema,
 ) {
