@@ -2,10 +2,11 @@ import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { DiaryService } from "../repositories/diary";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
+import { type DeleteDiaryInput } from "../schema";
 
 export async function deleteDiaryHandler(
   ctx: ProtectedContext,
-  input: { diaryId: number },
+  input: DeleteDiaryInput,
 ): Promise<number> {
   const diaryService = new DiaryService(ctx);
 

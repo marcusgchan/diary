@@ -3,15 +3,11 @@ import { TRPCError } from "@trpc/server";
 import { EntryService } from "../repositories/entry";
 import { getUnlinkedImages } from "../service";
 import { getImageSignedUrl } from "../integrations/s3Service";
+import { type GetMultipleImageUploadStatusInput } from "../schema";
 
 export async function getMultipleImageUploadStatusHandler(
   ctx: ProtectedContext,
-  input: {
-    keys: string[];
-    entryId: number;
-    diaryId: number;
-    keyToIdMap: Map<string, string>;
-  },
+  input: GetMultipleImageUploadStatusInput,
 ) {
   const entryService = new EntryService(ctx);
   const entry = await entryService.getEntryIdById(input.entryId);

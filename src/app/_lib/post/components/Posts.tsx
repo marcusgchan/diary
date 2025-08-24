@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { usePosts } from "../contexts/PostsContext";
 import { createPostSchema } from "~/server/lib/schema";
 import { useToast } from "../../ui/use-toast";
+import { PostListsSkeletion } from "./PostsListSkeleton";
 
 export function Posts() {
   return (
@@ -22,7 +23,11 @@ function PostsList() {
   const params = useParams();
   const entryId = Number(params.entryId);
 
-  const { data: posts, isError } = api.diary.getPosts.useQuery({ entryId });
+  const {
+    data: posts,
+    isError,
+    isPending,
+  } = api.diary.getPosts.useQuery({ entryId });
 
   const { state } = usePosts();
   const disableCreate = useMemo(() => {
@@ -62,6 +67,14 @@ function PostsList() {
     mutation.mutate(parseResult.data);
   }
 
+  if (isPending) {
+    return <PostListsSkeletion />;
+  }
+
+  if (isError) {
+    return "Something went wrong";
+  }
+
   if (!posts || posts.length === 0) {
     return (
       <div className="space-y-2">
@@ -77,29 +90,19 @@ function PostsList() {
     );
   }
 
-  if (posts) {
-    return (
-      <ul className="space-y-2">
-        {posts.map((post) => {
-          return (
-            <li key={post.id} className="space-y-2">
-              {post.title.length > 0 && (
-                <h3 className="text-lg">{post.title}</h3>
-              )}
-              <ImageList images={post.images} />
-              {post.description.length > 0 && <p>{post.description}</p>}
-            </li>
-          );
-        })}
-      </ul>
-    );
-  }
-
-  if (isError) {
-    return "Something went wrong";
-  }
-
-  return "Loading...";
+  return (
+    <ul className="space-y-2">
+      {posts.map((post) => {
+        return (
+          <li key={post.id} className="space-y-2">
+            {post.title.length > 0 && <h3 className="text-lg">{post.title}</h3>}
+            <ImageList images={post.images} />
+            {post.description.length > 0 && <p>{post.description}</p>}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 type ImageListProps = { images: GetPostImage[] };

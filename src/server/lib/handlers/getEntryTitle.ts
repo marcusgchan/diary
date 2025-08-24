@@ -1,10 +1,11 @@
 import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { EntryService } from "../repositories/entry";
+import { type GetEntryTitleInput } from "../schema";
 
 export async function getEntryTitleHandler(
   ctx: ProtectedContext,
-  input: { entryId: number },
+  input: GetEntryTitleInput,
 ): Promise<string> {
   const entryService = new EntryService(ctx);
   const [title] = await entryService.getEntryTitle(input.entryId);

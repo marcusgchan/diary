@@ -3,10 +3,11 @@ import { TRPCError } from "@trpc/server";
 import { EntryService } from "../repositories/entry";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { type Span } from "@opentelemetry/api";
+import { type DeleteEntryInput } from "../schema";
 
 export async function deleteEntryHandler(
   ctx: ProtectedContext,
-  input: { diaryId: number; entryId: number },
+  input: DeleteEntryInput,
 ): Promise<number> {
   return ctx.tracer.startActiveSpan(
     "deleteEntryProcedure",

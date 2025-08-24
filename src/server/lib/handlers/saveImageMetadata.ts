@@ -1,9 +1,10 @@
 import { type ProtectedContext } from "~/server/trpc";
 import { insertImageMetadata } from "../service";
+import { type SaveImageMetadataInput } from "../schema";
 
 export async function saveImageMetadataHandler(
   ctx: ProtectedContext,
-  input: { key: string; entryId: number },
+  input: SaveImageMetadataInput,
 ): Promise<null> {
   await insertImageMetadata({
     db: ctx.db,

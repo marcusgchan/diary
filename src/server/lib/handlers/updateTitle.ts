@@ -1,10 +1,10 @@
 import { type ProtectedContext } from "~/server/trpc";
 import { EntryService } from "../repositories/entry";
-import { updateEntryTitleSchema } from "../schema";
+import { type UpdateEntryTitle } from "../schema";
 
 export async function updateTitleHandler(
   ctx: ProtectedContext,
-  input: typeof updateEntryTitleSchema._type,
+  input: UpdateEntryTitle,
 ): Promise<string> {
   const entryService = new EntryService(ctx);
   await entryService.updateTitle(input);

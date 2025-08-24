@@ -1,11 +1,11 @@
 import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { EntryService } from "../repositories/entry";
-import { editEntryDateSchema } from "../schema";
+import { type EditEntryDate } from "../schema";
 
 export async function updateEntryDateHandler(
   ctx: ProtectedContext,
-  input: typeof editEntryDateSchema._type,
+  input: EditEntryDate,
 ): Promise<{ diaryId: number; entryId: number; day: string }> {
   const entryService = new EntryService(ctx);
   const id = await entryService.getEntryIdByDate(input);

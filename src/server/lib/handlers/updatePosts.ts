@@ -2,11 +2,11 @@ import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { EntryService } from "../repositories/entry";
 import { PostService } from "../repositories/post";
-import { updatePostSchema } from "../schema";
+import { type UpdatePost } from "../schema";
 
 export async function updatePostsHandler(
   ctx: ProtectedContext,
-  input: typeof updatePostSchema._type,
+  input: UpdatePost,
 ): Promise<void> {
   const entryService = new EntryService(ctx);
   const entryId = await entryService.getEntryIdById(input.entryId);

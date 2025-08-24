@@ -3,18 +3,11 @@ import { TRPCError } from "@trpc/server";
 import { EntryService } from "../repositories/entry";
 import { getPresignedPost } from "../integrations/s3Service";
 import { randomUUID } from "crypto";
+import { type CreatePresignedPostUrlInput } from "../schema";
 
 export async function createPresignedPostUrlHandler(
   ctx: ProtectedContext,
-  input: {
-    diaryId: number;
-    entryId: number;
-    imageMetadata: {
-      name: string;
-      mimetype: string;
-      size: number;
-    };
-  },
+  input: CreatePresignedPostUrlInput,
 ) {
   const entryService = new EntryService(ctx);
   const entry = await entryService.getEntryIdById(input.entryId);
