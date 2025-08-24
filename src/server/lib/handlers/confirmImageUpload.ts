@@ -1,8 +1,9 @@
 import { type ProtectedContext } from "~/server/trpc";
+import { type ConfirmImageUploadInput } from "../schema";
 
 export async function confirmImageUploadHandler(
   ctx: ProtectedContext,
-  input: { key: string },
+  input: ConfirmImageUploadInput,
 ): Promise<void> {
   // TODO: Uncomment and implement when image service is ready
   // const imageService = new ImageService(ctx);

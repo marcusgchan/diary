@@ -1,9 +1,10 @@
 import { type ProtectedContext } from "~/server/trpc";
 import { EntryService } from "../repositories/entry";
+import { type DeleteImageMetadataInput } from "../schema";
 
 export async function deleteImageMetadataHandler(
   ctx: ProtectedContext,
-  input: { key: string; entryId: number },
+  input: DeleteImageMetadataInput,
 ) {
   // TODO: Uncomment and implement when image service is ready
   // const imageService = new ImageService(ctx);

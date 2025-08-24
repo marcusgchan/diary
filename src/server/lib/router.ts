@@ -10,6 +10,24 @@ import {
   saveEditorStateSchema,
   updateEntryTitleSchema,
   updatePostSchema,
+  // Additional schemas for handlers
+  getDiaryInputSchema,
+  getEntriesInputSchema,
+  getEntryInputSchema,
+  deleteEntrySchema,
+  deleteDiaryInputSchema,
+  getEntryTitleInputSchema,
+  getEntryDayInputSchema,
+  deletePostByIdInputSchema,
+  saveImageMetadataInputSchema,
+  deleteImageMetadataInputSchema,
+  getImageUploadStatusInputSchema,
+  cancelImageUploadInputSchema,
+  confirmImageUploadInputSchema,
+  getImageUrlInputSchema,
+  createPresignedPostUrlInputSchema,
+  getPresignedUrlInputSchema,
+  getMultipleImageUploadStatusInputSchema,
 } from "./schema";
 import { getPostsForFormHandler } from "./handlers/getPostsForForm";
 import { getPostsHandler } from "./handlers/getPosts";
@@ -53,7 +71,7 @@ export const diaryRouter = createTRPCRouter({
     },
   ),
   getDiary: protectedProcedure
-    .input(z.object({ diaryId: z.number() }))
+    .input(getDiaryInputSchema)
     .query(async ({ ctx, input }) => {
       return await getDiaryHandler(ctx, input);
     }),
@@ -63,17 +81,17 @@ export const diaryRouter = createTRPCRouter({
       return await editDiaryHandler(ctx, input);
     }),
   deleteDiary: protectedProcedure
-    .input(z.object({ diaryId: z.number() }))
+    .input(deleteDiaryInputSchema)
     .mutation(async ({ ctx, input }) => {
       return await deleteDiaryHandler(ctx, input);
     }),
   getEntries: protectedProcedure
-    .input(z.object({ diaryId: z.number() }))
+    .input(getEntriesInputSchema)
     .query(async ({ ctx, input }) => {
       return await getEntriesHandler(ctx, input);
     }),
   getEntry: protectedProcedure
-    .input(z.object({ diaryId: z.number(), entryId: z.number() }))
+    .input(getEntryInputSchema)
     .query(async ({ ctx, input }) => {
       return await getEntryHandler(ctx, input);
     }),
@@ -83,7 +101,7 @@ export const diaryRouter = createTRPCRouter({
       return await createEntryHandler(ctx, input);
     }),
   deleteEntry: protectedProcedure
-    .input(z.object({ diaryId: z.number(), entryId: z.number() }))
+    .input(deleteEntrySchema)
     .mutation(async ({ ctx, input }) => {
       return await deleteEntryHandler(ctx, input);
     }),
@@ -93,7 +111,7 @@ export const diaryRouter = createTRPCRouter({
       return await createPostsHandler(ctx, input);
     }),
   deletePostById: protectedProcedure
-    .input(z.object({ postId: z.string(), imageKey: z.string() }))
+    .input(deletePostByIdInputSchema)
     .mutation(async ({ ctx, input }) => {
       return await deletePostByIdHandler(ctx, input);
     }),
@@ -103,7 +121,7 @@ export const diaryRouter = createTRPCRouter({
       return await getPostsForFormHandler(ctx, input);
     }),
   getPosts: protectedProcedure
-    .input(z.object({ entryId: z.number() }))
+    .input(getPostsSchema)
     .query(async ({ ctx, input }) => {
       return await getPostsHandler(ctx, input);
     }),
@@ -113,12 +131,12 @@ export const diaryRouter = createTRPCRouter({
       return await updatePostsHandler(ctx, input);
     }),
   getEntryTitle: protectedProcedure
-    .input(z.object({ entryId: z.number() }))
+    .input(getEntryTitleInputSchema)
     .query(async ({ ctx, input }) => {
       return await getEntryTitleHandler(ctx, input);
     }),
   getEntryDay: protectedProcedure
-    .input(z.object({ entryId: z.number() }))
+    .input(getEntryDayInputSchema)
     .query(async ({ ctx, input }) => {
       return await getEntryDayHandler(ctx, input);
     }),
@@ -138,77 +156,47 @@ export const diaryRouter = createTRPCRouter({
       return await updateEntryDateHandler(ctx, input);
     }),
   createPresignedPostUrl: protectedProcedure
-    .input(
-      z.object({
-        diaryId: z.number(),
-        entryId: z.number(),
-        imageMetadata: z.object({
-          name: z.string(),
-          mimetype: z.string(),
-          size: z.number(),
-        }),
-      }),
-    )
+    .input(createPresignedPostUrlInputSchema)
     .query(async ({ ctx, input }) => {
       return await createPresignedPostUrlHandler(ctx, input);
     }),
   getPresignedUrl: protectedProcedure
-    .input(
-      z.object({
-        diaryId: z.number(),
-        entryId: z.number(),
-        gps: z.object({
-          lat: z.number().optional(),
-          lon: z.number().optional(),
-        }),
-        dateTimeTaken: z.string().optional(),
-        imageMetadata: z.object({
-          name: z.string(),
-          type: z.string(),
-          size: z.number(),
-        }),
-      }),
-    )
+    .input(getPresignedUrlInputSchema)
     .mutation(async ({ ctx, input }) => {
       return await getPresignedUrlHandler(ctx, input);
     }),
   saveImageMetadata: protectedProcedure
-    .input(z.object({ key: z.string(), entryId: z.number() }))
+    .input(saveImageMetadataInputSchema)
     .mutation(async ({ ctx, input }) => {
       return await saveImageMetadataHandler(ctx, input);
     }),
   deleteImageMetadata: protectedProcedure
-    .input(z.object({ key: z.string(), entryId: z.number() }))
+    .input(deleteImageMetadataInputSchema)
     .mutation(async ({ ctx, input }) => {
       return await deleteImageMetadataHandler(ctx, input);
     }),
-  getImageUrl: protectedProcedure.input(z.string()).query(async ({ input }) => {
-    return await getImageUrlHandler(input);
-  }),
+  getImageUrl: protectedProcedure
+    .input(getImageUrlInputSchema)
+    .query(async ({ input }) => {
+      return await getImageUrlHandler(input);
+    }),
   getMultipleImageUploadStatus: protectedProcedure
-    .input(
-      z.object({
-        keys: z.string().array(),
-        entryId: z.number(),
-        diaryId: z.number(),
-        keyToIdMap: z.map(z.string(), z.string()),
-      }),
-    )
+    .input(getMultipleImageUploadStatusInputSchema)
     .query(async ({ ctx, input }) => {
       return await getMultipleImageUploadStatusHandler(ctx, input);
     }),
   getImageUploadStatus: protectedProcedure
-    .input(z.object({ key: z.string().or(z.undefined()) }))
+    .input(getImageUploadStatusInputSchema)
     .query(async ({ ctx, input }) => {
       return await getImageUploadStatusHandler(ctx, input);
     }),
   cancelImageUpload: protectedProcedure
-    .input(z.object({ key: z.string() }))
+    .input(cancelImageUploadInputSchema)
     .mutation(async ({ ctx, input }) => {
       return await cancelImageUploadHandler(ctx, input);
     }),
   confirmImageUpload: protectedProcedure
-    .input(z.object({ key: z.string() }))
+    .input(confirmImageUploadInputSchema)
     .mutation(async ({ ctx, input }) => {
       return await confirmImageUploadHandler(ctx, input);
     }),

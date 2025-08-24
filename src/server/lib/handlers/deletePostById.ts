@@ -5,10 +5,11 @@ import { S3ImageService } from "../integrations/s3Service";
 import { expandKeys } from "../integrations/s3Service";
 import { getUserIdFromKey } from "../utils";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
+import { type DeletePostByIdInput } from "../schema";
 
 export async function deletePostByIdHandler(
   ctx: ProtectedContext,
-  input: { postId: string; imageKey: string },
+  input: DeletePostByIdInput,
 ): Promise<void> {
   const postService = new PostService(ctx);
   const postId = await postService.getPostById(input.postId);

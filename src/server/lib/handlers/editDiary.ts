@@ -1,11 +1,11 @@
 import { type ProtectedContext } from "~/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { DiaryService } from "../repositories/diary";
-import { editDiaryNameSchema } from "../schema";
+import { type EditDiaryName } from "../schema";
 
 export async function editDiaryHandler(
   ctx: ProtectedContext,
-  input: typeof editDiaryNameSchema._type,
+  input: EditDiaryName,
 ): Promise<void> {
   const diaryService = new DiaryService(ctx);
 

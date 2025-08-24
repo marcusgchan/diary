@@ -4,23 +4,11 @@ import { EntryService } from "../repositories/entry";
 import { getPresignedPost } from "../integrations/s3Service";
 import { insertImageMetadata, insertImageMetadataWithGps } from "../service";
 import { randomUUID } from "crypto";
+import { type GetPresignedUrlInput } from "../schema";
 
 export async function getPresignedUrlHandler(
   ctx: ProtectedContext,
-  input: {
-    diaryId: number;
-    entryId: number;
-    gps: {
-      lat?: number | undefined;
-      lon?: number | undefined;
-    };
-    dateTimeTaken?: string | undefined;
-    imageMetadata: {
-      name: string;
-      type: string;
-      size: number;
-    };
-  },
+  input: GetPresignedUrlInput,
 ) {
   const uuid = randomUUID();
   const entryService = new EntryService(ctx);

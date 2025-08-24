@@ -5,7 +5,6 @@ export const deleteEntrySchema = z.object({
   entryId: z.number(),
 });
 export type DeleteEntryInput = z.infer<typeof deleteEntrySchema>;
-export type GetEntryInput = DeleteEntryInput;
 
 export const updateEntryTitleSchema = z.object({
   diaryId: z.number(),
@@ -90,3 +89,119 @@ export const getPostsSchema = z.object({
   entryId: z.number(),
 });
 export type GetPostsSchema = z.infer<typeof getPostsSchema>;
+
+export const getDiaryInputSchema = z.object({
+  diaryId: z.number(),
+});
+export type GetDiaryInput = z.infer<typeof getDiaryInputSchema>;
+
+export const getEntriesInputSchema = z.object({
+  diaryId: z.number(),
+});
+export type GetEntriesInput = z.infer<typeof getEntriesInputSchema>;
+
+export const getEntryInputSchema = z.object({
+  diaryId: z.number(),
+  entryId: z.number(),
+});
+export type GetEntryInput = z.infer<typeof getEntryInputSchema>;
+
+export const deleteDiaryInputSchema = z.object({
+  diaryId: z.number(),
+});
+export type DeleteDiaryInput = z.infer<typeof deleteDiaryInputSchema>;
+
+export const getEntryTitleInputSchema = z.object({
+  entryId: z.number(),
+});
+export type GetEntryTitleInput = z.infer<typeof getEntryTitleInputSchema>;
+
+export const getEntryDayInputSchema = z.object({
+  entryId: z.number(),
+});
+export type GetEntryDayInput = z.infer<typeof getEntryDayInputSchema>;
+
+export const deletePostByIdInputSchema = z.object({
+  postId: z.string(),
+  imageKey: z.string(),
+});
+export type DeletePostByIdInput = z.infer<typeof deletePostByIdInputSchema>;
+
+export const saveImageMetadataInputSchema = z.object({
+  key: z.string(),
+  entryId: z.number(),
+});
+export type SaveImageMetadataInput = z.infer<
+  typeof saveImageMetadataInputSchema
+>;
+
+export const deleteImageMetadataInputSchema = z.object({
+  key: z.string(),
+  entryId: z.number(),
+});
+export type DeleteImageMetadataInput = z.infer<
+  typeof deleteImageMetadataInputSchema
+>;
+
+export const getImageUploadStatusInputSchema = z.object({
+  key: z.string().optional(),
+});
+export type GetImageUploadStatusInput = z.infer<
+  typeof getImageUploadStatusInputSchema
+>;
+
+export const cancelImageUploadInputSchema = z.object({
+  key: z.string(),
+});
+export type CancelImageUploadInput = z.infer<
+  typeof cancelImageUploadInputSchema
+>;
+
+export const confirmImageUploadInputSchema = z.object({
+  key: z.string(),
+});
+export type ConfirmImageUploadInput = z.infer<
+  typeof confirmImageUploadInputSchema
+>;
+
+export const getImageUrlInputSchema = z.string();
+export type GetImageUrlInput = z.infer<typeof getImageUrlInputSchema>;
+
+export const createPresignedPostUrlInputSchema = z.object({
+  diaryId: z.number(),
+  entryId: z.number(),
+  imageMetadata: z.object({
+    name: z.string(),
+    mimetype: z.string(),
+    size: z.number(),
+  }),
+});
+export type CreatePresignedPostUrlInput = z.infer<
+  typeof createPresignedPostUrlInputSchema
+>;
+
+export const getPresignedUrlInputSchema = z.object({
+  diaryId: z.number(),
+  entryId: z.number(),
+  gps: z.object({
+    lat: z.number().optional(),
+    lon: z.number().optional(),
+  }),
+  dateTimeTaken: z.string().optional(),
+  imageMetadata: z.object({
+    name: z.string(),
+    type: z.string(),
+    size: z.number(),
+  }),
+});
+export type GetPresignedUrlInput = z.infer<typeof getPresignedUrlInputSchema>;
+
+export const getMultipleImageUploadStatusInputSchema = z.object({
+  keys: z.string().array(),
+  entryId: z.number(),
+  diaryId: z.number(),
+  keyToIdMap: z.map(z.string(), z.string()),
+});
+export type GetMultipleImageUploadStatusInput = z.infer<
+  typeof getMultipleImageUploadStatusInputSchema
+>;

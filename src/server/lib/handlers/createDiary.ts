@@ -1,10 +1,10 @@
 import { type ProtectedContext } from "~/server/trpc";
 import { DiaryService } from "../repositories/diary";
-import { createDiarySchema } from "../schema";
+import { type CreateDiary } from "../schema";
 
 export async function createDiaryHandler(
   ctx: ProtectedContext,
-  input: typeof createDiarySchema._type,
+  input: CreateDiary,
 ): Promise<void> {
   const diary = new DiaryService(ctx);
   await diary.createDiary(input.name);

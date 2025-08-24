@@ -1,8 +1,9 @@
 import { type ProtectedContext } from "~/server/trpc";
+import { type CancelImageUploadInput } from "../schema";
 
 export async function cancelImageUploadHandler(
   ctx: ProtectedContext,
-  input: { key: string },
+  input: CancelImageUploadInput,
 ): Promise<void> {
   // TODO: Uncomment and implement when image service is ready
   // const imageService = new ImageService(ctx);
