@@ -2,12 +2,6 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/trpc";
 import {
-  insertImageMetadata,
-  getImageUploadStatus,
-  insertImageMetadataWithGps,
-  getUnlinkedImages,
-} from "./service";
-import {
   createDiarySchema,
   createEntrySchema,
   createPostSchema,
@@ -21,17 +15,13 @@ import {
 import {
   expandKeys,
   getImageSignedUrl,
-  getPresignedPost,
   S3ImageService,
 } from "./integrations/s3Service";
-import { randomUUID } from "crypto";
-import { type Span } from "@opentelemetry/api";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { getUserIdFromKey } from "./utils";
 import { DiaryService } from "./repositories/diary";
 import { EntryService } from "./repositories/entry";
 import { PostService } from "./repositories/post";
-import { EditorStateService } from "./repositories/editorState";
 import { getPostsForFormHandler } from "./handlers/getPostsForForm";
 import { getPostsHandler } from "./handlers/getPosts";
 import { deleteDiaryHandler } from "./handlers/deleteDiary";
