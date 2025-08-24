@@ -1,5 +1,4 @@
 "use client";
-
 import { Trash } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -17,37 +16,46 @@ import {
 } from "~/app/_lib/ui/alert-dialog";
 import { Skeleton } from "~/app/_lib/ui/skeleton";
 import { cn } from "~/app/_lib/utils/cx";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Entries() {
+  const api = useTRPC();
   const params = useParams();
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const router = useRouter();
-  const { data: entries, isError } = api.diary.getEntries.useQuery(
-    { diaryId: Number(diaryId) },
-    {
-      enabled: !!diaryId,
-      refetchOnWindowFocus: false,
-    },
+  const { data: entries, isError } = useQuery(
+    api.diary.getEntries.queryOptions(
+      { diaryId: Number(diaryId) },
+      {
+        enabled: !!diaryId,
+        refetchOnWindowFocus: false,
+      },
+    ),
   );
-  const queryUtils = api.useUtils();
-  const deleteEntryMutation = api.diary.deleteEntry.useMutation({
-    onSuccess(deletedId) {
-      if (deletedId) {
-        queryUtils.diary.getEntries.setData(
-          { diaryId: Number(diaryId) },
-          (entries) => {
-            if (entries === undefined) {
-              return [];
-            }
-            return entries.filter((entry) => entry.id !== deletedId);
-          },
-        );
-        router.push(`/diaries/${diaryId}/entries`);
-      }
-    },
-  });
+  const queryClient = useQueryClient();
+  const deleteEntryMutation = useMutation(
+    api.diary.deleteEntry.mutationOptions({
+      onSuccess(deletedId) {
+        if (deletedId) {
+          queryClient.setQueryData(
+            api.diary.getEntries.queryKey({ diaryId: Number(diaryId) }),
+            (entries) => {
+              if (entries === undefined) {
+                return [];
+              }
+              return entries.filter((entry) => entry.id !== deletedId);
+            },
+          );
+          router.push(`/diaries/${diaryId}/entries`);
+        }
+      },
+    }),
+  );
   const handleDelete = (diaryId: number, entryId: number) =>
     deleteEntryMutation.mutate({
       diaryId: diaryId,

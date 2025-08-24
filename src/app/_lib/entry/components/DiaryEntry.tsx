@@ -1,9 +1,10 @@
 "use client";
-
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { Skeleton } from "~/app/_lib/ui/skeleton";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
+
+import { useQuery } from "@tanstack/react-query";
 
 const Editor = dynamic(
   () =>
@@ -14,17 +15,20 @@ const Editor = dynamic(
 );
 
 export function DiaryEntry() {
+  const api = useTRPC();
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = params.entryId;
-  const entryQuery = api.diary.getEntry.useQuery(
-    {
-      entryId: Number(entryId),
-      diaryId: Number(diaryId),
-    },
-    {
-      refetchOnWindowFocus: false,
-    },
+  const entryQuery = useQuery(
+    api.diary.getEntry.queryOptions(
+      {
+        entryId: Number(entryId),
+        diaryId: Number(diaryId),
+      },
+      {
+        refetchOnWindowFocus: false,
+      },
+    ),
   );
 
   if (entryQuery.isPending) {

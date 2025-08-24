@@ -1,8 +1,7 @@
 "use client";
-
 import { useParams } from "next/navigation";
 import { type GetPostImage } from "~/server/lib/types";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
 import { useMemo } from "react";
@@ -10,6 +9,10 @@ import { usePosts } from "../contexts/PostsContext";
 import { createPostSchema } from "~/server/lib/schema";
 import { useToast } from "../../ui/use-toast";
 import { PostListsSkeletion } from "./PostsListSkeleton";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Posts() {
   return (
@@ -20,6 +23,7 @@ export function Posts() {
 }
 
 function PostsList() {
+  const api = useTRPC();
   const params = useParams();
   const entryId = Number(params.entryId);
 
@@ -27,7 +31,7 @@ function PostsList() {
     data: posts,
     isError,
     isPending,
-  } = api.diary.getPosts.useQuery({ entryId });
+  } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
 
   const { state } = usePosts();
   const disableCreate = useMemo(() => {
@@ -48,12 +52,16 @@ function PostsList() {
     return false;
   }, [state.posts]);
 
-  const queryUtils = api.useUtils();
-  const mutation = api.diary.createPosts.useMutation({
-    async onSuccess() {
-      return queryUtils.diary.getPosts.invalidate({ entryId });
-    },
-  });
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    api.diary.createPosts.mutationOptions({
+      async onSuccess() {
+        return queryClient.invalidateQueries(
+          api.diary.getPosts.queryFilter({ entryId }),
+        );
+      },
+    }),
+  );
   const { toast } = useToast();
   function handleCreate() {
     const parseResult = createPostSchema.safeParse({

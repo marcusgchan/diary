@@ -1,5 +1,4 @@
 "use client";
-
 import { format, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useParams } from "next/navigation";
@@ -9,13 +8,18 @@ import { Calendar } from "~/app/_lib/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "~/app/_lib/ui/popover";
 import { useToast } from "~/app/_lib/ui/use-toast";
 import { cn } from "@/_lib/utils/cx";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function DatePicker() {
+  const api = useTRPC();
   const params = useParams();
   const diaryId = params.diaryId;
   const entryId = Number(params.entryId);
-  const { data } = api.diary.getEntryDay.useQuery({ entryId });
+  const { data } = useQuery(api.diary.getEntryDay.queryOptions({ entryId }));
   const [date, setDate] = useState(data ? parseISO(data) : undefined);
   useEffect(() => {
     if (data) {
@@ -24,22 +28,28 @@ export function DatePicker() {
   }, [data]);
 
   const { toast } = useToast();
-  const queryUtils = api.useUtils();
-  const updateEntryDateMutation = api.diary.updateEntryDate.useMutation({
-    async onSuccess(data) {
-      await queryUtils.diary.getEntry.invalidate({
-        entryId: Number(entryId),
-        diaryId: Number(diaryId),
-      });
-      await queryUtils.diary.getEntries.invalidate({
-        diaryId: Number(diaryId),
-      });
-      setDate(new Date(parseISO(data.day)));
-    },
-    onError(e) {
-      toast({ variant: "destructive", title: e.message });
-    },
-  });
+  const queryClient = useQueryClient();
+  const updateEntryDateMutation = useMutation(
+    api.diary.updateEntryDate.mutationOptions({
+      async onSuccess(data) {
+        await queryClient.invalidateQueries(
+          api.diary.getEntry.queryFilter({
+            entryId: Number(entryId),
+            diaryId: Number(diaryId),
+          }),
+        );
+        await queryClient.invalidateQueries(
+          api.diary.getEntries.queryFilter({
+            diaryId: Number(diaryId),
+          }),
+        );
+        setDate(new Date(parseISO(data.day)));
+      },
+      onError(e) {
+        toast({ variant: "destructive", title: e.message });
+      },
+    }),
+  );
   function handleChangeDate(date: Date | undefined) {
     setIsOpen(false);
     if (!date) {

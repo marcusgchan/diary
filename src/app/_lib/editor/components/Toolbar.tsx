@@ -22,11 +22,14 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Input } from "~/app/_lib/ui/input";
 import { INSERT_IMAGE_COMMAND } from "~/app/_lib/editor/components/ImagePlugin";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "~/app/_lib/ui/use-toast";
 import * as ExifReader from "exifreader";
 import type { RouterOutputs } from "~/server/trpc";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
 export function Toolbar() {
   const [editor] = useLexicalComposerContext();
@@ -98,6 +101,7 @@ async function getImgSize(
 }
 
 function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
+  const api = useTRPC();
   const [editor] = useLexicalComposerContext();
   const { toast } = useToast();
   const params = useParams();
@@ -107,16 +111,24 @@ function UploadImageDialog({ closeDropdown }: { closeDropdown: () => void }) {
   const [imageKey, setImageKey] = useState<string>();
   const [disableCancel, setDisableCancel] = useState(false);
   const fileRef = useRef<File>(undefined);
-  const { data } = api.diary.getImageUploadStatus.useQuery(
-    { key: imageKey },
-    {
-      enabled: startPolling,
-      refetchInterval: 1000,
-    },
+  const { data } = useQuery(
+    api.diary.getImageUploadStatus.queryOptions(
+      { key: imageKey },
+      {
+        enabled: startPolling,
+        refetchInterval: 1000,
+      },
+    ),
   );
-  const cancelUpload = api.diary.cancelImageUpload.useMutation();
-  const confirmUpload = api.diary.confirmImageUpload.useMutation();
-  const insertImageMetadata = api.diary.getPresignedUrl.useMutation();
+  const cancelUpload = useMutation(
+    api.diary.cancelImageUpload.mutationOptions(),
+  );
+  const confirmUpload = useMutation(
+    api.diary.confirmImageUpload.mutationOptions(),
+  );
+  const insertImageMetadata = useMutation(
+    api.diary.getPresignedUrl.mutationOptions(),
+  );
 
   useEffect(() => {
     if (data) {

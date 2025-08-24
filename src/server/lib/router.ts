@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/trpc";
 import {
   createDiarySchema,
@@ -10,7 +9,6 @@ import {
   saveEditorStateSchema,
   updateEntryTitleSchema,
   updatePostSchema,
-  // Additional schemas for handlers
   getDiaryInputSchema,
   getEntriesInputSchema,
   getEntryInputSchema,

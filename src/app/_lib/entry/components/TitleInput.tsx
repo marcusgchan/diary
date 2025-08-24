@@ -1,15 +1,21 @@
 "use client";
-
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function TitleInput() {
+  const api = useTRPC();
   const { diaryId, entryId } = useParams();
 
-  const { data } = api.diary.getEntryTitle.useQuery({
-    entryId: Number(entryId),
-  });
+  const { data } = useQuery(
+    api.diary.getEntryTitle.queryOptions({
+      entryId: Number(entryId),
+    }),
+  );
   const [title, setTitle] = useState(data ?? "");
   useEffect(() => {
     if (data) {
@@ -17,25 +23,30 @@ export function TitleInput() {
     }
   }, [data]);
 
-  const queryUtils = api.useUtils();
-  const saveTitleMutation = api.diary.updateTitle.useMutation({
-    onSuccess(data) {
-      queryUtils.diary.getEntry.setData(
-        { diaryId: Number(diaryId), entryId: Number(entryId) },
-        (old) => {
-          if (old) {
-            return { ...old, title: data };
-          }
-          return old;
-        },
-      );
+  const queryClient = useQueryClient();
+  const saveTitleMutation = useMutation(
+    api.diary.updateTitle.mutationOptions({
+      onSuccess(data) {
+        queryClient.setQueryData(
+          api.diary.getEntry.queryKey({
+            diaryId: Number(diaryId),
+            entryId: Number(entryId),
+          }),
+          (old) => {
+            if (old) {
+              return { ...old, title: data };
+            }
+            return old;
+          },
+        );
 
-      queryUtils.diary.getEntryTitle.setData(
-        { entryId: Number(entryId) },
-        data,
-      );
-    },
-  });
+        queryClient.setQueryData(
+          api.diary.getEntryTitle.queryKey({ entryId: Number(entryId) }),
+          data,
+        );
+      },
+    }),
+  );
   function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const title = e.target.value;
     setTitle(title);
