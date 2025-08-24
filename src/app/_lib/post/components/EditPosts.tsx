@@ -1,5 +1,5 @@
 // move active id to reducer, scroll not selecting right active img
-"use client";
+"use client";;
 import { Image as ImageIcon, MapPin, Plus, Trash } from "lucide-react";
 import {
   type ChangeEvent,
@@ -27,11 +27,13 @@ import { usePostDnD } from "../hooks/usePostDnD";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { useImageDnd } from "../hooks/useImageDnD";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { Separator } from "../../ui/separator";
 import { Textarea } from "../../ui/textarea";
 import { flushSync } from "react-dom";
+
+import { useQuery } from "@tanstack/react-query";
 
 export function EditPosts() {
   const { state, dispatch } = usePosts();
@@ -204,6 +206,7 @@ function SelectedPostView({
   isScrollingProgrammatically,
   scrollContainerRef,
 }: SelectedPostViewProps) {
+  const api = useTRPC();
   const { state, dispatch } = usePosts();
 
   const {
@@ -245,7 +248,7 @@ function SelectedPostView({
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
   const { data: uploadingState } =
-    api.diary.getMultipleImageUploadStatus.useQuery(
+    useQuery(api.diary.getMultipleImageUploadStatus.queryOptions(
       {
         entryId,
         diaryId,
@@ -256,7 +259,7 @@ function SelectedPostView({
         enabled: state.imageKeyToImageId.size > 0,
         refetchInterval: 3000,
       },
-    );
+    ));
   useEffect(() => {
     if (!uploadingState) {
       return;

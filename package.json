@@ -58,6 +58,7 @@
     "@trpc/next": "^11.5.0",
     "@trpc/react-query": "11.5.0",
     "@trpc/server": "11.5.0",
+    "@trpc/tanstack-react-query": "^11.5.0",
     "class-variance-authority": "^0.7.1",
     "client-only": "^0.0.1",
     "clsx": "^2.1.1",

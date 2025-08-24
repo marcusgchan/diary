@@ -7,9 +7,11 @@ import type {
 } from "@/_lib/post/reducers/postsReducer";
 import type { ImageUploadingState } from "~/server/lib/types";
 import { type useScrollToImage } from "./useScrollToImage";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "../../ui/use-toast";
+
+import { useQueryClient } from "@tanstack/react-query";
 
 type ScrollToImage = ReturnType<typeof useScrollToImage>["scrollToImage"];
 
@@ -32,7 +34,8 @@ export function usePostActions({
   dispatch,
   state,
 }: UsePostActionsParams): PostActions {
-  const utils = api.useUtils();
+  const api = useTRPC();
+  const queryClient = useQueryClient();
   const params = useParams();
   const { toast } = useToast();
 
@@ -51,14 +54,14 @@ export function usePostActions({
 
     const res = await Promise.allSettled(
       metadata.map(async (meta) => {
-        const data = utils.diary.createPresignedPostUrl.fetch(
+        const data = queryClient.fetchQuery(api.diary.createPresignedPostUrl.queryOptions(
           {
             diaryId,
             entryId,
             imageMetadata: meta,
           },
           { staleTime: 0 },
-        );
+        ));
         return data;
       }),
     );

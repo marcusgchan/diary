@@ -1,29 +1,33 @@
-"use client";
-
+"use client";;
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "~/app/_lib/ui/button";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Header() {
+  const api = useTRPC();
   const params = useParams();
   const diaryId = params.diaryId as string;
-  const queryUtils = api.useUtils();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const goToEditDiary = () => router.push(`/diaries/${diaryId}/edit`);
-  const { data: diary } = api.diary.getDiary.useQuery(
+  const { data: diary } = useQuery(api.diary.getDiary.queryOptions(
     {
       diaryId: Number(params.diaryId),
     },
     { enabled: !!params.diaryId, refetchOnWindowFocus: false },
-  );
-  const addEntryMutation = api.diary.createEntry.useMutation({
+  ));
+  const addEntryMutation = useMutation(api.diary.createEntry.mutationOptions({
     async onSuccess(data) {
       router.push(`/diaries/${diaryId}/entries/${data.id}`);
-      await queryUtils.diary.getEntries.invalidate({
+      await queryClient.invalidateQueries(api.diary.getEntries.queryFilter({
         diaryId: Number(params.diaryId),
-      });
+      }));
     },
-  });
+  }));
   const addEntry = () => {
     addEntryMutation.mutate({
       day: new Date().toLocaleDateString("en-CA"),

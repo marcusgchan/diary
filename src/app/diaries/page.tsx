@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import {
   Dialog,
   DialogContent,
@@ -10,11 +9,15 @@ import {
 } from "@/_lib/ui/dialog";
 import { Input } from "@/_lib/ui/input";
 import { type FormEvent, useState } from "react";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
 import Link from "next/link";
 import { cn } from "@/_lib/utils/cx";
 import { Button } from "@/_lib/ui/button";
 import { Skeleton } from "@/_lib/ui/skeleton";
+
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Diaries() {
   return (
@@ -30,7 +33,8 @@ export default function Diaries() {
 }
 
 function DiaryList() {
-  const { isLoading, isError, data } = api.diary.getDiaries.useQuery();
+  const api = useTRPC();
+  const { isLoading, isError, data } = useQuery(api.diary.getDiaries.queryOptions());
 
   if (isLoading) {
     return Array.from({ length: 4 }).map((_, i) => (
@@ -60,28 +64,26 @@ function DiaryList() {
 }
 
 function Header() {
+  const api = useTRPC();
   const [newDiaryName, setNewDiaryName] = useState("");
-  const queryUtils = api.useUtils();
-  const addDiary = api.diary.createDiary.useMutation({
+  const queryClient = useQueryClient();
+  const addDiary = useMutation(api.diary.createDiary.mutationOptions({
     async onMutate(newDiary) {
-      await queryUtils.diary.getDiaries.cancel();
-      const previousDiaries = queryUtils.diary.getDiaries.getData() ?? [];
-      queryUtils.diary.getDiaries.setData(undefined, (old) => [
+      await queryClient.cancelQueries(api.diary.getDiaries.pathFilter());
+      const previousDiaries = queryClient.getQueryData(api.diary.getDiaries.queryKey()) ?? [];
+      queryClient.setQueryData(api.diary.getDiaries.queryKey(), (old) => [
         ...(old ?? []),
         newDiary,
       ]);
       return { previousDiaries };
     },
     onError(_err, _newDiary, context) {
-      queryUtils.diary.getDiaries.setData(
-        undefined,
-        context?.previousDiaries ?? [],
-      );
+      queryClient.setQueryData(api.diary.getDiaries.queryKey(), context?.previousDiaries ?? []);
     },
     onSettled() {
-      return queryUtils.diary.getDiaries.invalidate();
+      return queryClient.invalidateQueries(api.diary.getDiaries.pathFilter());
     },
-  });
+  }));
   const createDiary = (e: FormEvent) => {
     e.preventDefault();
     setNewDiaryName("");

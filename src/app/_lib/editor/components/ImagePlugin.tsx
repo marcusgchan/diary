@@ -1,5 +1,4 @@
-"use client";
-
+"use client";;
 import {
   $createParagraphNode,
   $createRangeSelection,
@@ -27,8 +26,11 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect, type JSX } from "react";
 import { $wrapNodeInElement, mergeRegister } from "@lexical/utils";
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export type InsertImagePayload = Readonly<ImagePayload>;
 
@@ -91,18 +93,19 @@ export default function ImagesPlugin({
 }
 
 function useRemoveImageMetadataOnDelete(editor: LexicalEditor) {
+  const api = useTRPC();
   const params = useParams();
   const diaryId = Number(params.diaryId);
   const entryId = Number(params.entryId);
-  const queryUtils = api.useUtils();
-  const deleteImageMetadata = api.diary.deleteImageMetadata.useMutation({
+  const queryClient = useQueryClient();
+  const deleteImageMetadata = useMutation(api.diary.deleteImageMetadata.mutationOptions({
     onSuccess(data) {
       if (!data) {
         return;
       }
-      queryUtils.diary.getEntry.setData({ diaryId, entryId }, data);
+      queryClient.setQueryData(api.diary.getEntry.queryKey({ diaryId, entryId }), data);
     },
-  });
+  }));
   useEffect(() => {
     const removeMutationListener = editor.registerMutationListener(
       ImageNode,

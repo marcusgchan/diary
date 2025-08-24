@@ -1,4 +1,4 @@
-import { api } from "~/trpc/TrpcProvider";
+import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -28,6 +28,9 @@ import { useSharedHistoryContext } from "../contexts/SharedHistoryContext";
 import ImagesPlugin from "./ImagePlugin";
 import { ImageNode } from "./image-node";
 import { DragDropPastePlugin } from "./DragDropPastePlugin";
+
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 const theme = {
   root: "h-full p-4 border-border border-2 rounded-md overflow-y-auto",
@@ -66,6 +69,7 @@ export function Editor({
 }: {
   initialEditorState: SerializedEditorState<SerializedLexicalNode> | null;
 }) {
+  const api = useTRPC();
   const initialConfig = {
     namespace: "MyEditor",
     theme,
@@ -87,15 +91,15 @@ export function Editor({
   const params = useParams();
   const diaryId = params.diaryId as string | undefined;
   const entryId = params.entryId as string | undefined;
-  const queryUtils = api.useContext();
-  const saveEditorStateMutation = api.diary.saveEditorState.useMutation({
+  const queryClient = useQueryClient();
+  const saveEditorStateMutation = useMutation(api.diary.saveEditorState.mutationOptions({
     onSuccess(data) {
-      queryUtils.diary.getEntry.setData(
-        { diaryId: Number(diaryId), entryId: Number(entryId) },
-        data,
+      queryClient.setQueryData(
+        api.diary.getEntry.queryKey({ diaryId: Number(diaryId), entryId: Number(entryId) }),
+        data
       );
     },
-  });
+  }));
   function handleSave(editorState: EditorState) {
     if (diaryId === undefined || entryId === undefined) {
       console.error("diaryId or entryId is undefined");
