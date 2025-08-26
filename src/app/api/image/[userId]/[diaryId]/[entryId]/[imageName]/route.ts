@@ -1,5 +1,6 @@
+import { headers } from "next/headers";
 import { getImageSignedUrl } from "~/server/lib/integrations/s3Service";
-import { getServerAuthSession } from "~/server/auth";
+import { auth } from "~/server/lib/utils/auth";
 
 export async function GET(
   _: Request,
@@ -13,7 +14,7 @@ export async function GET(
   },
 ) {
   const params = await props.params;
-  const session = await getServerAuthSession();
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session || (session && session.user.id !== params.userId)) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
   }
