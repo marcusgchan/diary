@@ -1,4 +1,9 @@
 "use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { type FormEvent, useState } from "react";
+import { useTRPC } from "~/trpc/TrpcProvider";
+import { Input } from "../../ui/input";
 import {
   Dialog,
   DialogContent,
@@ -6,66 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/_lib/ui/dialog";
-import { Input } from "@/_lib/ui/input";
-import { type FormEvent, useState } from "react";
-import { useTRPC } from "~/trpc/TrpcProvider";
-import Link from "next/link";
-import { cn } from "@/_lib/utils/cx";
-import { Button } from "@/_lib/ui/button";
-import { Skeleton } from "@/_lib/ui/skeleton";
+} from "../../ui/dialog";
+import { Button } from "../../ui/button";
 
-import { useQuery } from "@tanstack/react-query";
-import { useMutation } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-
-export default function Diaries() {
-  return (
-    <div className="grid grid-cols-1 gap-5">
-      <Header />
-      <main className="h-full">
-        <ul className="grid h-full grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))]">
-          <DiaryList />
-        </ul>
-      </main>
-    </div>
-  );
-}
-
-function DiaryList() {
-  const api = useTRPC();
-  const { isLoading, isError, data } = useQuery(
-    api.diary.getDiaries.queryOptions(),
-  );
-
-  if (isLoading) {
-    return Array.from({ length: 4 }).map((_, i) => (
-      <Skeleton key={i} className="aspect-[3/4]" />
-    ));
-  }
-
-  if (isError) {
-    return <p>Something went wrong!</p>;
-  }
-
-  const diaries = data ?? [];
-  console.log(diaries);
-  return diaries.map(({ id, name }) => (
-    <li key={id} className="h-full">
-      <Link
-        href={`${"/diaries"}/${id.toString()}/entries`}
-        className={cn(
-          "grid aspect-[3/4] w-full place-items-center rounded-md border-2 border-primary p-4",
-          isOptimistic(id) && "opacity-70",
-        )}
-      >
-        {name}
-      </Link>
-    </li>
-  ));
-}
-
-function Header() {
+export function CreateDiaryHeader() {
   const api = useTRPC();
   const [newDiaryName, setNewDiaryName] = useState("");
   const queryClient = useQueryClient();
@@ -125,8 +74,4 @@ function Header() {
       </Dialog>
     </header>
   );
-}
-
-function isOptimistic(id: string | number) {
-  return typeof id === "string";
 }

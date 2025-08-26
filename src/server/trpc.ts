@@ -14,14 +14,14 @@ import {
   type inferRouterInputs,
   type inferRouterOutputs,
 } from "@trpc/server";
-import { type Session } from "next-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { trace, type Tracer } from "@opentelemetry/api";
 
-import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 import { type AppRouter } from "~/server/root";
+import { auth, type Session } from "./lib/utils/auth";
+import { headers } from "next/headers";
 
 /**
  * 1. CONTEXT
@@ -99,7 +99,9 @@ const log = (
 export type TRPCContext = ReturnType<typeof createInnerTRPCContext>;
 export const createTRPCContext = async () => {
   // Get the session from the server using the getServerSession wrapper function
-  const session = await getServerAuthSession();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   const tracer = trace.getTracer("api");
 
   return createInnerTRPCContext({

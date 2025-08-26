@@ -17,7 +17,6 @@ import {
   type SerializedEditorState,
   type SerializedLexicalNode,
 } from "lexical";
-import { type AdapterAccount } from "next-auth/adapters";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -27,99 +26,103 @@ import { type AdapterAccount } from "next-auth/adapters";
  */
 export const pgTable = pgTableCreator((name) => `${name}`);
 
-export const users = pgTable("user", {
-  id: text("id").notNull().primaryKey(),
-  name: text("name"),
-  email: text("email").notNull(),
-  emailVerified: timestamp("emailVerified", {
-    mode: "date",
-  }),
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified")
+    .$defaultFn(() => false)
+    .notNull(),
   image: text("image"),
-}).enableRLS();
+  createdAt: timestamp("created_at")
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
 
 export type Users = typeof users.$inferSelect;
 
-export const accounts = pgTable(
-  "account",
-  {
-    userId: text("userId")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type").$type<AdapterAccount["type"]>().notNull(),
-    provider: text("provider").notNull(),
-    providerAccountId: text("providerAccountId").notNull(),
-    refresh_token: text("refresh_token"),
-    access_token: text("access_token"),
-    expires_at: integer("expires_at"),
-    token_type: text("token_type"),
-    scope: text("scope"),
-    id_token: text("id_token"),
-    session_state: text("session_state"),
-  },
-  (account) => ({
-    compoundKey: primaryKey({
-      columns: [account.provider, account.providerAccountId],
-    }),
-  }),
-).enableRLS();
-
-export const sessions = pgTable("session", {
-  sessionToken: text("sessionToken").notNull().primaryKey(),
-  userId: text("userId")
+export const accounts = pgTable("accounts", {
+  id: text("id").primaryKey(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires", { mode: "date" }).notNull(),
-}).enableRLS();
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
 
-export const verificationTokens = pgTable(
-  "verification_token",
-  {
-    identifier: text("identifier").notNull(),
-    token: text("token").notNull(),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
-  },
-  (vt) => ({
-    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  }),
-).enableRLS();
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expires_at").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+});
+
+export const verifications = pgTable("verifications", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").$defaultFn(
+    () => /* @__PURE__ */ new Date(),
+  ),
+  updatedAt: timestamp("updated_at").$defaultFn(
+    () => /* @__PURE__ */ new Date(),
+  ),
+});
 
 export const diariesToUsers = pgTable(
-  "diary_to_user",
+  "diaries_to_users",
   {
-    userId: text("userId")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id),
-    diaryId: bigserial("diaryId", { mode: "number" })
+    diaryId: bigserial("diary_id", { mode: "number" })
       .notNull()
       .references(() => diaries.id),
   },
   (table) => {
-    return {
-      pk: primaryKey({ columns: [table.userId, table.diaryId] }),
-    };
+    return [primaryKey({ columns: [table.userId, table.diaryId] })];
   },
-).enableRLS();
+);
 
-export const diaries = pgTable("diary", {
+export const diaries = pgTable("diaries", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   name: text("name").notNull(),
   deleting: boolean("deleting").notNull().default(false),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-}).enableRLS();
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 export type Diaries = typeof diaries.$inferSelect;
 
-export const entries = pgTable("entry", {
+export const entries = pgTable("entries", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
-  diaryId: bigint("diaryId", { mode: "number" })
+  diaryId: bigint("diary_id", { mode: "number" })
     .notNull()
     .references(() => diaries.id),
   day: date("day", { mode: "string" }).notNull(),
   title: text("title").notNull().default(""),
   deleting: boolean("deleting").notNull().default(false),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-}).enableRLS();
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 export type Entries = typeof entries.$inferSelect;
 
@@ -127,27 +130,27 @@ export const imageKeys = pgTable("image_keys", {
   key: text("key").primaryKey(),
 
   // name, mimetype, size are for populating edit form image field
-  name: text().notNull(),
-  mimetype: text().notNull(),
-  size: integer().notNull(),
+  name: text("name").notNull(),
+  mimetype: text("mimetype").notNull(),
+  size: integer("size").notNull(),
 
-  userId: text("userId")
+  userId: text("user_id")
     .notNull()
     .references(() => users.id),
 
-  compressionStatus: text("compressionStatus")
+  compressionStatus: text("compression_status")
     .default("success")
     .$type<"success" | "failure">()
     .notNull(),
-  deleting: boolean().notNull().default(false),
-  takenAt: timestamp("takenAt").notNull().defaultNow(),
-  uploadAt: timestamp("createdAt").notNull().defaultNow(),
-}).enableRLS();
+  deleting: boolean("deleting").notNull().default(false),
+  takenAt: timestamp("taken_at").notNull().defaultNow(),
+  uploadAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 export type ImageKeys = typeof imageKeys.$inferSelect;
 
 export const geoData = pgTable("geo_data", {
-  key: text()
+  key: text("key")
     .references(() => imageKeys.key)
     .primaryKey(),
   lon: doublePrecision("lon").notNull(),
@@ -155,36 +158,36 @@ export const geoData = pgTable("geo_data", {
 });
 
 export const posts = pgTable("posts", {
-  id: uuid().primaryKey().defaultRandom(),
-  entryId: bigint({ mode: "number" })
+  id: uuid("id").primaryKey().defaultRandom(),
+  entryId: bigint("entry_id", { mode: "number" })
     .notNull()
     .references(() => entries.id),
-  title: varchar({ length: 255 }).notNull(),
-  description: varchar({ length: 2048 }).notNull(),
-  order: integer().notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: varchar("description", { length: 2048 }).notNull(),
+  order: integer("order").notNull(),
   deleting: boolean("deleting").notNull().default(false),
-}).enableRLS();
+});
 export type Posts = typeof posts.$inferSelect;
 
 export const postImages = pgTable("post_images", {
-  id: uuid().primaryKey(),
-  postId: uuid()
+  id: uuid("id").primaryKey(),
+  postId: uuid("post_id")
     .notNull()
     .references(() => posts.id),
-  imageKey: text("key")
+  imageKey: text("image_key")
     .notNull()
     .references(() => imageKeys.key),
-  order: integer().notNull(),
+  order: integer("order").notNull(),
 });
 
-export const editorStates = pgTable("editor_state", {
-  data: json("editorState").$type<
+export const editorStates = pgTable("editor_states", {
+  data: json("editor_state").$type<
     SerializedEditorState<SerializedLexicalNode>
   >(),
-  entryId: bigint("entryId", { mode: "number" })
+  entryId: bigint("entry_id", { mode: "number" })
     .primaryKey()
     .references(() => entries.id),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-}).enableRLS();
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 export type EditorStates = typeof editorStates.$inferSelect;
