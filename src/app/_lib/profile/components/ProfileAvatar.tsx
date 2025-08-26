@@ -8,9 +8,16 @@ import {
   DropdownMenuTrigger,
 } from "@/_lib/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar";
+import { authClient } from "../../utils/auth-client";
+import { useRouter } from "next/navigation";
 
 export function ProfileAvatar() {
   const session = useSession();
+  const router = useRouter();
+  async function signOut() {
+    await authClient.signOut();
+    router.push("/login");
+  }
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -28,7 +35,7 @@ export function ProfileAvatar() {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="start">
         <DropdownMenuItem>Settings</DropdownMenuItem>
-        <DropdownMenuItem>Log out</DropdownMenuItem>
+        <DropdownMenuItem onClick={signOut}>Log out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
