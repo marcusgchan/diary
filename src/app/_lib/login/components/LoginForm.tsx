@@ -13,6 +13,7 @@ import { Label } from "~/app/_lib/ui/label";
 import { cn } from "~/app/_lib/utils/cx";
 import { authClient } from "../../utils/auth-client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export function LoginForm({
   className,
@@ -61,10 +62,9 @@ export function LoginForm({
                   className="w-full"
                   type="button"
                   onClick={async () => {
-                    const data = await authClient.signIn.social({
+                    await authClient.signIn.social({
                       provider: "discord",
                     });
-                    console.log(data);
                     router.push("/diaries");
                   }}
                 >
@@ -74,9 +74,9 @@ export function LoginForm({
             </div>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
-              <a href="#" className="underline underline-offset-4">
+              <Link href="/sign-up" className="underline underline-offset-4">
                 Sign up
-              </a>
+              </Link>
             </div>
           </form>
         </CardContent>
