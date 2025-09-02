@@ -15,9 +15,11 @@ const { useAppForm } = createFormHook({
 function TextField({
   label,
   disableErrors,
+  ...props
 }: {
   label: string;
   disableErrors?: boolean;
+  props?: React.ComponentProps<"input">;
 }) {
   const field = useFieldContext<string>();
 
@@ -29,11 +31,13 @@ function TextField({
           value={field.state.value}
           onChange={(e) => field.handleChange(e.target.value)}
           onBlur={field.handleBlur}
+          {...props}
         />
       </Label>
       {!disableErrors &&
         !field.state.meta.isValid &&
-        field.state.meta.isBlurred && (
+        (field.state.meta.isBlurred ||
+          field.form.state.submissionAttempts > 0) && (
           <em className={"text-red-400"}>
             {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
             {field.state.meta.errors[0]?.message ?? "Invalid field"}

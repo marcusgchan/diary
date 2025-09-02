@@ -16,7 +16,7 @@ export function ProfileAvatar() {
   const router = useRouter();
   async function signOut() {
     await authClient.signOut();
-    router.push("/login");
+    router.push("/sign-in");
   }
   return (
     <DropdownMenu modal={false}>

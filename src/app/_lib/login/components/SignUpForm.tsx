@@ -2,15 +2,44 @@
 
 import { TextField, useAppForm } from "@/_lib/ui/form";
 import z from "zod";
+import { authClient } from "../../utils/auth-client";
+import { Alert, AlertDescription, AlertTitle } from "../../ui/alert";
+import { AlertCircleIcon } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../ui/card";
+import { useRouter } from "next/navigation";
 
 const formSchema = z
   .object({
-    firstName: z
-      .string()
-      .min(1, "First name must be at least 1 character long"),
-    lastName: z.string().min(1, "Last name must be at least 1 character long"),
+    name: z.string().min(1, "Invalid name"),
     email: z.string().email("Invalid email"),
-    password: z.string(),
+    password: z.string().refine(
+      (password) => {
+        if (password.length < 8) {
+          return false;
+        }
+
+        if (!/[A-Z]/.test(password)) {
+          return false;
+        }
+
+        const specialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`€£¥¢±∞≠≤≥]/;
+        if (!specialChars.test(password)) {
+          return false;
+        }
+
+        return true;
+      },
+      {
+        message:
+          "Password must be at least 8 characters long, contain at least one capital letter, and contain at least one special symbol",
+      },
+    ),
     reenterPassword: z.string(),
   })
   .superRefine((val, ctx) => {
@@ -24,11 +53,16 @@ const formSchema = z
     return true;
   });
 
+type SubmitError = {
+  title: string;
+  description: string;
+};
+
 export function SignUpForm() {
+  const router = useRouter();
   const form = useAppForm({
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      name: "",
       email: "",
       password: "",
       reenterPassword: "",
@@ -36,68 +70,141 @@ export function SignUpForm() {
     validators: {
       onBlur: formSchema,
     },
-    onSubmit(props) {
+    async onSubmit(props) {
+      const { name, email, password } = props.value;
+      await authClient.signUp.email(
+        {
+          name,
+          email,
+          password,
+          callbackURL: "/verified",
+        },
+        {
+          onError(ctx) {
+            if (ctx.error.status === 422) {
+              form.setErrorMap({
+                onSubmit: {
+                  form: {
+                    title: "Error",
+                    description: "The email is already in use.",
+                  } satisfies SubmitError,
+                  fields: {},
+                },
+              });
+            } else {
+              form.setErrorMap({
+                onSubmit: {
+                  form: {
+                    title: "Error",
+                    description:
+                      "There was an error while creating an account.",
+                  } satisfies SubmitError,
+                  fields: {},
+                },
+              });
+            }
+          },
+          onSuccess() {
+            router.push("/diaries");
+          },
+        },
+      );
       console.log("valid", props);
     },
-    onSubmitInvalid(props) {
-      console.log("invalid", props);
-    },
   });
-
   return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
-        await form.handleSubmit();
-      }}
-      className="grid w-full max-w-sm gap-2 p-4"
-    >
-      <div className="grid grid-cols-2 items-start gap-4">
-        <form.AppField
-          name="firstName"
-          children={() => <TextField label="First Name" />}
-        />
-        <form.AppField
-          name="lastName"
-          children={() => <TextField label="Last Name" />}
-        />
-      </div>
-      <form.AppField
-        name="email"
-        children={() => <TextField label="Email" />}
-      />
-      <form.AppField
-        name="password"
-        children={() => <TextField label="Password" />}
-      />
-      <form.AppField
-        name="reenterPassword"
-        children={() => <TextField label="Re-enter Password" />}
-      />
-      <form.Subscribe
-        selector={(state) => [
-          state.fieldMeta.password.isBlurred,
-          state.values.password,
+    <Card>
+      <CardHeader>
+        <CardTitle>Signup to your create account</CardTitle>
+        <CardDescription>
+          Enter your details below to create an account.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await form.handleSubmit();
+          }}
+          className="w-full max-w-sm space-y-8"
+        >
+          <div className="grid gap-2">
+            <form.AppField
+              name="name"
+              children={() => <TextField label="First Name" />}
+            />
+            <form.AppField
+              name="email"
+              children={() => <TextField label="Email" />}
+            />
+            <form.AppField
+              name="password"
+              children={() => <TextField label="Password" />}
+            />
+            <form.AppField
+              name="reenterPassword"
+              children={() => <TextField label="Re-enter Password" />}
+            />
+            <form.Subscribe
+              selector={(state) => {
+                return [
+                  state.fieldMeta.password?.isBlurred,
+                  state.fieldMeta.password?.isValid,
+                  state.values.password,
 
-          state.fieldMeta.reenterPassword.isBlurred,
-          state.values.reenterPassword,
-        ]}
-        children={([
-          isPasswordBlurred,
-          password,
-          isReenterPasswordBlurred,
-          reenterPassword,
-        ]) => {
-          return (
-            isPasswordBlurred &&
-            isReenterPasswordBlurred &&
-            password !== reenterPassword && <p>Passwords do not match!</p>
-          );
-        }}
-      />
-      <form.AppForm>
-        <form.Button>Create Account</form.Button>
-      </form.AppForm>
-    </form>
+                  state.fieldMeta.reenterPassword?.isBlurred,
+                  state.values.reenterPassword,
+                  state.submissionAttempts,
+                ];
+              }}
+              children={([
+                isPasswordBlurred,
+                isPasswordValid,
+                password,
+                isReenterPasswordBlurred,
+                reenterPassword,
+                submissionAttempts,
+              ]) => {
+                if (
+                  isPasswordValid &&
+                  isPasswordBlurred &&
+                  (isReenterPasswordBlurred ||
+                    (submissionAttempts as number) > 0) &&
+                  password !== reenterPassword
+                ) {
+                  return (
+                    <p className="text-red-400">Passwords do not match!</p>
+                  );
+                }
+
+                return null;
+              }}
+            />
+            <form.Subscribe
+              selector={(state) => [state.errorMap]}
+              children={([errorMap]) => {
+                const submitError = errorMap?.onSubmit as unknown as
+                  | undefined
+                  | SubmitError;
+                return (
+                  submitError !== undefined && (
+                    <Alert variant="destructive">
+                      <AlertCircleIcon />
+                      <AlertTitle>{submitError.title}</AlertTitle>
+                      <AlertDescription>
+                        {submitError.description}
+                      </AlertDescription>
+                    </Alert>
+                  )
+                );
+              }}
+            />
+          </div>
+          <form.AppForm>
+            <form.Button className="w-full">Create Account</form.Button>
+          </form.AppForm>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
