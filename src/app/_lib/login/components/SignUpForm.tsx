@@ -93,7 +93,6 @@ export function SignUpForm() {
         },
         {
           onError(ctx) {
-            console.log({ ctx });
             if (ctx.error.status === 422) {
               form.setErrorMap({
                 onSubmit: {
@@ -122,7 +121,6 @@ export function SignUpForm() {
           },
         },
       );
-      console.log("valid", props);
     },
   });
   return (
@@ -244,7 +242,7 @@ export function SignUpForm() {
                               {active && timer + " "}
                               to resend verification like to your email if you
                               did not receive it. Once you have verified your
-                              email, you can click the sign in button
+                              email, you can click the sign in button.
                             </span>
                           )}
                         </ResendVerification>

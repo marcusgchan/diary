@@ -44,7 +44,6 @@ export function LoginForm({
       onBlur: formSchema,
     },
     async onSubmit(data) {
-      console.log("valid");
       await authClient.signIn.email(
         {
           email: data.value.email,
@@ -52,7 +51,6 @@ export function LoginForm({
         },
         {
           onError(ctx) {
-            console.log({ ctx });
             if (ctx.error.status === 403) {
               data.formApi.setErrorMap({
                 onSubmit: {
@@ -118,10 +116,6 @@ export function LoginForm({
           },
         },
       );
-    },
-    async onSubmitInvalid(data) {
-      console.log("invalid", data);
-      return "foooo";
     },
   });
   return (

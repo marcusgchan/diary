@@ -16,7 +16,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    // autoSignIn: true,
+    autoSignIn: true,
   },
   emailVerification: {
     autoSignInAfterVerification: true,
@@ -41,20 +41,6 @@ export const auth = betterAuth({
       clientSecret: env.DISCORD_CLIENT_SECRET,
     },
   },
-  user: {},
-  plugins: [
-    // emailOTP({
-    //   async sendVerificationOTP({ email, otp, type }) {
-    //     if (type === "sign-in") {
-    //       // Send the OTP for sign in
-    //     } else if (type === "email-verification") {
-    //       // Send the OTP for email verification
-    //     } else {
-    //       // Send the OTP for password reset
-    //     }
-    //   },
-    // }),
-  ],
 });
 
 export type Session = typeof auth.$Infer.Session;
