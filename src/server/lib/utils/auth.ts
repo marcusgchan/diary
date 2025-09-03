@@ -8,6 +8,12 @@ import { sendMail } from "../integrations/email";
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5,
+    },
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
     usePlural: true,
@@ -20,7 +26,7 @@ export const auth = betterAuth({
   },
   emailVerification: {
     autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, url, token }, request) => {
+    sendVerificationEmail: async ({ user, url }) => {
       try {
         console.log("trying to send email");
         await sendMail({
