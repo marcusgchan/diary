@@ -1,21 +1,27 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
-import { cn } from "../../utils/cx";
+import { authClient } from "../../utils/auth-client";
 
 type ResendVerificationProps = {
-  children: React.ReactNode;
+  children: ({
+    timer,
+    active,
+  }: {
+    timer: number;
+    active: boolean;
+    handleClick: (email: string) => Promise<void>;
+  }) => React.ReactNode;
 };
 export function ResendVerification(props: ResendVerificationProps) {
-  const [disabled, setDisabled] = useState(false);
+  const [active, setActive] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [timerValue, setTimerValue] = useState<number>(60);
-  function handleClick() {
-    setDisabled(true);
+  async function handleClick(email: string) {
+    await authClient.sendVerificationEmail({ email });
+    setActive(true);
     timerRef.current = setInterval(() => {
       setTimerValue((prev) => {
         if (prev === 0) {
-          setDisabled(false);
+          setActive(false);
           clearTimeout(timerRef.current!);
           return 60;
         }
@@ -32,17 +38,5 @@ export function ResendVerification(props: ResendVerificationProps) {
     };
   }, []);
 
-  return (
-    <span className="inline-flex gap-1">
-      <button
-        onClick={handleClick}
-        disabled={disabled}
-        type="button"
-        className={cn("underline", disabled && "cursor-not-allowed")}
-      >
-        {props.children}
-      </button>
-      {disabled && timerValue}
-    </span>
-  );
+  return props.children({ active, timer: timerValue, handleClick });
 }

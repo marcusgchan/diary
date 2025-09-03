@@ -52,6 +52,7 @@ export function LoginForm({
         },
         {
           onError(ctx) {
+            console.log({ ctx });
             if (ctx.error.status === 403) {
               data.formApi.setErrorMap({
                 onSubmit: {
@@ -61,7 +62,25 @@ export function LoginForm({
                       <p>
                         A verification emails was sent when you signed up. If
                         you did not receive it click
-                        <ResendVerification>here</ResendVerification> to resend
+                        <ResendVerification>
+                          {({ active, timer, handleClick }) => (
+                            <span className="inline-flex gap-1">
+                              <button
+                                onClick={() => handleClick(data.value.email)}
+                                disabled={active}
+                                type="button"
+                                className={cn(
+                                  "underline",
+                                  active && "cursor-not-allowed",
+                                )}
+                              >
+                                here
+                              </button>
+                              {active && timer}
+                            </span>
+                          )}
+                        </ResendVerification>
+                        to resend
                       </p>
                     ),
                   } satisfies SubmitError,

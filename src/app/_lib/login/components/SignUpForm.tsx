@@ -13,6 +13,17 @@ import {
   CardTitle,
 } from "../../ui/card";
 import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/_lib/ui/dialog";
+import { ResendVerification } from "./ResendVerification";
+import { cn } from "../../utils/cx";
+import { useState } from "react";
+import { Button } from "@/_lib/ui/button";
 
 const formSchema = z
   .object({
@@ -60,6 +71,7 @@ type SubmitError = {
 
 export function SignUpForm() {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const form = useAppForm({
     defaultValues: {
       name: "",
@@ -81,12 +93,13 @@ export function SignUpForm() {
         },
         {
           onError(ctx) {
+            console.log({ ctx });
             if (ctx.error.status === 422) {
               form.setErrorMap({
                 onSubmit: {
                   form: {
                     title: "Error",
-                    description: "The email is already in use.",
+                    description: ctx.error.message,
                   } satisfies SubmitError,
                   fields: {},
                 },
@@ -105,7 +118,7 @@ export function SignUpForm() {
             }
           },
           onSuccess() {
-            router.push("/diaries");
+            setIsModalOpen(true);
           },
         },
       );
@@ -196,6 +209,54 @@ export function SignUpForm() {
                       </AlertDescription>
                     </Alert>
                   )
+                );
+              }}
+            />
+
+            <form.Subscribe
+              selector={(state) => [state.values.email]}
+              children={([email]) => {
+                return (
+                  <Dialog open={isModalOpen}>
+                    <DialogContent showCloseButton={false}>
+                      <DialogHeader>
+                        <DialogTitle>Verify your email</DialogTitle>
+                        <DialogDescription>
+                          A verification link has been sent to your email.
+                          Please open it to complete your sign-up. If you did
+                          not receive it, check your spam folder.
+                        </DialogDescription>
+                        <ResendVerification>
+                          {({ active, timer, handleClick }) => (
+                            <span className="">
+                              Click{" "}
+                              <button
+                                onClick={() => handleClick(email!)}
+                                disabled={active}
+                                type="button"
+                                className={cn(
+                                  "underline",
+                                  active && "cursor-not-allowed",
+                                )}
+                              >
+                                here
+                              </button>{" "}
+                              {active && timer + " "}
+                              to resend verification like to your email if you
+                              did not receive it. Once you have verified your
+                              email, you can click the sign in button
+                            </span>
+                          )}
+                        </ResendVerification>
+                      </DialogHeader>
+                      <Button
+                        type="button"
+                        onClick={() => router.push("/diaries")}
+                      >
+                        Sign In
+                      </Button>
+                    </DialogContent>
+                  </Dialog>
                 );
               }}
             />
