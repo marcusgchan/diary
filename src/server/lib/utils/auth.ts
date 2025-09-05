@@ -23,12 +23,23 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
     autoSignIn: true,
+    sendResetPassword: async ({ user, url }) => {
+      try {
+        await sendMail({
+          from: "mnemo.verify@gmail.com",
+          to: user.email,
+          subject: "Password Reset",
+          text: `Click the link to reset your password: ${url}`,
+        });
+      } catch (e) {
+        console.log("failed to send email with this error", e);
+      }
+    },
   },
   emailVerification: {
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       try {
-        console.log("trying to send email");
         await sendMail({
           from: "mnemo.verify@gmail.com",
           to: user.email,

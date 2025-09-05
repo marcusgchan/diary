@@ -1,5 +1,5 @@
-import { LoginForm } from "~/app/_lib/login/components/LoginForm";
+import { SignInForm } from "~/app/_lib/login/components/LoginForm";
 
 export default function Login() {
-  return <LoginForm />;
+  return <SignInForm />;
 }

@@ -12,23 +12,12 @@ import {
   CardHeader,
   CardTitle,
 } from "../../ui/card";
-import { useRouter } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/_lib/ui/dialog";
-import { ResendVerification } from "./ResendVerification";
-import { cn } from "../../utils/cx";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
 import { Button } from "@/_lib/ui/button";
 
 const formSchema = z
   .object({
-    name: z.string().min(1, "Invalid name"),
-    email: z.string().email("Invalid email"),
     password: z.string().refine(
       (password) => {
         if (password.length < 8) {
@@ -69,13 +58,14 @@ type SubmitError = {
   description: string;
 };
 
-export function SignUpForm() {
+export function ResetPasswordForm() {
   const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const searchQuery = useSearchParams();
+  const token = searchQuery.get("token");
+  const email = searchQuery.get("email");
+
   const form = useAppForm({
     defaultValues: {
-      name: "",
-      email: "",
       password: "",
       reenterPassword: "",
     },
@@ -83,53 +73,56 @@ export function SignUpForm() {
       onBlur: formSchema,
     },
     async onSubmit(props) {
-      const { name, email, password } = props.value;
-      await authClient.signUp.email(
+      const { password } = props.value;
+      await authClient.resetPassword(
         {
-          name,
-          email,
-          password,
-          callbackURL: "/verified",
+          token: token!,
+          newPassword: password,
         },
         {
-          onError(ctx) {
-            if (ctx.error.status === 422) {
-              form.setErrorMap({
-                onSubmit: {
-                  form: {
-                    title: "Error",
-                    description: ctx.error.message,
-                  } satisfies SubmitError,
-                  fields: {},
-                },
-              });
-            } else {
-              form.setErrorMap({
-                onSubmit: {
-                  form: {
-                    title: "Error",
-                    description:
-                      "There was an error while creating an account.",
-                  } satisfies SubmitError,
-                  fields: {},
-                },
-              });
-            }
+          onError() {
+            form.setErrorMap({
+              onSubmit: {
+                form: {
+                  title: "Error",
+                  description:
+                    "There was an error while resetting your password.",
+                } satisfies SubmitError,
+                fields: {},
+              },
+            });
           },
           onSuccess() {
-            setIsModalOpen(true);
+            router.push("/reset-password/successful");
           },
         },
       );
     },
   });
+
+  if (!token || !email) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Reset Your Password</CardTitle>
+          <CardDescription>
+            There was a problem trying to reset your password.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <Button type="button" onClick={() => router.push("/sign-in")}>
+            Back to Sign In
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
+    <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>Sign Up to Create Your Account</CardTitle>
-        <CardDescription>
-          Enter your details below to create an account.
-        </CardDescription>
+        <CardTitle>Reset Your Password</CardTitle>
+        <CardDescription>Enter your new pasword below.</CardDescription>
       </CardHeader>
       <CardContent>
         <form
@@ -140,14 +133,6 @@ export function SignUpForm() {
           className="w-full max-w-sm space-y-8"
         >
           <div className="grid gap-2">
-            <form.AppField
-              name="name"
-              children={() => <TextField label="First Name" />}
-            />
-            <form.AppField
-              name="email"
-              children={() => <TextField label="Email" />}
-            />
             <form.AppField
               name="password"
               children={() => <TextField label="Password" />}
@@ -210,60 +195,6 @@ export function SignUpForm() {
                 );
               }}
             />
-
-            <form.Subscribe
-              selector={(state) => [state.values.email]}
-              children={([email]) => {
-                return (
-                  <Dialog open={isModalOpen}>
-                    <DialogContent showCloseButton={false}>
-                      <DialogHeader>
-                        <DialogTitle>Verify your email</DialogTitle>
-                        <DialogDescription>
-                          A verification link has been sent to your email.
-                          Please open it to complete your sign-up. If you did
-                          not receive it, check your spam folder.
-                        </DialogDescription>
-                        <ResendVerification>
-                          {({ active, timer, handleClick }) => (
-                            <span className="">
-                              Click{" "}
-                              <button
-                                onClick={async () =>
-                                  await handleClick(async () => {
-                                    await authClient.sendVerificationEmail({
-                                      email: email!,
-                                    });
-                                  })
-                                }
-                                disabled={active}
-                                type="button"
-                                className={cn(
-                                  "underline",
-                                  active && "cursor-not-allowed",
-                                )}
-                              >
-                                here
-                              </button>{" "}
-                              {active && timer + " "}
-                              to resend verification like to your email if you
-                              did not receive it. Once you have verified your
-                              email, you can click the sign in button.
-                            </span>
-                          )}
-                        </ResendVerification>
-                      </DialogHeader>
-                      <Button
-                        type="button"
-                        onClick={() => router.push("/diaries")}
-                      >
-                        Sign In
-                      </Button>
-                    </DialogContent>
-                  </Dialog>
-                );
-              }}
-            />
           </div>
           <form.AppForm>
             <form.Subscribe
@@ -271,7 +202,7 @@ export function SignUpForm() {
               children={([isSubmitting]) => {
                 return (
                   <form.Button disabled={isSubmitting} className="w-full">
-                    Create Account
+                    Create new password
                   </form.Button>
                 );
               }}

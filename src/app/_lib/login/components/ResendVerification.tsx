@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { authClient } from "../../utils/auth-client";
 
 type ResendVerificationProps = {
   children: ({
@@ -8,15 +7,17 @@ type ResendVerificationProps = {
   }: {
     timer: number;
     active: boolean;
-    handleClick: (email: string) => Promise<void>;
+    handleClick: (callback?: () => void | Promise<void>) => Promise<void>;
   }) => React.ReactNode;
 };
 export function ResendVerification(props: ResendVerificationProps) {
   const [active, setActive] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [timerValue, setTimerValue] = useState<number>(60);
-  async function handleClick(email: string) {
-    await authClient.sendVerificationEmail({ email });
+  async function handleClick(callback?: () => void | Promise<void>) {
+    if (callback) {
+      await callback();
+    }
     setActive(true);
     timerRef.current = setInterval(() => {
       setTimerValue((prev) => {

@@ -19,6 +19,7 @@ import z from "zod";
 import { Alert, AlertDescription, AlertTitle } from "../../ui/alert";
 import { AlertCircleIcon } from "lucide-react";
 import { ResendVerification } from "./ResendVerification";
+import { useState } from "react";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email"),
@@ -30,11 +31,12 @@ type SubmitError = {
   description: React.ReactNode;
 };
 
-export function LoginForm({
+export function SignInForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
+  const [isProviderLoading, setIsProviderLoading] = useState(false);
   const form = useAppForm({
     defaultValues: {
       email: "",
@@ -50,6 +52,9 @@ export function LoginForm({
           password: data.value.password,
         },
         {
+          onSuccess() {
+            router.push("/diaries");
+          },
           onError(ctx) {
             if (ctx.error.status === 403) {
               data.formApi.setErrorMap({
@@ -64,7 +69,13 @@ export function LoginForm({
                           {({ active, timer, handleClick }) => (
                             <span className="inline-flex gap-1">
                               <button
-                                onClick={() => handleClick(data.value.email)}
+                                onClick={async () =>
+                                  await handleClick(async () => {
+                                    await authClient.sendVerificationEmail({
+                                      email: data.value.email,
+                                    });
+                                  })
+                                }
                                 disabled={active}
                                 type="button"
                                 className={cn(
@@ -146,12 +157,12 @@ export function LoginForm({
                 name="password"
                 children={() => <TextField label="Password" />}
               />
-              <a
-                href="#"
+              <Link
+                href="/forgot-password"
                 className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
               >
                 Forgot your password?
-              </a>
+              </Link>
               <form.Subscribe
                 selector={(state) => [state.errorMap]}
                 children={([errorMap]) => {
@@ -174,19 +185,46 @@ export function LoginForm({
                 }}
               />
               <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full">
-                  Login
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
-                  onClick={async () => {
-                    router.push("/diaries");
+                <form.Subscribe
+                  selector={(state) => [state.isSubmitting]}
+                  children={([isSubmitting]) => {
+                    return (
+                      <>
+                        <Button
+                          disabled={isProviderLoading || isSubmitting}
+                          type="submit"
+                          className="w-full"
+                        >
+                          Sign In
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          type="button"
+                          disabled={isProviderLoading}
+                          onClick={async () => {
+                            await authClient.signIn.social(
+                              {
+                                provider: "discord",
+                                callbackURL: "/diaries",
+                              },
+                              {
+                                onRequest() {
+                                  setIsProviderLoading(true);
+                                },
+                                onResponse() {
+                                  setIsProviderLoading(false);
+                                },
+                              },
+                            );
+                          }}
+                        >
+                          Login with Discord
+                        </Button>
+                      </>
+                    );
                   }}
-                >
-                  Login with Discord
-                </Button>
+                />
               </div>
             </div>
             <div className="mt-4 text-center text-sm">
