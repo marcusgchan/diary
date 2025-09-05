@@ -7,8 +7,9 @@ export async function AuthGuard({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  console.log({ session });
   if (!session?.user) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   return <SessionProvider session={session}>{children}</SessionProvider>;
