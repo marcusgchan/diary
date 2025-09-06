@@ -40,6 +40,8 @@ export const env = createEnv({
     DATABASE_USER: z.string(),
     DATABASE_PASS: z.string(),
     DATABASE_NAME: z.string(),
+    GOOGLE_EMAIL_USERNAME: z.string(),
+    GOOGLE_EMAIL_PASSWORD: z.string(),
   },
   shared: {
     NEXT_PUBLIC_HIGHLIGHT_ID: z.string(),
@@ -77,6 +79,8 @@ export const env = createEnv({
     DATABASE_PASS: process.env.DATABASE_PASS,
     DATABASE_NAME: process.env.DATABASE_NAME,
     NEXT_PUBLIC_HIGHLIGHT_ID: process.env.NEXT_PUBLIC_HIGHLIGHT_ID,
+    GOOGLE_EMAIL_USERNAME: process.env.GOOGLE_EMAIL_USERNAME,
+    GOOGLE_EMAIL_PASSWORD: process.env.GOOGLE_EMAIL_PASSWORD,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
