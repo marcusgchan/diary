@@ -8,8 +8,6 @@ import {
   CardTitle,
 } from "~/app/_lib/ui/card";
 import { Button } from "~/app/_lib/ui/button";
-import { Input } from "~/app/_lib/ui/input";
-import { Label } from "~/app/_lib/ui/label";
 import { cn } from "~/app/_lib/utils/cx";
 import { authClient } from "../../utils/auth-client";
 import { useRouter } from "next/navigation";
@@ -151,11 +149,11 @@ export function SignInForm({
             <div className="flex flex-col gap-6">
               <form.AppField
                 name="email"
-                children={() => <TextField label="Email" />}
+                children={() => <TextField type="email" label="Email" />}
               />
               <form.AppField
                 name="password"
-                children={() => <TextField label="Password" />}
+                children={() => <TextField type="password" label="Password" />}
               />
               <Link
                 href="/forgot-password"

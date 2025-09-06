@@ -51,10 +51,10 @@ const formSchema = z
           "Password must be at least 8 characters long, contain at least one capital letter, and contain at least one special symbol",
       },
     ),
-    reenterPassword: z.string(),
+    confirmPassword: z.string(),
   })
   .superRefine((val, ctx) => {
-    if (val.password !== val.reenterPassword) {
+    if (val.password !== val.confirmPassword) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Passwords do not match",
@@ -77,7 +77,7 @@ export function SignUpForm() {
       name: "",
       email: "",
       password: "",
-      reenterPassword: "",
+      confirmPassword: "",
     },
     validators: {
       onBlur: formSchema,
@@ -146,15 +146,17 @@ export function SignUpForm() {
             />
             <form.AppField
               name="email"
-              children={() => <TextField label="Email" />}
+              children={() => <TextField type="email" label="Email" />}
             />
             <form.AppField
               name="password"
-              children={() => <TextField label="Password" />}
+              children={() => <TextField type="password" label="Password" />}
             />
             <form.AppField
-              name="reenterPassword"
-              children={() => <TextField label="Re-enter Password" />}
+              name="confirmPassword"
+              children={() => (
+                <TextField type="password" label="Confirm Password" />
+              )}
             />
             <form.Subscribe
               selector={(state) => {
@@ -163,8 +165,8 @@ export function SignUpForm() {
                   state.fieldMeta.password?.isValid,
                   state.values.password,
 
-                  state.fieldMeta.reenterPassword?.isBlurred,
-                  state.values.reenterPassword,
+                  state.fieldMeta.confirmPassword?.isBlurred,
+                  state.values.confirmPassword,
                   state.submissionAttempts,
                 ];
               }}
@@ -172,16 +174,16 @@ export function SignUpForm() {
                 isPasswordBlurred,
                 isPasswordValid,
                 password,
-                isReenterPasswordBlurred,
-                reenterPassword,
+                isConfirmPasswordBlurred,
+                confirmPassword,
                 submissionAttempts,
               ]) => {
                 if (
                   isPasswordValid &&
                   isPasswordBlurred &&
-                  (isReenterPasswordBlurred ||
+                  (isConfirmPasswordBlurred ||
                     (submissionAttempts as number) > 0) &&
-                  password !== reenterPassword
+                  password !== confirmPassword
                 ) {
                   return (
                     <p className="text-red-400">Passwords do not match!</p>

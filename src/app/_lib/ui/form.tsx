@@ -19,8 +19,7 @@ function TextField({
 }: {
   label: string;
   disableErrors?: boolean;
-  props?: React.ComponentProps<"input">;
-}) {
+} & React.ComponentProps<"input">) {
   const field = useFieldContext<string>();
 
   return (

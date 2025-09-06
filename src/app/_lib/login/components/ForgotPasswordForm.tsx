@@ -92,7 +92,7 @@ export function ForgotPasswordForm() {
           <div className="grid gap-2">
             <form.AppField
               name="email"
-              children={() => <TextField label="Email" />}
+              children={() => <TextField type="email" label="Email" />}
             />
             <form.Subscribe
               selector={(state) => [state.errorMap]}
