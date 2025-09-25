@@ -30,7 +30,7 @@
     "@lexical/list": "^0.17.1",
     "@lexical/react": "^0.17.1",
     "@lexical/rich-text": "^0.17.1",
-    "@lexical/utils": "^0.17.1",
+    "@lexical/utils": "^0.36.1",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.200.0",
     "@opentelemetry/resources": "^2.0.0",
