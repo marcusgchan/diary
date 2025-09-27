@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Toaster } from "../_lib/ui/toaster";
 import { AuthGuard } from "../_lib/auth/AuthGuard";
 import { ProfileAvatar } from "../_lib/profile/components/ProfileAvatar";
+import { InitMapLibre } from "../_lib/map/components/InitMapLibre";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,6 +23,7 @@ export default function DiaryLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full`}>
+        <InitMapLibre />
         <AuthGuard>
           <div className="mx-auto h-full max-w-7xl">
             <div className="flex h-full flex-col gap-4 p-4">

@@ -26,6 +26,7 @@ import {
   createPresignedPostUrlInputSchema,
   getPresignedUrlInputSchema,
   getMultipleImageUploadStatusInputSchema,
+  getImagesByEntryIdSchema,
 } from "./schema";
 import { getPostsForFormHandler } from "./handlers/getPostsForForm";
 import { getPostsHandler } from "./handlers/getPosts";
@@ -55,6 +56,7 @@ import { createEntryHandler } from "./handlers/createEntry";
 import { createPostsHandler } from "./handlers/createPosts";
 import { deletePostByIdHandler } from "./handlers/deletePostById";
 import { getImageUrlHandler } from "./handlers/getImageUrl";
+import { getImagesByEntryId } from "./handlers/getImagesByEntryId";
 
 export const diaryRouter = createTRPCRouter({
   createDiary: protectedProcedure
@@ -197,5 +199,12 @@ export const diaryRouter = createTRPCRouter({
     .input(confirmImageUploadInputSchema)
     .mutation(async ({ ctx, input }) => {
       return await confirmImageUploadHandler(ctx, input);
+    }),
+
+  // Map endpoints
+  getImagesByEntryId: protectedProcedure
+    .input(getImagesByEntryIdSchema)
+    .query(async ({ ctx, input }) => {
+      return await getImagesByEntryId(ctx, input);
     }),
 });

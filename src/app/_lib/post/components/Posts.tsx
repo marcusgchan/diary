@@ -13,12 +13,47 @@ import { PostListsSkeletion } from "./PostsListSkeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
+import { Marker } from "../../map/components/Marker";
+
+const Map = dynamic(() => import("../../map/components/Map"), { ssr: false });
 
 export function Posts() {
   return (
-    <section className="overflow-auto">
+    <section className="space-y-4 overflow-auto">
       <PostsList />
+      <MapSection />
     </section>
+  );
+}
+
+function MapSection() {
+  const params = useParams();
+  const entryId = Number(params.entryId);
+  const api = useTRPC();
+  const {
+    data: images,
+    isPending,
+    isError,
+  } = useQuery(api.diary.getImagesByEntryId.queryOptions({ entryId }));
+
+  return (
+    <Map>
+      {images?.map((image) => {
+        console.log({ image });
+        return (
+          <Marker
+            key={image.id}
+            latitude={image.lattitude}
+            longitude={image.longitude}
+          >
+            <div>
+              <img className="aspect-square h-[40px]" src={image.url} />
+            </div>
+          </Marker>
+        );
+      })}
+    </Map>
   );
 }
 
