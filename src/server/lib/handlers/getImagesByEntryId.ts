@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { ImageService } from "../repositories/image";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { getImageSignedUrl } from "../integrations/s3Service";
+import type { GeoJson, GeoJsonImageFeature } from "../types";
 
 export async function getImagesByEntryId(
   ctx: ProtectedContext,
@@ -40,5 +41,23 @@ export async function getImagesByEntryId(
     (image) => image.type === "success",
   );
 
-  return successfulImages;
+  const geoJson: GeoJson<GeoJsonImageFeature> = {
+    type: "FeatureCollection",
+    features: successfulImages.map((image) => {
+      return {
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [image.longitude, image.lattitude],
+        },
+        properties: {
+          id: image.id,
+          url: image.url,
+          postId: image.postId,
+        },
+      };
+    }),
+  };
+
+  return geoJson;
 }

@@ -30,12 +30,19 @@ export default function Map({ children }: { children?: React.ReactNode }) {
         layers: layers("protomaps", namedFlavor("light"), { lang: "en" }),
       },
     });
-    setIsMapReady(true);
+
     mapRef.current = map;
+
+    const handleStyleLoad = () => {
+      setIsMapReady(true);
+    };
+
+    map.on("load", handleStyleLoad);
 
     return () => {
       map.remove();
       mapRef.current = null;
+      setIsMapReady(false);
     };
   }, []);
 

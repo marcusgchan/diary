@@ -15,6 +15,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { Marker } from "../../map/components/Marker";
+import { ImageClusters } from "../../map/components/ImageClusters";
 
 const Map = dynamic(() => import("../../map/components/Map"), { ssr: false });
 
@@ -37,22 +38,29 @@ function MapSection() {
     isError,
   } = useQuery(api.diary.getImagesByEntryId.queryOptions({ entryId }));
 
+  console.log("MapSection render:", {
+    images,
+    isPending,
+    isError,
+    featuresCount: images?.features?.length,
+  });
+
   return (
     <Map>
-      {images?.map((image) => {
-        console.log({ image });
-        return (
-          <Marker
-            key={image.id}
-            latitude={image.lattitude}
-            longitude={image.longitude}
-          >
-            <div>
-              <img className="aspect-square h-[40px]" src={image.url} />
-            </div>
-          </Marker>
-        );
-      })}
+      {images && <ImageClusters geoJson={images} />}
+      {/* {images?.map((image) => { */}
+      {/*   return ( */}
+      {/*     <Marker */}
+      {/*       key={image.id} */}
+      {/*       latitude={image.lattitude} */}
+      {/*       longitude={image.longitude} */}
+      {/*     > */}
+      {/*       <div> */}
+      {/*         <img className="aspect-square h-[40px]" src={image.url} /> */}
+      {/*       </div> */}
+      {/*     </Marker> */}
+      {/*   ); */}
+      {/* })} */}
     </Map>
   );
 }
@@ -91,9 +99,14 @@ function PostsList() {
   const mutation = useMutation(
     api.diary.createPosts.mutationOptions({
       async onSuccess() {
-        return queryClient.invalidateQueries(
-          api.diary.getPosts.queryFilter({ entryId }),
-        );
+        return Promise.all([
+          queryClient.invalidateQueries(
+            api.diary.getPosts.queryFilter({ entryId }),
+          ),
+          queryClient.invalidateQueries(
+            api.diary.getImagesByEntryId.queryFilter({ entryId }),
+          ),
+        ]);
       },
     }),
   );
