@@ -82,9 +82,33 @@ export function postsReducer(
 
     // Invariant: Post guaranteed to exist
     case "START_EDITING": {
-      return {
+      const updatedState = {
         ...state,
+        posts: state.posts.map((post) => {
+          if (action.payload === post.id) {
+            return {
+              ...post,
+              images: post.images.map((image, index) => {
+                if (index === 0) {
+                  return { ...image, isSelected: true };
+                }
+                return { ...image };
+              }),
+              isSelected: true,
+            };
+          } else {
+            return {
+              ...post,
+              isSelected: false,
+              images: post.images.map((image) => ({
+                ...image,
+                isSelected: false,
+              })),
+            };
+          }
+        }),
       };
+      return updatedState;
     }
 
     case "UPDATE_POST":
