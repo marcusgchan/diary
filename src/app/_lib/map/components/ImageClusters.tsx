@@ -208,6 +208,21 @@ export function ImageClusters(props: ImageClustersProps) {
       // For now, let's just show circles with counts
       // The first image approach is complex with MapLibre GL clustering
 
+      // Add white circle background for cluster count
+      if (!mapInstance.getLayer("cluster-count-bg")) {
+        mapInstance.addLayer({
+          id: "cluster-count-bg",
+          type: "circle",
+          source: "images",
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-radius": 10,
+            "circle-color": "#ffffff",
+            "circle-translate": [28, -28],
+          },
+        });
+      }
+
       // Add cluster count text
       if (!mapInstance.getLayer("cluster-count")) {
         mapInstance.addLayer({
@@ -230,7 +245,8 @@ export function ImageClusters(props: ImageClustersProps) {
               ],
             ],
             "text-size": 12,
-            "text-anchor": "center",
+            "text-anchor": "top-left",
+            "text-offset": [2.1, -2.9],
             "text-allow-overlap": true,
             "text-font": ["Noto Sans Regular"],
           },
@@ -275,6 +291,9 @@ export function ImageClusters(props: ImageClustersProps) {
           }
           if (currentMap.getLayer("cluster-count")) {
             currentMap.removeLayer("cluster-count");
+          }
+          if (currentMap.getLayer("cluster-count-bg")) {
+            currentMap.removeLayer("cluster-count-bg");
           }
           if (currentMap.getSource("images")) {
             currentMap.removeSource("images");
