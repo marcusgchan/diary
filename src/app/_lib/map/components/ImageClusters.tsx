@@ -10,44 +10,40 @@ type ImageClustersProps = {
 export function ImageClusters(props: ImageClustersProps) {
   const map = useMapApi();
 
-  // Event handlers for cluster interactions
-  const handleClusterClick = useCallback(
-    (e: maplibregl.MapMouseEvent) => {
-      const mapInstance = map.current;
-      if (!mapInstance) return;
+  // const handleClusterClick = useCallback(
+  //   (e: maplibregl.MapMouseEvent) => {
+  //     const mapInstance = map.current;
+  //     if (!mapInstance) return;
+  //
+  //     const features = mapInstance.queryRenderedFeatures(e.point, {
+  //       layers: ["clusters"],
+  //     });
+  //
+  //     if (features.length > 0) {
+  //       const clusterProperties = features[0]?.properties;
+  //       if (clusterProperties) {
+  //         const firstImageId = clusterProperties.firstImageId as
+  //           | string
+  //           | undefined;
+  //       }
+  //     }
+  //   },
+  //   [map],
+  // );
 
-      const features = mapInstance.queryRenderedFeatures(e.point, {
-        layers: ["clusters"],
-      });
+  // const handleClusterMouseEnter = useCallback(() => {
+  //   const mapInstance = map.current;
+  //   if (mapInstance) {
+  //     mapInstance.getCanvas().style.cursor = "pointer";
+  //   }
+  // }, [map]);
 
-      if (features.length > 0) {
-        const clusterProperties = features[0]?.properties;
-        if (clusterProperties) {
-          // The first image ID is available in the cluster properties
-          const firstImageId = clusterProperties.firstImageId as
-            | string
-            | undefined;
-          // You can add custom logic here to show the first image
-          // For example, open a modal, navigate to the image, etc.
-        }
-      }
-    },
-    [map],
-  );
-
-  const handleClusterMouseEnter = useCallback(() => {
-    const mapInstance = map.current;
-    if (mapInstance) {
-      mapInstance.getCanvas().style.cursor = "pointer";
-    }
-  }, [map]);
-
-  const handleClusterMouseLeave = useCallback(() => {
-    const mapInstance = map.current;
-    if (mapInstance) {
-      mapInstance.getCanvas().style.cursor = "";
-    }
-  }, [map]);
+  // const handleClusterMouseLeave = useCallback(() => {
+  //   const mapInstance = map.current;
+  //   if (mapInstance) {
+  //     mapInstance.getCanvas().style.cursor = "";
+  //   }
+  // }, [map]);
 
   // Function to update cluster images based on their children
   const updateClusterImages = useCallback(() => {
@@ -257,9 +253,9 @@ export function ImageClusters(props: ImageClustersProps) {
       }
 
       // Add event listeners for cluster interactions
-      mapInstance.on("click", "clusters", handleClusterClick);
-      mapInstance.on("mouseenter", "clusters", handleClusterMouseEnter);
-      mapInstance.on("mouseleave", "clusters", handleClusterMouseLeave);
+      // mapInstance.on("click", "clusters", handleClusterClick);
+      // mapInstance.on("mouseenter", "clusters", handleClusterMouseEnter);
+      // mapInstance.on("mouseleave", "clusters", handleClusterMouseLeave);
 
       // Update cluster images on map movements
       mapInstance.on("moveend", updateClusterImages);
@@ -274,41 +270,37 @@ export function ImageClusters(props: ImageClustersProps) {
     return () => {
       const currentMap = mapInstance;
       if (currentMap && !currentMap._removed) {
-        try {
-          // Remove event listeners
-          currentMap.off("click", "clusters", handleClusterClick);
-          currentMap.off("mouseenter", "clusters", handleClusterMouseEnter);
-          currentMap.off("mouseleave", "clusters", handleClusterMouseLeave);
-          currentMap.off("moveend", updateClusterImages);
-          currentMap.off("zoomend", updateClusterImages);
+        // Remove event listeners
+        // currentMap.off("click", "clusters", handleClusterClick);
+        // currentMap.off("mouseenter", "clusters", handleClusterMouseEnter);
+        // currentMap.off("mouseleave", "clusters", handleClusterMouseLeave);
+        currentMap.off("moveend", updateClusterImages);
+        currentMap.off("zoomend", updateClusterImages);
 
-          // Remove layers
-          if (currentMap.getLayer("unclustered-points")) {
-            currentMap.removeLayer("unclustered-points");
-          }
-          if (currentMap.getLayer("clusters")) {
-            currentMap.removeLayer("clusters");
-          }
-          if (currentMap.getLayer("cluster-count")) {
-            currentMap.removeLayer("cluster-count");
-          }
-          if (currentMap.getLayer("cluster-count-bg")) {
-            currentMap.removeLayer("cluster-count-bg");
-          }
-          if (currentMap.getSource("images")) {
-            currentMap.removeSource("images");
-          }
-        } catch (error) {
-          console.warn("Error cleaning up map layers/sources:", error);
+        // Remove layers
+        if (currentMap.getLayer("unclustered-points")) {
+          currentMap.removeLayer("unclustered-points");
+        }
+        if (currentMap.getLayer("clusters")) {
+          currentMap.removeLayer("clusters");
+        }
+        if (currentMap.getLayer("cluster-count")) {
+          currentMap.removeLayer("cluster-count");
+        }
+        if (currentMap.getLayer("cluster-count-bg")) {
+          currentMap.removeLayer("cluster-count-bg");
+        }
+        if (currentMap.getSource("images")) {
+          currentMap.removeSource("images");
         }
       }
     };
   }, [
     map,
     props.geoJson,
-    handleClusterClick,
-    handleClusterMouseEnter,
-    handleClusterMouseLeave,
+    // handleClusterClick,
+    // handleClusterMouseEnter,
+    // handleClusterMouseLeave,
     updateClusterImages,
   ]);
   return null;
