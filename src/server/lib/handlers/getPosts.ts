@@ -63,6 +63,8 @@ function postsView(posts: GetPostWithImageState[]): GetPostGroupByImages[] {
         ...rest,
         images: [{ ...image }],
       });
+    } else {
+      post.images.push(cur.image);
     }
     return acc;
   }, new Map<string, GetPostGroupByImages>());

@@ -109,3 +109,25 @@ export type EditPostGroupByImages = Pick<
     isSelected: boolean;
   })[];
 };
+
+export interface GeoJson<TFeature extends GeoJsonFeature> {
+  type: "FeatureCollection";
+  features: TFeature[];
+}
+
+export interface GeoJsonFeature {
+  type: "Feature";
+  geometry: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+  properties: Record<string, string>;
+}
+
+export interface GeoJsonImageFeature extends GeoJsonFeature {
+  properties: {
+    id: string;
+    url: string;
+    postId: string;
+  };
+}

@@ -205,3 +205,6 @@ export const getMultipleImageUploadStatusInputSchema = z.object({
 export type GetMultipleImageUploadStatusInput = z.infer<
   typeof getMultipleImageUploadStatusInputSchema
 >;
+
+export const getImagesByEntryIdSchema = z.object({ entryId: z.number() });
+export type GetImagesByEntryId = z.infer<typeof getImagesByEntryIdSchema>;

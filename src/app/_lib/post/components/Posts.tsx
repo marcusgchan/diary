@@ -13,13 +13,33 @@ import { PostListsSkeletion } from "./PostsListSkeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
+import { ImageClusters } from "../../map/components/ImageClusters";
+
+const Map = dynamic(() => import("../../map/components/Map"), { ssr: false });
 
 export function Posts() {
+  const params = useParams();
+  const entryId = Number(params.entryId);
+  const api = useTRPC();
+  const { data } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
   return (
-    <section className="overflow-auto">
+    <section className="space-y-4 overflow-auto">
       <PostsList />
+      {data && data.length > 0 && <MapSection />}
     </section>
   );
+}
+
+function MapSection() {
+  const params = useParams();
+  const entryId = Number(params.entryId);
+  const api = useTRPC();
+  const { data: images } = useQuery(
+    api.diary.getImagesByEntryId.queryOptions({ entryId }),
+  );
+
+  return <Map>{images && <ImageClusters geoJson={images} />}</Map>;
 }
 
 function PostsList() {
@@ -56,9 +76,14 @@ function PostsList() {
   const mutation = useMutation(
     api.diary.createPosts.mutationOptions({
       async onSuccess() {
-        return queryClient.invalidateQueries(
-          api.diary.getPosts.queryFilter({ entryId }),
-        );
+        return Promise.all([
+          queryClient.invalidateQueries(
+            api.diary.getPosts.queryFilter({ entryId }),
+          ),
+          queryClient.invalidateQueries(
+            api.diary.getImagesByEntryId.queryFilter({ entryId }),
+          ),
+        ]);
       },
     }),
   );
