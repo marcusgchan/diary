@@ -1,7 +1,7 @@
 import type { GeoJson, GeoJsonImageFeature } from "~/server/lib/types";
 import { useMapApi } from "./Map";
 import { useEffect, useCallback } from "react";
-import { GeoJSONSource, type Map } from "maplibre-gl";
+import { type GeoJSONSource, type Map } from "maplibre-gl";
 
 type ImageClustersProps = {
   geoJson: GeoJson<GeoJsonImageFeature>;
@@ -23,12 +23,10 @@ export function ImageClusters(props: ImageClustersProps) {
       if (features.length > 0) {
         const clusterProperties = features[0]?.properties;
         if (clusterProperties) {
-          console.log("Cluster clicked:", clusterProperties);
           // The first image ID is available in the cluster properties
           const firstImageId = clusterProperties.firstImageId as
             | string
             | undefined;
-          console.log("First image in cluster:", firstImageId);
           // You can add custom logic here to show the first image
           // For example, open a modal, navigate to the image, etc.
         }
@@ -52,40 +50,44 @@ export function ImageClusters(props: ImageClustersProps) {
   }, [map]);
 
   // Function to update cluster images based on their children
-  const updateClusterImages = useCallback(async () => {
-    if (!map.current) {
-      return;
-    }
-
-    const clusters = map.current.queryRenderedFeatures({
-      layers: ["clusters"],
-      filter: ["has", "point_count"],
-    });
-    if (!clusters) {
-      return;
-    }
-
-    const source = map.current.getSource("images");
-    if (!source) {
-      return;
-    }
-
-    for (const cluster of clusters) {
-      const children = await (source as GeoJSONSource).getClusterLeaves(
-        cluster.id as number,
-        cluster.properties.point_count as number,
-        0,
-      );
-
-      if (children.length === 0) {
-        throw new Error("wat");
+  const updateClusterImages = useCallback(() => {
+    (async () => {
+      if (!map.current) {
+        return;
       }
 
-      map.current.setFeatureState(
-        { source: "images", id: cluster.id as number },
-        { clusterImageId: children[0]!.id },
-      );
-    }
+      const clusters = map.current.queryRenderedFeatures({
+        layers: ["clusters"],
+        filter: ["has", "point_count"],
+      });
+      if (!clusters) {
+        return;
+      }
+
+      const source = map.current.getSource("images");
+      if (!source) {
+        return;
+      }
+
+      for (const cluster of clusters) {
+        const children = await (source as GeoJSONSource).getClusterLeaves(
+          cluster.id as number,
+          cluster.properties.point_count as number,
+          0,
+        );
+
+        if (children.length === 0) {
+          throw new Error("wat");
+        }
+
+        map.current.setFeatureState(
+          { source: "images", id: cluster.id as number },
+          { clusterImageId: children[0]!.id },
+        );
+      }
+    })().catch((e) => {
+      console.log(e);
+    });
   }, [map]);
 
   useEffect(() => {
