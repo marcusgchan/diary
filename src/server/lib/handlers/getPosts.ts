@@ -25,7 +25,6 @@ export async function getPostsHandler(
 
   const postService = new PostService(ctx);
   const posts = await postService.getPosts(input.entryId);
-  console.log({ posts });
 
   const postWithImage: GetPostWithImageState[] = await Promise.all(
     posts.map(async (post) => {

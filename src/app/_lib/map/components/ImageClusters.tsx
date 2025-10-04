@@ -1,7 +1,7 @@
 import type { GeoJson, GeoJsonImageFeature } from "~/server/lib/types";
 import { useMapApi } from "./Map";
 import { useEffect, useCallback } from "react";
-import { type Map } from "maplibre-gl";
+import { GeoJSONSource, type Map } from "maplibre-gl";
 
 type ImageClustersProps = {
   geoJson: GeoJson<GeoJsonImageFeature>;
@@ -52,11 +52,41 @@ export function ImageClusters(props: ImageClustersProps) {
   }, [map]);
 
   // Function to update cluster images based on their children
-  const updateClusterImages = useCallback(() => {
-    // For now, we'll use a simpler approach with circles
-    // The getClusterLeaves method has complex signature issues
-    console.log("Cluster images update - using circles for now");
-  }, []);
+  const updateClusterImages = useCallback(async () => {
+    if (!map.current) {
+      return;
+    }
+
+    const clusters = map.current.queryRenderedFeatures({
+      layers: ["clusters"],
+      filter: ["has", "point_count"],
+    });
+    if (!clusters) {
+      return;
+    }
+
+    const source = map.current.getSource("images");
+    if (!source) {
+      return;
+    }
+
+    for (const cluster of clusters) {
+      const children = await (source as GeoJSONSource).getClusterLeaves(
+        cluster.id as number,
+        cluster.properties.point_count as number,
+        0,
+      );
+
+      if (children.length === 0) {
+        throw new Error("wat");
+      }
+
+      map.current.setFeatureState(
+        { source: "images", id: cluster.id as number },
+        { clusterImageId: children[0]!.id },
+      );
+    }
+  }, [map]);
 
   useEffect(() => {
     const mapInstance = map.current;
@@ -132,6 +162,9 @@ export function ImageClusters(props: ImageClustersProps) {
           cluster: true,
           clusterMaxZoom: 14, // Max zoom to cluster points on
           clusterRadius: 50, // Radius of each cluster when clustering points
+          clusterProperties: {
+            clusterImageId: ["coalesce", ["get", "id"], "default"],
+          },
         });
       }
 
@@ -158,15 +191,15 @@ export function ImageClusters(props: ImageClustersProps) {
       if (!mapInstance.getLayer("clusters")) {
         mapInstance.addLayer({
           id: "clusters",
-          type: "circle",
+          type: "symbol",
           source: "images",
-          filter: ["has", "point_count"],
-          paint: {
-            "circle-color": "#ffffff",
-            "circle-radius": 40,
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#ffffff",
+          filter: ["all", ["has", "point_count"]],
+          layout: {
+            "icon-image": ["get", "clusterImageId"],
+            "icon-size": 1,
+            "icon-allow-overlap": true,
           },
+          paint: {},
         });
       }
 
