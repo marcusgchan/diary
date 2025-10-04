@@ -73,7 +73,8 @@ export function ImageClusters(props: ImageClustersProps) {
         );
 
         if (children.length === 0) {
-          throw new Error("wat");
+          // TODO: log this should never happen
+          return;
         }
 
         map.current.setFeatureState(
@@ -81,8 +82,8 @@ export function ImageClusters(props: ImageClustersProps) {
           { clusterImageId: children[0]!.id },
         );
       }
-    })().catch((e) => {
-      console.log(e);
+    })().catch((_) => {
+      // TODO: log this should never happen
     });
   }, [map]);
 
