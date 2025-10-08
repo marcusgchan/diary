@@ -9,7 +9,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { env } from "~/env.mjs";
 import { config } from "~/server/config";
-import { s3Client } from "~/server/s3Client";
+import { s3Client } from "./s3Client";
 import { type Readable } from "stream";
 import type { ProtectedContext } from "../../trpc";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";

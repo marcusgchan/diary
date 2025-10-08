@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "~/server/lib/utils/auth";
+import { auth } from "~/server/lib/services/auth";
 import { SessionProvider } from "./AuthContext";
 
 export async function AuthGuard({ children }: { children: React.ReactNode }) {

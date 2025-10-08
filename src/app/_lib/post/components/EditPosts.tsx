@@ -417,9 +417,15 @@ function SelectedPostView({
         onChange={(e) => handleDescriptionChange(e.target.value)}
       />
       <div className="flex items-center">
-        <Button onClick={handleDeletePost} variant="destructive" type="button">
-          <Trash />
-        </Button>
+        {state.posts.length > 1 && (
+          <Button
+            onClick={handleDeletePost}
+            variant="destructive"
+            type="button"
+          >
+            <Trash />
+          </Button>
+        )}
       </div>
     </div>
   );
