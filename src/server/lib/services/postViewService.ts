@@ -3,6 +3,7 @@ import type {
   GetPostGroupByImages,
   EditPostWithNonEmptyImageState,
   EditPostGroupByNonEmptyImages,
+  EditPostQuery,
 } from "../types";
 
 export function postsView(
@@ -27,7 +28,7 @@ export function postsView(
 }
 
 export function postsViewForForm(
-  posts: EditPostWithNonEmptyImageState[],
+  posts: EditPostQuery[],
 ): EditPostGroupByNonEmptyImages[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);

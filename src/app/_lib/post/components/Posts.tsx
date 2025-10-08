@@ -183,7 +183,7 @@ function ImageLoader({ image }: ImageLoaderProps) {
     <img
       className="aspect-[4/3] w-[300px] object-cover"
       alt={image.name}
-      src={image.url}
+      src={`/api/image/${image.key}`}
     />
   );
 }

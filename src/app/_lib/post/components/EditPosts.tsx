@@ -461,11 +461,13 @@ type ImageProps = {
 };
 
 function ImageRenderer({ image }: ImageProps) {
+  console.log({ image });
   if (image.type === "loaded") {
+    console.log(image.key);
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
       <img
-        src={image.url}
+        src={`/api/image/${image.key}`}
         className="pointer-events-none h-full w-full object-cover"
         alt={image.name}
       />

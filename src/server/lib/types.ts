@@ -27,14 +27,17 @@ export type GetPostImageError = {
 export type GetPostImage = GetPostImageLoaded | GetPostImageError;
 
 export type GetPostWithImageState = Omit<GetPostQuery, "image"> & {
-  image: GetPostImageLoaded | GetPostImageError;
+  image: {
+    id: string;
+    key: string;
+  };
 };
 
 export type GetPostGroupByImages = Pick<
-  EditPostWithNonEmptyImageState,
+  EditPostWithLoadedImageState,
   "id" | "title" | "description"
 > & {
-  images: (GetPostImageLoaded | GetPostImageError)[];
+  images: PostImage[];
 };
 
 export type ImageLoadedState = {
@@ -43,7 +46,6 @@ export type ImageLoadedState = {
   name: string;
   size: number;
   mimetype: string;
-  url: string;
   order: number;
   key: string;
   isSelected: boolean;
@@ -73,36 +75,34 @@ export type EditPostQuery = {
   description: string;
   isSelected: boolean;
   order: number;
-  image: {
-    id: string;
-    isSelected: boolean;
-    key: string;
-    name: string;
-    mimetype: string;
-    size: number;
-    order: number;
-  };
+  image: PostImage;
 };
 
-export type EditPostWithImageState = Omit<EditPostQuery, "image"> & {
-  image: ImageLoadedState | ImageErrorState;
+export type PostImage = {
+  id: string;
+  isSelected: boolean;
+  key: string;
+  name: string;
+  mimetype: string;
+  size: number;
+  order: number;
 };
 
-export type EditPostWithNonEmptyImageState = Omit<EditPostQuery, "image"> & {
-  image: ImageLoadedState | ImageErrorState;
+export type EditPostWithLoadedImageState = Omit<EditPostQuery, "image"> & {
+  image: ImageLoadedState;
 };
 
 export type EditPostGroupByNonEmptyImages = Pick<
-  EditPostWithNonEmptyImageState,
+  EditPostWithLoadedImageState,
   "id" | "title" | "description" | "order" | "isSelected"
 > & {
-  images: ((ImageLoadedState | ImageErrorState) & {
+  images: (PostImage & {
     isSelected: boolean;
   })[];
 };
 
 export type EditPostGroupByImages = Pick<
-  EditPostWithNonEmptyImageState,
+  EditPostWithLoadedImageState,
   "id" | "title" | "description" | "order" | "isSelected"
 > & {
   images: ((ImageLoadedState | ImageErrorState | ImageUploadingState) & {
