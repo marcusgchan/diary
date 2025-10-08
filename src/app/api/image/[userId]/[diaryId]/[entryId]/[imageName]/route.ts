@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { getImageSignedUrl } from "~/server/lib/integrations/s3Service";
-import { auth } from "~/server/lib/utils/auth";
+import { auth } from "~/server/lib/services/auth";
 
 export async function GET(
   _: Request,

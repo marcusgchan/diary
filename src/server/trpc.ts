@@ -20,7 +20,7 @@ import { trace, type Tracer } from "@opentelemetry/api";
 
 import { db } from "~/server/db";
 import { type AppRouter } from "~/server/root";
-import { auth, type Session } from "./lib/utils/auth";
+import { auth, type Session } from "./lib/services/auth";
 import { headers } from "next/headers";
 
 /**

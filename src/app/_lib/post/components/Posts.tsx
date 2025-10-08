@@ -1,5 +1,5 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { type GetPostImage } from "~/server/lib/types";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
@@ -46,6 +46,7 @@ function PostsList() {
   const api = useTRPC();
   const params = useParams();
   const entryId = Number(params.entryId);
+  const diaryId = Number(params.diaryId);
 
   const {
     data: posts,
@@ -88,6 +89,7 @@ function PostsList() {
     }),
   );
   const { toast } = useToast();
+  const router = useRouter();
   function handleCreate() {
     const parseResult = createPostSchema.safeParse({
       entryId: entryId,
@@ -123,18 +125,33 @@ function PostsList() {
     );
   }
 
+  function handleEditPosts() {
+    router.push(`/diaries/${diaryId}/entries/${entryId}/posts/edit`);
+  }
+
   return (
-    <ul className="space-y-2">
-      {posts.map((post) => {
-        return (
-          <li key={post.id} className="space-y-2">
-            {post.title.length > 0 && <h3 className="text-lg">{post.title}</h3>}
-            <ImageList images={post.images} />
-            {post.description.length > 0 && <p>{post.description}</p>}
-          </li>
-        );
-      })}
-    </ul>
+    <div>
+      <Button
+        className="ml-auto block"
+        type="button"
+        onClick={() => handleEditPosts()}
+      >
+        Edit Posts
+      </Button>
+      <ul className="space-y-2">
+        {posts.map((post) => {
+          return (
+            <li key={post.id} className="space-y-2">
+              {post.title.length > 0 && (
+                <h3 className="text-xl font-bold">{post.title}</h3>
+              )}
+              <ImageList images={post.images} />
+              {post.description.length > 0 && <p>{post.description}</p>}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

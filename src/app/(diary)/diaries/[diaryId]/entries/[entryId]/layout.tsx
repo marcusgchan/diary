@@ -3,7 +3,6 @@ import { Header } from "@/_lib/diary/components/Header";
 import { DatePicker } from "@/_lib/entry/components/DatePicker";
 import { TitleInput } from "@/_lib/entry/components/TitleInput";
 import { EntryTab } from "@/_lib/entry/components/EntryTab";
-import { EditPostsButton } from "@/_lib/post/components/EditPostsButton";
 
 export default function EntryLayout({
   children,
@@ -24,7 +23,6 @@ export default function EntryLayout({
             <DatePicker />
             <div className="flex items-center justify-between">
               <EntryTab />
-              <EditPostsButton />
             </div>
             {children}
           </main>

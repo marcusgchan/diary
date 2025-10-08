@@ -8,6 +8,7 @@ import type {
 } from "~/server/lib/types";
 
 export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
+export type { ImageUploadingState };
 
 export type Post = EditPostGroupByImages;
 
@@ -64,7 +65,7 @@ export function postsReducer(
 ): PostsState {
   switch (action.type) {
     case "LOAD_POSTS": {
-      console.log("loading prev state", state);
+      console.log("loading post state", state);
       return { ...state, posts: action.payload, imageKeyToImageId: new Map() };
     }
     case "START_NEW_POST": {
@@ -164,7 +165,33 @@ export function postsReducer(
     }
 
     case "DELETE_CURRENT_POST": {
-      const remainingPosts = state.posts.filter((p) => !p.isSelected);
+      const remainingPosts = state.posts
+        .filter((p) => !p.isSelected)
+        .map((post, index) => {
+          if (index === 0) {
+            return {
+              ...post,
+              isSelected: true,
+              images: post.images.map((image, imageIndex) => {
+                if (imageIndex === 0) {
+                  return {
+                    ...image,
+                    isSelected: true,
+                  };
+                }
+
+                return {
+                  ...image,
+                };
+              }),
+            };
+          }
+
+          return {
+            ...post,
+            images: post.images.map((image) => ({ ...image })),
+          };
+        });
 
       const imageIds = state.posts
         .find((post) => post.isSelected)!
