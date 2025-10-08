@@ -15,7 +15,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { ImageClusters } from "../../map/components/ImageClusters";
-import { EditPostsButton } from "./EditPostsButton";
 
 const Map = dynamic(() => import("../../map/components/Map"), { ssr: false });
 
