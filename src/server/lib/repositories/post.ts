@@ -28,7 +28,7 @@ export class PostService {
   }
 
   public async getPostsForForm(entryId: Entries["id"]) {
-    return await this.db
+    const result = await this.db
       .select({
         id: posts.id,
         title: posts.title,
@@ -56,7 +56,9 @@ export class PostService {
           eq(posts.deleting, false),
         ),
       )
-      .orderBy(asc(posts.order));
+      .orderBy(asc(posts.order), asc(postImages.order));
+
+    return result;
   }
 
   public async getPosts(entryId: Entries["id"]) {
@@ -82,7 +84,8 @@ export class PostService {
           eq(diariesToUsers.userId, this.userId),
           eq(posts.deleting, false),
         ),
-      );
+      )
+      .orderBy(asc(posts.order), asc(postImages.order));
   }
 
   public async getPostById(postId: Posts["id"]) {

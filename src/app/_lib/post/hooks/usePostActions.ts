@@ -80,7 +80,7 @@ export function usePostActions({
           name: meta.name,
           size: meta.size,
           mimetype: meta.mimetype,
-          order: index + 1,
+          order: index,
           key: res.value.key,
           isSelected: selectedPost.images.length === 0 && index === 0,
         } satisfies ImageUploadingState;
@@ -134,11 +134,13 @@ export function usePostActions({
       dispatch({ type: "START_EDITING", payload: post.id });
     });
 
-    const selectedImage = post.images.find((image) => image.isSelected);
+    const firstImage = post.images[0];
 
-    if (selectedImage?.id) {
-      scrollToImage(selectedImage.id, true);
+    if (!firstImage) {
+      throw new Error("invariant: must have at least one image in post");
     }
+
+    scrollToImage(firstImage.id, true);
   }
 
   function handleDeletePost() {

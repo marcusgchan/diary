@@ -126,9 +126,11 @@ export async function getPostsForFormHandler(
     }),
   );
 
+  const result = postsViewForForm(postWithImage);
+
   return {
     header,
-    posts: postsViewForForm(postWithImage),
+    posts: result,
   };
 }
 

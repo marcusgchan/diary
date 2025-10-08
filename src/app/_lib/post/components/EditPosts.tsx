@@ -1,6 +1,6 @@
 // move active id to reducer, scroll not selecting right active img
 "use client";
-import { Image as ImageIcon, MapPin, Plus, Trash } from "lucide-react";
+import { Image as ImageIcon, MapPin, Plus, Trash, X } from "lucide-react";
 import {
   type ChangeEvent,
   type RefObject,
@@ -31,7 +31,6 @@ import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { Separator } from "../../ui/separator";
 import { Textarea } from "../../ui/textarea";
-import { flushSync } from "react-dom";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -272,15 +271,12 @@ function SelectedPostView({
     (image) => image.isSelected,
   );
   const imageInputRef = useRef<HTMLInputElement>(null);
+
   function selectNewImage() {
-    flushSync(() => {
-      dispatch({
-        type: "DELETE_CURRENT_IMAGE",
-        payload: { imageId: selectedImage!.id },
-      });
-    });
-    imageInputRef.current!.value = "";
-    imageInputRef.current!.click();
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+      imageInputRef.current.click();
+    }
   }
 
   return (
@@ -292,7 +288,11 @@ function SelectedPostView({
         >
           {selectedPostForm.images.length === 0 && (
             <ImageUpload onChange={handleDropzoneFilesChange}>
-              {({ handleDragOver, handleDrop, handleFileChange }) => (
+              {({
+                handleDragOver,
+                handleDrop,
+                handleFileChange: _handleFileChange,
+              }) => (
                 <Dropzone
                   handleDragOver={handleDragOver}
                   handleDrop={handleDrop}
@@ -306,7 +306,7 @@ function SelectedPostView({
                       ref={imageInputRef}
                       id="image-upload"
                       type="file"
-                      onChange={handleFileChange}
+                      onChange={handleFilesChange}
                       multiple
                       accept="image/*"
                       className="sr-only"
@@ -347,6 +347,7 @@ function SelectedPostView({
         >
           <ul className="flex h-12 items-center justify-center gap-1">
             {selectedPostForm.images.map((image: Post["images"][number]) => {
+              console.log({ selectedPostForm });
               return (
                 <SortableItem key={image.id} id={image.id}>
                   {(props) => (
@@ -387,7 +388,7 @@ function SelectedPostView({
           )}
         </DragOverlay>
       </DndContext>
-      {selectedImage !== undefined && (
+      {selectedPostForm.images.length > 0 && (
         <>
           <button
             type="button"
@@ -395,11 +396,35 @@ function SelectedPostView({
             onClick={() => selectNewImage()}
           >
             <ImageIcon />
-            Select New Image
+            Add New Images
           </button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            onChange={handleFilesChange}
+            multiple
+            accept="image/*"
+            className="sr-only"
+          />
           <Separator />
         </>
       )}
+      {!!selectedImage && (
+        <button
+          type="button"
+          className="text-md flex gap-1 text-muted-foreground"
+          onClick={() => {
+            dispatch({
+              type: "DELETE_CURRENT_IMAGE",
+              payload: { imageId: selectedImage.id },
+            });
+          }}
+        >
+          <X />
+          Delete Image
+        </button>
+      )}
+      <Separator />
       <button type="button" className="flex gap-1 text-muted-foreground">
         <MapPin />
         Location
@@ -507,7 +532,10 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
                   <li
                     {...props.listeners}
                     {...props.attributes}
-                    onClick={() => onEditPost(post)}
+                    onClick={() => {
+                      console.log("Post clicked:", post.id);
+                      onEditPost(post);
+                    }}
                     style={{
                       ...props.style,
                       opacity: props.isDragging ? 0 : 1,

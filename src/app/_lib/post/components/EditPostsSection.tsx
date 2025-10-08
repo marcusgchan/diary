@@ -36,12 +36,26 @@ export function EditPostsSection() {
 
     mutation.mutate(parseResult.data);
   }
+
+  function handleBack() {
+    router.push("../");
+  }
+
   return (
     <>
       <EditPosts />
-      <Button type="button" onClick={() => handleUpdate()}>
-        Edit Posts
-      </Button>
+      <div className="space-x-2">
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={() => handleBack()}
+        >
+          Back
+        </Button>
+        <Button type="button" onClick={() => handleUpdate()}>
+          Edit Posts
+        </Button>
+      </div>
     </>
   );
 }

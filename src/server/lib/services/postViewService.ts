@@ -31,10 +31,11 @@ export function postsViewForForm(
 ): EditPostGroupByNonEmptyImages[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);
+    const { image, ...rest } = cur;
     if (!post) {
       acc.set(cur.id, {
-        ...cur,
-        images: [{ ...cur.image }],
+        ...rest,
+        images: [{ ...image }],
       });
     } else {
       post.images.push(cur.image);
