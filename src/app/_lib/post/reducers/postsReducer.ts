@@ -1,31 +1,26 @@
 import { type RouterOutputs } from "~/server/trpc";
 import type {
-  ImageErrorState,
-  ImageLoadedState,
-  ImageUploadingState,
-  EditPostGroupByNonEmptyImages,
-  EditPostGroupByImages,
+  PostForm,
+  BasePostFormImage,
+  PostFormLoadedImage,
+  PostFormUploadingImage,
+  PostFormCompressionErrorImage,
 } from "~/server/lib/types";
 
-export type Image = ImageLoadedState | ImageUploadingState | ImageErrorState;
-export type { ImageUploadingState };
-
-export type Post = EditPostGroupByImages;
-
 export type PostsState = {
-  posts: EditPostGroupByImages[];
-  imageKeyToImageId: Map<NonNullable<Image["key"]>, Image["id"]>;
+  posts: PostForm[];
+  imageKeyToImageId: Map<BasePostFormImage["key"], BasePostFormImage["id"]>;
 };
 
 export type PostsAction =
-  | { type: "LOAD_POSTS"; payload: EditPostGroupByNonEmptyImages[] }
+  | { type: "LOAD_POSTS"; payload: PostForm[] }
   | { type: "START_NEW_POST" }
   | { type: "START_EDITING"; payload: string }
   | {
       type: "UPDATE_POST";
-      payload: { updates: Partial<EditPostGroupByNonEmptyImages> };
+      payload: { updates: Partial<PostForm> };
     }
-  | { type: "ADD_IMAGES"; payload: ImageUploadingState[] }
+  | { type: "ADD_IMAGES"; payload: PostFormUploadingImage[] }
   | { type: "SELECT_IMAGE"; payload: string }
   | { type: "DELETE_CURRENT_POST" }
   | { type: "REORDER_POSTS"; payload: { activeId: string; overId: string } }
@@ -39,17 +34,13 @@ export type PostsAction =
     }
   | { type: "DELETE_CURRENT_IMAGE"; payload: { imageId: string } };
 
-const emptyPost: Omit<EditPostGroupByNonEmptyImages, "id" | "order"> = {
-  images: [],
+const createNewEmptyPost = (order = 0) => ({
+  id: crypto.randomUUID(),
   title: "",
   isSelected: true,
   description: "",
-};
-
-const createNewEmptyPost = (order = 0) => ({
-  ...emptyPost,
-  id: crypto.randomUUID(),
   order,
+  images: [] as PostForm["images"],
 });
 
 const firstPost = createNewEmptyPost(0);
@@ -65,7 +56,6 @@ export function postsReducer(
 ): PostsState {
   switch (action.type) {
     case "LOAD_POSTS": {
-      console.log("loading post state", state);
       return { ...state, posts: action.payload, imageKeyToImageId: new Map() };
     }
     case "START_NEW_POST": {
@@ -291,31 +281,17 @@ export function postsReducer(
 
           if (imagePayload.type === "success") {
             const newImage = {
-              ...(image as ImageUploadingState),
+              ...(image as PostFormUploadingImage),
               type: "loaded",
-              url: imagePayload.url,
-            } satisfies ImageLoadedState;
-            newImageKeyToImageId.delete(newImage.key);
-            return newImage;
-          } else if (imagePayload.type === "compression_failure") {
-            const newImage = {
-              ...(image as ImageUploadingState),
-              type: "loaded",
-              url: imagePayload.url,
-            } satisfies ImageLoadedState;
+            } satisfies PostFormLoadedImage;
             newImageKeyToImageId.delete(newImage.key);
             return newImage;
           } else {
             const newImage = {
-              ...(image as ImageErrorState),
-              type: "error",
-            } satisfies ImageErrorState;
-            // Remove key from map for error state
-            for (const [key, value] of newImageKeyToImageId.entries()) {
-              if (value === image.id) {
-                newImageKeyToImageId.delete(key);
-              }
-            }
+              ...image,
+              type: "compression_error",
+            } satisfies PostFormCompressionErrorImage;
+            newImageKeyToImageId.delete(newImage.key);
             return newImage;
           }
         });

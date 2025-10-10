@@ -2,11 +2,12 @@
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
+import { EditPostsLoading } from "./EditPostsLoading";
 import { usePosts } from "../contexts/PostsContext";
 import { updatePostSchema } from "~/server/lib/schema";
 import { useParams, useRouter } from "next/navigation";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function EditPostsSection() {
   const api = useTRPC();
@@ -24,6 +25,10 @@ export function EditPostsSection() {
     }),
   );
 
+  const { isPending } = useQuery(
+    api.diary.getPostsForForm.queryOptions({ entryId }),
+  );
+
   function handleUpdate() {
     const parseResult = updatePostSchema.safeParse({
       entryId,
@@ -39,6 +44,10 @@ export function EditPostsSection() {
 
   function handleBack() {
     router.push("../");
+  }
+
+  if (isPending) {
+    return <EditPostsLoading />;
   }
 
   return (

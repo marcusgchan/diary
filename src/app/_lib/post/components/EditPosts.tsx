@@ -1,4 +1,3 @@
-// move active id to reducer, scroll not selecting right active img
 "use client";
 import { Image as ImageIcon, MapPin, Plus, Trash, X } from "lucide-react";
 import {
@@ -19,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { SortableItem } from "../../shared/SortableItem";
 import { cn } from "../../utils/cx";
-import { type Post, type Image } from "../reducers/postsReducer";
+import type { PostForm as Post, PostFormImage } from "~/server/lib/types";
 import { useScrollToImage } from "../hooks/useScrollToImage";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
 import { usePostActions } from "../hooks/usePostActions";
@@ -327,7 +326,7 @@ function SelectedPostView({
                     onImageIntersect={onImageIntersect}
                     scrollableContainerRef={scrollContainerRef}
                   >
-                    <ImageRenderer image={image} />
+                    <ImageRenderer showErrorText={true} image={image} />
                   </ImageItem>
                 );
               })}
@@ -347,7 +346,6 @@ function SelectedPostView({
         >
           <ul className="flex h-12 items-center justify-center gap-1">
             {selectedPostForm.images.map((image: Post["images"][number]) => {
-              console.log({ selectedPostForm });
               return (
                 <SortableItem key={image.id} id={image.id}>
                   {(props) => (
@@ -457,13 +455,26 @@ function SelectedPostView({
 }
 
 type ImageProps = {
-  image: Image;
+  image: PostFormImage;
+  showErrorText?: boolean;
 };
 
-function ImageRenderer({ image }: ImageProps) {
-  console.log({ image });
+function ImageRenderer({ image, showErrorText = false }: ImageProps) {
+  function stripUuid(name: string) {
+    let count = 0;
+    let i = 0;
+    while (count < 5) {
+      const ch = name[i];
+      if (ch === "-") {
+        count++;
+      }
+      i++;
+    }
+
+    return name.substring(i);
+  }
+
   if (image.type === "loaded") {
-    console.log(image.key);
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
       <img
@@ -474,8 +485,14 @@ function ImageRenderer({ image }: ImageProps) {
     );
   }
 
-  if (image.type === "error") {
-    return <p>Could not load image</p>;
+  if (image.type === "compression_error") {
+    return (
+      <div className="h-full w-full content-center items-center bg-red-200 p-2 text-center">
+        {showErrorText && (
+          <p>There was a problem uploading image: {stripUuid(image.name)}</p>
+        )}
+      </div>
+    );
   }
 
   return <Skeleton className="h-full w-full" />;

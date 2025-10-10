@@ -1,11 +1,13 @@
 import { type ChangeEvent } from "react";
 import { flushSync } from "react-dom";
 import type {
-  Post,
   PostsState,
   PostsAction,
 } from "@/_lib/post/reducers/postsReducer";
-import type { ImageUploadingState } from "~/server/lib/types";
+import type {
+  PostFormUploadingImage,
+  PostForm as Post,
+} from "~/server/lib/types";
 import { type useScrollToImage } from "./useScrollToImage";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
@@ -70,7 +72,7 @@ export function usePostActions({
 
     const selectedPost = state.posts.find((post) => post.isSelected)!;
 
-    const payload: ImageUploadingState[] = res
+    const payload: PostFormUploadingImage[] = res
       .filter((res) => res.status === "fulfilled")
       .map((res, index) => {
         const meta = metadata[index]!;
@@ -83,7 +85,7 @@ export function usePostActions({
           order: index,
           key: res.value.key,
           isSelected: selectedPost.images.length === 0 && index === 0,
-        } satisfies ImageUploadingState;
+        } satisfies PostFormUploadingImage;
       });
 
     await Promise.allSettled(

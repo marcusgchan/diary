@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { type GetPostImage } from "~/server/lib/types";
+import { type PostImage } from "~/server/lib/types";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
@@ -155,35 +155,21 @@ function PostsList() {
   );
 }
 
-type ImageListProps = { images: GetPostImage[] };
+type ImageListProps = { images: PostImage[] };
 
 function ImageList({ images }: ImageListProps) {
   return (
     <ul className="flex flex-wrap gap-2">
       {images.map((image) => (
         <li key={image.id} className="flex-shrink-0">
-          <ImageLoader image={image} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="aspect-[4/3] w-[300px] object-cover"
+            alt={image.name}
+            src={`/api/image/${image.key}`}
+          />
         </li>
       ))}
     </ul>
-  );
-}
-
-type ImageLoaderProps = {
-  image: GetPostImage;
-};
-
-function ImageLoader({ image }: ImageLoaderProps) {
-  if (image.type === "error") {
-    return <p className="aspect-[4/3] w-[300px]">Unable to load image </p>;
-  }
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      className="aspect-[4/3] w-[300px] object-cover"
-      alt={image.name}
-      src={`/api/image/${image.key}`}
-    />
   );
 }

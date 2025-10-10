@@ -7,11 +7,6 @@ import { expandKeys } from "../integrations/s3Service";
 import { getUserIdFromKey } from "../utils";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
 import { postsView, postsViewForForm } from "../services/postViewService";
-import type {
-  GetPostGroupByImages,
-  ImageLoadedState,
-  EditPostWithLoadedImageState,
-} from "../types";
 import {
   type CreatePost,
   type GetPostsSchema,
@@ -38,7 +33,7 @@ export async function createPostsHandler(
 export async function getPostsHandler(
   ctx: ProtectedContext,
   input: GetPostsSchema,
-): Promise<GetPostGroupByImages[]> {
+) {
   const entryService = new EntryService(ctx);
   const [header] = await entryService.getEntryHeader(input.entryId);
 
@@ -66,20 +61,7 @@ export async function getPostsForFormHandler(
   const postService = new PostService(ctx);
   const posts = await postService.getPostsForForm(input.entryId);
 
-  const postWithImage: EditPostWithLoadedImageState[] = posts.map((post) => {
-    const { image, ...restOfPost } = post;
-    return {
-      ...restOfPost,
-      isSelected: restOfPost.order === 0,
-      image: {
-        type: "loaded",
-        isSelected: image.order === 0,
-        ...image,
-      } satisfies ImageLoadedState,
-    };
-  });
-
-  const result = postsViewForForm(postWithImage);
+  const result = postsViewForForm(posts);
 
   return {
     header,

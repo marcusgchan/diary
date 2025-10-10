@@ -1,5 +1,5 @@
 import { type RefObject, useState } from "react";
-import type { Post } from "@/_lib/post/reducers/postsReducer";
+import type { PostForm as Post } from "~/server/lib/types";
 
 export function useScrollToImage(containerRef: RefObject<HTMLElement | null>) {
   const [isScrollingProgrammatically, setIsScrollingProgrammatically] =
