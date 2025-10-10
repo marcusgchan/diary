@@ -1,13 +1,12 @@
 import type {
-  GetPostWithImageState,
-  GetPostGroupByImages,
-  EditPostWithNonEmptyImageState,
-  EditPostGroupByNonEmptyImages,
+  GetPostQuery,
+  GetPostFormQuery,
+  PostForm,
+  Post,
+  PostFormLoadedImage,
 } from "../types";
 
-export function postsView(
-  posts: GetPostWithImageState[],
-): GetPostGroupByImages[] {
+export function postsView(posts: GetPostQuery[]): Post[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);
     if (!post) {
@@ -20,28 +19,39 @@ export function postsView(
       post.images.push(cur.image);
     }
     return acc;
-  }, new Map<string, GetPostGroupByImages>());
+  }, new Map<string, Post>());
 
   const postArray = Array.from(postMap.values());
   return postArray;
 }
 
-export function postsViewForForm(
-  posts: EditPostWithNonEmptyImageState[],
-): EditPostGroupByNonEmptyImages[] {
-  const postMap = posts.reduce((acc, cur) => {
-    const post = acc.get(cur.id);
-    const { image, ...rest } = cur;
-    if (!post) {
-      acc.set(cur.id, {
-        ...rest,
-        images: [{ ...image }],
-      });
-    } else {
-      post.images.push(cur.image);
-    }
-    return acc;
-  }, new Map<string, EditPostGroupByNonEmptyImages>());
+export function postsViewForForm(posts: GetPostFormQuery[]): PostForm[] {
+  const postMap = posts
+    .map((post) => {
+      const { image, ...restOfPost } = post;
+      return {
+        ...restOfPost,
+        isSelected: restOfPost.order === 0,
+        image: {
+          ...image,
+          type: "loaded",
+          isSelected: image.order === 0,
+        } satisfies PostFormLoadedImage,
+      };
+    })
+    .reduce((acc, cur) => {
+      const post = acc.get(cur.id);
+      const { image, ...rest } = cur;
+      if (!post) {
+        acc.set(cur.id, {
+          ...rest,
+          images: [{ ...image }],
+        });
+      } else {
+        post.images.push(cur.image);
+      }
+      return acc;
+    }, new Map<string, PostForm>());
 
   const postArray = Array.from(postMap.values());
 

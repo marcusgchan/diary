@@ -6,17 +6,7 @@ import { S3ImageService } from "../integrations/s3Service";
 import { expandKeys } from "../integrations/s3Service";
 import { getUserIdFromKey } from "../utils";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
-import { getImageSignedUrl } from "../integrations/s3Service";
 import { postsView, postsViewForForm } from "../services/postViewService";
-import type {
-  GetPostWithImageState,
-  GetPostImageLoaded,
-  GetPostImageError,
-  GetPostGroupByImages,
-  ImageErrorState,
-  ImageLoadedState,
-  EditPostWithNonEmptyImageState,
-} from "../types";
 import {
   type CreatePost,
   type GetPostsSchema,
@@ -43,7 +33,7 @@ export async function createPostsHandler(
 export async function getPostsHandler(
   ctx: ProtectedContext,
   input: GetPostsSchema,
-): Promise<GetPostGroupByImages[]> {
+) {
   const entryService = new EntryService(ctx);
   const [header] = await entryService.getEntryHeader(input.entryId);
 
@@ -54,32 +44,7 @@ export async function getPostsHandler(
   const postService = new PostService(ctx);
   const posts = await postService.getPosts(input.entryId);
 
-  const postWithImage: GetPostWithImageState[] = await Promise.all(
-    posts.map(async (post) => {
-      const { image, ...restOfPost } = post;
-
-      const [err, data] = await tryCatch(getImageSignedUrl(post.image.key));
-      if (err) {
-        return {
-          ...restOfPost,
-          image: {
-            type: "error",
-            ...image,
-          } satisfies GetPostImageError,
-        };
-      }
-
-      return {
-        ...restOfPost,
-        image: {
-          type: "loaded",
-          url: data,
-          ...image,
-        } satisfies GetPostImageLoaded,
-      };
-    }),
-  );
-  return postsView(postWithImage);
+  return postsView(posts);
 }
 
 export async function getPostsForFormHandler(
@@ -96,37 +61,7 @@ export async function getPostsForFormHandler(
   const postService = new PostService(ctx);
   const posts = await postService.getPostsForForm(input.entryId);
 
-  const postWithImage: EditPostWithNonEmptyImageState[] = await Promise.all(
-    posts.map(async (post) => {
-      const { image, ...restOfPost } = post;
-
-      const [err, data] = await tryCatch(getImageSignedUrl(post.image.key));
-      if (err) {
-        return {
-          ...restOfPost,
-          isSelected: restOfPost.order === 0,
-          image: {
-            ...image,
-            type: "error" as const,
-            isSelected: image.order === 0,
-          } satisfies ImageErrorState,
-        };
-      }
-
-      return {
-        ...restOfPost,
-        isSelected: restOfPost.order === 0,
-        image: {
-          type: "loaded" as const,
-          url: data,
-          isSelected: image.order === 0,
-          ...image,
-        } satisfies ImageLoadedState,
-      };
-    }),
-  );
-
-  const result = postsViewForForm(postWithImage);
+  const result = postsViewForForm(posts);
 
   return {
     header,

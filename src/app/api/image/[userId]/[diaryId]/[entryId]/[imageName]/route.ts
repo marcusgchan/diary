@@ -23,5 +23,11 @@ export async function GET(
     `${params.userId}/${params.diaryId}/${params.entryId}/${params.imageName}`,
   );
 
-  return Response.redirect(url);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: url,
+      "Cache-Control": "no-store",
+    },
+  });
 }
