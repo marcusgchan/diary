@@ -26,7 +26,7 @@ export function CreateDiaryHeader() {
           queryClient.getQueryData(api.diary.getDiaries.queryKey()) ?? [];
         queryClient.setQueryData(api.diary.getDiaries.queryKey(), (old) => [
           ...(old ?? []),
-          newDiary,
+          { ...newDiary, entryId: null },
         ]);
         return { previousDiaries };
       },

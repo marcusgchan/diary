@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { type db } from "~/server/db";
 import {
   diaries,
@@ -37,17 +37,32 @@ export class DiaryService {
   }
 
   public async getDiaries() {
-    const diariesList = await this.db
-      .select({ id: diaries.id, name: diaries.name })
+    const inner = this.db
+      .select({
+        diaryId: sql<number>`${diaries.id}`.as("inner_diary_id"),
+        firstEntryDate: sql<Date>`MAX(${entries.createdAt})`.as(
+          "first_entry_date",
+        ),
+      })
+      .from(diaries)
+      .leftJoin(entries, eq(diaries.id, entries.diaryId))
+      .groupBy(sql`inner_diary_id`)
+      .as("inner");
+
+    const diariesList = this.db
+      .select({ id: diaries.id, name: diaries.name, entryId: entries.id })
       .from(diariesToUsers)
       .innerJoin(diaries, eq(diaries.id, diariesToUsers.diaryId))
+      .leftJoin(inner, eq(inner.diaryId, diaries.id))
+      .leftJoin(entries, eq(inner.firstEntryDate, entries.createdAt))
       .where(
         and(
           eq(diariesToUsers.userId, this.userId),
           eq(diaries.deleting, false),
         ),
       );
-    return diariesList;
+
+    return await diariesList;
   }
 
   public async getDiaryById(diaryId: Diaries["id"]) {
