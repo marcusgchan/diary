@@ -74,7 +74,7 @@ export const diaryRouter = createTRPCRouter({
     }),
   getDiaries: protectedProcedure.query(
     // Specify return type for optimistic updates since tempId is uuid and db id is a number
-    async ({ ctx }): Promise<{ id: string | number; name: string }[]> => {
+    async ({ ctx }) => {
       return await getDiariesHandler(ctx);
     },
   ),

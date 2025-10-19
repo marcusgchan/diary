@@ -8,11 +8,13 @@ import Link from "next/link";
 
 export function DiaryList() {
   const api = useTRPC();
-  const { isLoading, isError, data } = useQuery(
-    api.diary.getDiaries.queryOptions(),
-  );
+  const {
+    isPending,
+    isError,
+    data: diaries,
+  } = useQuery(api.diary.getDiaries.queryOptions());
 
-  if (isLoading) {
+  if (isPending) {
     return Array.from({ length: 4 }).map((_, i) => (
       <Skeleton key={i} className="aspect-[3/4]" />
     ));
@@ -22,11 +24,10 @@ export function DiaryList() {
     return <p>Something went wrong!</p>;
   }
 
-  const diaries = data ?? [];
-  return diaries.map(({ id, name }) => (
+  return diaries.map(({ id, name, entryId }) => (
     <li key={id} className="h-full">
       <Link
-        href={`${"/diaries"}/${id.toString()}/entries`}
+        href={`${"/diaries"}/${id.toString()}/entries${entryId !== null ? "/" + entryId : ""}`}
         className={cn(
           "grid aspect-[3/4] w-full place-items-center rounded-md border-2 border-primary p-4",
           isOptimistic(id) && "opacity-70",

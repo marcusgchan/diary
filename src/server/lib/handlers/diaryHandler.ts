@@ -19,7 +19,7 @@ export async function createDiaryHandler(
 
 export async function getDiariesHandler(
   ctx: ProtectedContext,
-): Promise<{ id: string | number; name: string }[]> {
+): Promise<{ id: string | number; name: string; entryId: number | null }[]> {
   const diary = new DiaryService(ctx);
   return await diary.getDiaries();
 }
