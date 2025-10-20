@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { type db } from "~/server/db";
 import {
   diaries,
@@ -60,7 +60,8 @@ export class DiaryService {
           eq(diariesToUsers.userId, this.userId),
           eq(diaries.deleting, false),
         ),
-      );
+      )
+      .orderBy(desc(diaries.createdAt));
 
     return await diariesList;
   }

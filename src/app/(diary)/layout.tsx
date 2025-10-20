@@ -11,8 +11,8 @@ import { InitMapLibre } from "../_lib/map/components/InitMapLibre";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Diary App",
-  description: "Travel diary application",
+  title: "Memory Map",
+  description: "Memory application",
 };
 
 export default function DiaryLayout({
@@ -29,7 +29,7 @@ export default function DiaryLayout({
             <div className="flex h-full flex-col gap-4 p-4">
               <header>
                 <nav className="flex justify-between">
-                  <h1 className="text-4xl">Diary App</h1>
+                  <h1 className="text-4xl">Memory Map</h1>
                   <ul className="flex items-center gap-2">
                     <li className="flex items-center">
                       <Link href="/">Home</Link>

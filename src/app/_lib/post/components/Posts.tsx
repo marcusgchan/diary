@@ -66,11 +66,7 @@ function PostsList() {
         post.images.some((image) => image.type !== "loaded")
       );
     });
-    if (hasAtLeastOnePostWithNonLoadedImage) {
-      return true;
-    }
-
-    return false;
+    return hasAtLeastOnePostWithNonLoadedImage;
   }, [state.posts]);
 
   const queryClient = useQueryClient();

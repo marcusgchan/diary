@@ -62,6 +62,10 @@ export function Entries() {
       entryId: entryId,
     });
 
+  if (entries && entries.length === 0) {
+    return <p>There are no entries</p>;
+  }
+
   if (entries) {
     return (
       <ul className="grid gap-1">
@@ -71,7 +75,7 @@ export function Entries() {
               <Link
                 className={cn(
                   "hidden justify-between rounded bg-secondary p-1 sm:flex",
-                  entryId && Number(entryId) === entry.id && "bg-secondary/60",
+                  entryId && Number(entryId) === entry.id && "bg-secondary/20",
                 )}
                 href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
               >
