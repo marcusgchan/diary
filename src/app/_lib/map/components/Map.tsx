@@ -48,7 +48,7 @@ export default function Map({ children }: { children?: React.ReactNode }) {
 
   return (
     <MapContext.Provider value={mapRef}>
-      <div ref={mapContainer} className="h-[420px] w-full" />
+      <div ref={mapContainer} className="h-full max-h-[420px] w-full" />
       {isMapReady && children}
     </MapContext.Provider>
   );
