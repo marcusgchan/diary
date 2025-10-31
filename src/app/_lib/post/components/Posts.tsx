@@ -36,8 +36,8 @@ export function Posts() {
   const { data } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
 
   return (
-    <div className="grid h-full min-h-0 gap-2 [grid-template-areas:'posts_map'] [grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)]">
-      <section className="h-full overflow-y-auto border-2 border-black [grid-area:posts]">
+    <div className="grid h-full min-h-0 gap-2 overflow-y-auto [grid-template-areas:'posts''map'] [grid-template-rows:auto_350px] lg:overflow-visible lg:[grid-template-areas:'posts_map'] lg:[grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)] lg:[grid-template-rows:none]">
+      <section className="mx-auto h-full overflow-visible border-2 border-black [grid-area:posts] lg:overflow-y-auto">
         <PostsSection />
       </section>
       <section className="[grid-area:map]">
@@ -56,9 +56,11 @@ function MapSection() {
   );
 
   return (
-    <InteractiveMap>
-      {images && <ImageClusters geoJson={images} />}
-    </InteractiveMap>
+    <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
+      <InteractiveMap>
+        {images && <ImageClusters geoJson={images} />}
+      </InteractiveMap>
+    </div>
   );
 }
 
