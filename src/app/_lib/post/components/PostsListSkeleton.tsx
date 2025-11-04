@@ -2,9 +2,9 @@ import { Skeleton } from "../../ui/skeleton";
 
 export function PostListsSkeletion() {
   return (
-    <div className="h-full">
-      <ul className="space-y-2">
-        <li className="w-full max-w-sm space-y-2 border-2 border-black">
+    <div className="h-full w-full">
+      <ul className="w-full space-y-2">
+        <li className="w-full max-w-sm space-y-2">
           <Skeleton className="relative w-full rounded text-lg before:content-['\00a0']" />
           <div className="flex aspect-square w-full">
             <Skeleton className="aspect-square w-full rounded" />

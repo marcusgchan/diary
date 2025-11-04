@@ -365,7 +365,7 @@ function SelectedPostView({
                         className={cn(
                           "block aspect-square h-10 w-10 cursor-grab overflow-hidden rounded border-2 transition-all active:cursor-grabbing",
                           image.isSelected
-                            ? "scale-110 border-blue-500 ring-1 ring-blue-200"
+                            ? "scale-110 border-blue-400 ring-1 ring-blue-300"
                             : "border-gray-300 hover:border-gray-400",
                         )}
                       >
