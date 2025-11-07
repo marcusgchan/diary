@@ -106,7 +106,7 @@ function Form({
   const [diaryName, setDiaryName] = useState(diary?.name ?? "");
   const id = useId();
   const router = useRouter();
-  const goToDiaries = () => router.push("./entries");
+  const back = () => router.back();
   const queryClient = useQueryClient();
   const editDiaryMutation = useMutation(
     api.diary.editDiary.mutationOptions({
@@ -146,7 +146,7 @@ function Form({
         />
       </div>
       <div className="flex gap-2">
-        <Button variant="secondary" type="button" onClick={goToDiaries}>
+        <Button variant="secondary" type="button" onClick={back}>
           Back
         </Button>
         <Button>Edit</Button>
