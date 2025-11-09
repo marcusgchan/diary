@@ -24,6 +24,7 @@ import dynamic from "next/dynamic";
 import { ImageClusters } from "../../map/components/ImageClusters";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
+import { Plus } from "lucide-react";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -36,11 +37,11 @@ export function Posts() {
   const { data } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
 
   return (
-    <div className="mt-4 grid h-full min-h-0 gap-2 overflow-y-auto [grid-template-areas:'posts''map'] [grid-template-rows:auto_350px] lg:overflow-visible lg:[grid-template-areas:'posts_map'] lg:[grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)] lg:[grid-template-rows:none]">
+    <div className="mt-4 grid h-full min-h-0 gap-8 overflow-y-auto [grid-template-areas:'posts''map'] [grid-template-rows:auto_350px] lg:overflow-visible lg:[grid-template-areas:'posts_map'] lg:[grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)] lg:[grid-template-rows:none]">
       <section className="mx-auto h-full w-full max-w-sm overflow-visible [grid-area:posts] lg:overflow-y-auto">
         <PostsSection />
       </section>
-      <section className="[grid-area:map]">
+      <section className="h-full [grid-area:map]">
         {data && data.length > 0 && <MapSection />}
       </section>
     </div>
@@ -149,13 +150,13 @@ function PostsSection() {
 
   return (
     <div className="h-full space-y-2">
-      <Button
-        className="ml-auto block"
-        type="button"
-        onClick={() => handleEditPosts()}
-      >
-        Edit Posts
-      </Button>
+      {/* <Button */}
+      {/*   className="ml-auto block" */}
+      {/*   type="button" */}
+      {/*   onClick={() => handleEditPosts()} */}
+      {/* > */}
+      {/*   Edit Posts */}
+      {/* </Button> */}
       <PostList posts={posts} />
     </div>
   );

@@ -3,6 +3,7 @@ import { Header } from "@/_lib/diary/components/Header";
 import { DatePicker } from "@/_lib/entry/components/DatePicker";
 import { TitleInput } from "@/_lib/entry/components/TitleInput";
 import { EntryTab } from "@/_lib/entry/components/EntryTab";
+import { Plus } from "lucide-react";
 
 export default function EntryLayout({
   children,
@@ -25,6 +26,12 @@ export default function EntryLayout({
               <EntryTab />
             </div>
             {children}
+            <button
+              className="fixed bottom-6 right-6 rounded-full bg-foreground p-3"
+              type="button"
+            >
+              <Plus className="text-background" />
+            </button>
           </main>
         </div>
       </div>
