@@ -1,5 +1,5 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
@@ -24,7 +24,6 @@ import dynamic from "next/dynamic";
 import { ImageClusters } from "../../map/components/ImageClusters";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
-import { Plus } from "lucide-react";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -69,7 +68,6 @@ function PostsSection() {
   const api = useTRPC();
   const params = useParams();
   const entryId = Number(params.entryId);
-  const diaryId = Number(params.diaryId);
 
   const {
     data: posts,
@@ -108,7 +106,6 @@ function PostsSection() {
     }),
   );
   const { toast } = useToast();
-  const router = useRouter();
   function handleCreate() {
     const parseResult = createPostSchema.safeParse({
       entryId: entryId,
@@ -144,19 +141,8 @@ function PostsSection() {
     );
   }
 
-  function handleEditPosts() {
-    router.push(`/diaries/${diaryId}/entries/${entryId}/posts/edit`);
-  }
-
   return (
     <div className="h-full space-y-2">
-      {/* <Button */}
-      {/*   className="ml-auto block" */}
-      {/*   type="button" */}
-      {/*   onClick={() => handleEditPosts()} */}
-      {/* > */}
-      {/*   Edit Posts */}
-      {/* </Button> */}
       <PostList posts={posts} />
     </div>
   );
