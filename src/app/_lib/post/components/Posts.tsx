@@ -36,7 +36,7 @@ export function Posts() {
   const { data } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
 
   return (
-    <div className="mt-4 grid h-full min-h-0 gap-8 overflow-y-auto [grid-template-areas:'posts''map'] [grid-template-rows:auto_350px] lg:overflow-visible lg:[grid-template-areas:'posts_map'] lg:[grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)] lg:[grid-template-rows:none]">
+    <div className="mt-4 grid h-full min-h-0 gap-8 overflow-y-auto pr-4 [grid-template-areas:'posts''map'] [grid-template-rows:auto_350px] lg:overflow-visible lg:[grid-template-areas:'posts_map'] lg:[grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)] lg:[grid-template-rows:none]">
       <section className="mx-auto h-full w-full max-w-sm overflow-visible [grid-area:posts] lg:overflow-y-auto">
         <PostsSection />
       </section>
@@ -54,9 +54,19 @@ function MapSection() {
   const { data: images } = useQuery(
     api.diary.getImagesByEntryId.queryOptions({ entryId }),
   );
+  const { data: posts } = useQuery(
+    api.diary.getPosts.queryOptions({ entryId }),
+  );
+
+  const hasTitle = posts?.[0]?.title;
 
   return (
-    <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
+    <div
+      className={cn(
+        "mx-auto h-full w-full max-w-sm lg:max-w-none",
+        hasTitle && "mt-2 h-[calc(100%-0.5rem)] pt-7",
+      )}
+    >
       <InteractiveMap>
         {images && <ImageClusters geoJson={images} />}
       </InteractiveMap>
@@ -275,7 +285,7 @@ function Post({ post }: { post: Post }) {
   return (
     <li key={post.id} className="w-full space-y-2">
       {post.title.length > 0 && (
-        <h3 className="text-xl font-bold">{post.title}</h3>
+        <h3 className="h-7 text-xl font-bold">{post.title}</h3>
       )}
       <ul
         ref={containerRef}
