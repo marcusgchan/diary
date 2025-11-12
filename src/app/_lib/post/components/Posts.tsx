@@ -22,6 +22,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { ImageClusters } from "../../map/components/ImageClusters";
+import { MapSkeleton } from "../../map/components/MapSkeleton";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
 
@@ -33,15 +34,28 @@ export function Posts() {
   const params = useParams();
   const entryId = Number(params.entryId);
   const api = useTRPC();
-  const { data } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
+  const { data, isPending } = useQuery(
+    api.diary.getPosts.queryOptions({ entryId }),
+  );
+  const { isPending: imagesPending } = useQuery(
+    api.diary.getImagesByEntryId.queryOptions({ entryId }),
+  );
+
+  const isLoading = isPending || imagesPending;
 
   return (
-    <div className="mt-4 grid h-full min-h-0 gap-8 overflow-y-auto pr-4 [grid-template-areas:'posts''map'] [grid-template-rows:auto_350px] lg:overflow-visible lg:[grid-template-areas:'posts_map'] lg:[grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)] lg:[grid-template-rows:none]">
+    <div className="mt-4 grid h-full min-h-0 gap-8 overflow-y-auto [grid-template-areas:'posts''map'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:auto_350px] lg:overflow-visible lg:pr-0 lg:[grid-template-areas:'posts_map'] lg:[grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)] lg:[grid-template-rows:none]">
       <section className="mx-auto h-full w-full max-w-sm overflow-visible [grid-area:posts] lg:overflow-y-auto">
         <PostsSection />
       </section>
       <section className="h-full [grid-area:map]">
-        {data && data.length > 0 && <MapSection />}
+        {isLoading ? (
+          <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
+            <MapSkeleton />
+          </div>
+        ) : (
+          data && data.length > 0 && <MapSection />
+        )}
       </section>
     </div>
   );
@@ -283,9 +297,9 @@ function Post({ post }: { post: Post }) {
   );
 
   return (
-    <li key={post.id} className="w-full space-y-2">
+    <li key={post.id} className="space-y-2">
       {post.title.length > 0 && (
-        <h3 className="h-7 text-xl font-bold">{post.title}</h3>
+        <h3 className="h-7 truncate text-xl font-bold">{post.title}</h3>
       )}
       <ul
         ref={containerRef}

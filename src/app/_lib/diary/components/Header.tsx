@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { EllipsisVertical } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
+import { Skeleton } from "../../ui/skeleton";
 
 export function Header() {
   const api = useTRPC();
@@ -18,7 +19,7 @@ export function Header() {
   const goToEditDiary = () => router.push(`/diaries/${diaryId}/edit`);
   const goToEditPosts = () =>
     router.push(`/diaries/${diaryId}/entries/${entryId}/posts/edit`);
-  const { data: diary } = useQuery(
+  const { data: diary, isPending: isDiaryPending } = useQuery(
     api.diary.getDiary.queryOptions(
       {
         diaryId: Number(params.diaryId),
@@ -50,7 +51,11 @@ export function Header() {
   };
   return (
     <header className="flex justify-between gap-2">
-      <h2 className="text-xl">{diary?.name ?? ""}</h2>
+      {isDiaryPending ? (
+        <Skeleton className="h-7 w-40 rounded" />
+      ) : (
+        <h2 className="truncate text-xl">{diary?.name ?? ""}</h2>
+      )}
       <div className="flex gap-2">
         <Popover>
           <PopoverTrigger>
