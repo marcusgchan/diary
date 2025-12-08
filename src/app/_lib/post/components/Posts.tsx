@@ -44,8 +44,8 @@ export function Posts() {
   const isLoading = isPending || imagesPending;
 
   return (
-    <div className="mt-4 grid h-full min-h-0 gap-8 overflow-y-auto pr-4 [grid-template-areas:'posts''map'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:auto_350px] lg:overflow-visible lg:pr-0 lg:[grid-template-areas:'posts_map'] lg:[grid-template-columns:minmax(300px,350px)_minmax(350px,1fr)] lg:[grid-template-rows:none]">
-      <section className="mx-auto h-full w-full max-w-sm overflow-visible pr-0 [grid-area:posts] lg:overflow-y-auto lg:pr-4">
+    <div className="grid h-full min-h-0 gap-8 overflow-y-auto pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:1fr_1fr] lg:pr-0 ">
+      <section className="mx-auto h-full min-h-0 w-full max-w-sm pr-0 [grid-area:posts] lg:pr-4">
         <PostsSection />
       </section>
       <section className="h-full [grid-area:map]">
@@ -78,7 +78,7 @@ function MapSection() {
     <div
       className={cn(
         "mx-auto h-full w-full max-w-sm lg:max-w-none",
-        hasTitle && "lg:mt-2 lg:h-[calc(100%-0.5rem)] lg:pt-7",
+        // hasTitle && "lg:mt-2 lg:h-[calc(100%-0.5rem)] lg:pt-7",
       )}
     >
       <InteractiveMap>
