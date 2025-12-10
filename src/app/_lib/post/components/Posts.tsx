@@ -44,19 +44,21 @@ export function Posts() {
   const isLoading = isPending || imagesPending;
 
   return (
-    <div className="grid h-full min-h-0 gap-8 overflow-y-auto pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:1fr_1fr] lg:pr-0 ">
-      <section className="mx-auto h-full min-h-0 w-full max-w-sm pr-0 [grid-area:posts] lg:pr-4">
-        <PostsSection />
-      </section>
-      <section className="h-full [grid-area:map]">
-        {isLoading ? (
-          <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
-            <MapSkeleton />
-          </div>
-        ) : (
-          data && data.length > 0 && <MapSection />
-        )}
-      </section>
+    <div className="overflow-y-auto">
+      <div className="grid h-full min-h-0 gap-8 pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:1fr_1fr] lg:pr-0">
+        <section className="mx-auto h-full min-h-0 w-full max-w-sm pr-0 [grid-area:posts] lg:pr-4">
+          <PostsSection />
+        </section>
+        <section className="h-full [grid-area:map]">
+          {isLoading ? (
+            <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
+              <MapSkeleton />
+            </div>
+          ) : (
+            data && data.length > 0 && <MapSection />
+          )}
+        </section>
+      </div>
     </div>
   );
 }
