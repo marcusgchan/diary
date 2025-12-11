@@ -1,4 +1,5 @@
 import { Header } from "@/_lib/diary/components/Header";
+import { Plus } from "lucide-react";
 import {
   SidebarProvider,
   EntrySidebar,
@@ -19,6 +20,12 @@ export default function EntryLayout({
           {children}
         </SidebarLayout>
       </SidebarProvider>
+      <button
+        className="fixed bottom-6 right-6 rounded-full bg-foreground p-3"
+        type="button"
+      >
+        <Plus className="text-background" />
+      </button>
     </div>
   );
 }

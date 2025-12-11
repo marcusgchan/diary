@@ -77,9 +77,9 @@ export function SidebarLayout({
 
   if (isMobile) {
     return (
-      <main className={cn(className)} {...props}>
+      <main className={cn("md:hidden", className)} {...props}>
         <Sheet open={isMobileOpen} onOpenChange={() => toggleHelper()}>
-          <SheetContent side="left">
+          <SheetContent side="left" className="w-[75%]">
             <SheetHeader>
               <SheetTitle>Entries</SheetTitle>
               <SheetDescription
@@ -102,7 +102,7 @@ export function SidebarLayout({
   return (
     <main
       className={cn(
-        "grid transition-[grid-template-columns] duration-300 ease-in-out [grid-template-rows:1fr]",
+        "hidden transition-[grid-template-columns] duration-300 ease-in-out [grid-template-rows:1fr] md:grid",
         open && "gap-2 [grid-template-columns:300px_1fr]",
         !open && "[grid-template-columns:0_1fr]",
         className,
@@ -118,7 +118,6 @@ export function SidebarTrigger({ ...props }: React.ComponentProps<"button">) {
   const { toggleSidebar, isMobile, toggleMobileSidebar } = useSidebar();
   return (
     <button
-      {...props}
       onClick={() => {
         if (isMobile) {
           toggleMobileSidebar();
