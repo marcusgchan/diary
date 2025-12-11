@@ -4,6 +4,13 @@ import { cn } from "../../utils/cx";
 import { Entries } from "./Entries";
 import { useIsMobile } from "../../shared/hooks/use-mobile";
 import { ArrowLeftToLine, PanelLeftIcon } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../../ui/sheet";
 
 type SidebarContextProps = {
   open: boolean;
@@ -66,19 +73,27 @@ export function SidebarLayout({
   className,
   ...props
 }: React.ComponentProps<"main">) {
-  const { open, isMobileOpen, isMobile } = useSidebar();
+  const { open, isMobileOpen, isMobile, toggleHelper } = useSidebar();
 
   if (isMobile) {
     return (
-      <main
-        className={cn(
-          "grid overflow-hidden transition-[grid-template-columns] duration-300 ease-in-out [grid-template-rows:1fr]",
-          isMobileOpen && "gap-2 [grid-template-columns:1fr_0]",
-          !isMobileOpen && "[grid-template-columns:0_1fr]",
-          className,
-        )}
-        {...props}
-      >
+      <main className={cn(className)} {...props}>
+        <Sheet open={isMobileOpen} onOpenChange={() => toggleHelper()}>
+          <SheetContent side="left">
+            <SheetHeader>
+              <SheetTitle>Entries</SheetTitle>
+              <SheetDescription
+                className="sr-only"
+                aria-describedby={undefined}
+              >
+                List of all entries
+              </SheetDescription>
+            </SheetHeader>
+            <div className="px-4 pb-4">
+              <Entries />
+            </div>
+          </SheetContent>
+        </Sheet>
         {children}
       </main>
     );
@@ -190,7 +205,11 @@ export function SidebarFooter({
 }
 
 export function EntrySidebar() {
-  const { toggleHelper } = useSidebar();
+  const { toggleHelper, isMobile } = useSidebar();
+  if (isMobile) {
+    return null;
+  }
+
   return (
     <Sidebar>
       <SidebarHeader>Entries</SidebarHeader>

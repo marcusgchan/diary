@@ -1,26 +1,14 @@
-import { HydrateClient } from "~/trpc/server";
-import { Entries } from "@/_lib/entry/components/Entries";
-import { Header } from "@/_lib/diary/components/Header";
-import { api } from "~/trpc/server";
+import { Entries } from "~/app/_lib/entry/components/Entries";
 
-export default async function Page(props: {
-  params: Promise<{ diaryId: string; entryId: string }>;
-}) {
-  const params = await props.params;
-  await api.diary.getEntry.prefetch({
-    diaryId: Number(params.diaryId),
-    entryId: Number(params.entryId),
-  });
+export default function Page() {
   return (
-    <div className="flex h-full flex-col gap-4">
-      <Header />
-      <div className="grid h-full min-h-0 flex-1 gap-2 sm:grid-cols-[220px_1fr]">
-        <aside className="">
-          <h3 className="mb-2 text-2xl">Diary Entries</h3>
-          <HydrateClient>
-            <Entries />
-          </HydrateClient>
-        </aside>
+    <div>
+      <div className="hidden md:block">
+        <h3 className="mb-2 text-2xl">Diary Entries</h3>
+        <p>No selected entry</p>
+      </div>
+      <div className="md:hidden">
+        <Entries />
       </div>
     </div>
   );
