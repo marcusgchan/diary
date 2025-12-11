@@ -25,7 +25,7 @@ export default function DiaryLayout({
       <body className={`${inter.className} h-full`}>
         <InitMapLibre />
         <AuthGuard>
-          <div className="mx-auto h-full max-w-7xl">
+          <div className="h-full max-w-7xl">
             <div className="flex h-full flex-col gap-4 p-4">
               <header>
                 <nav className="flex justify-between">

@@ -68,18 +68,18 @@ export function Entries() {
 
   if (entries) {
     return (
-      <ul className="grid gap-1">
+      <ul className="grid gap-2">
         {entries.map((entry) => {
           return (
             <li key={entry.id}>
               <Link
                 className={cn(
-                  "hidden justify-between rounded bg-secondary p-1 sm:flex",
+                  "hidden items-center justify-between gap-2 overflow-hidden rounded bg-secondary p-1 sm:flex",
                   entryId && Number(entryId) === entry.id && "bg-secondary/20",
                 )}
                 href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
               >
-                {entry.day}
+                <span className="min-w-0 flex-1 truncate">{entry.day}</span>
                 <DeleteEntryDialog
                   handleDelete={handleDelete}
                   entryId={entry.id}
@@ -88,12 +88,12 @@ export function Entries() {
               </Link>
               <Link
                 className={cn(
-                  "flex justify-between rounded bg-secondary p-1 sm:hidden",
+                  "flex items-center justify-between gap-2 overflow-hidden rounded bg-secondary p-1 sm:hidden",
                   entryId && Number(entryId) === entry.id && "bg-secondary/15",
                 )}
                 href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
               >
-                {entry.day}
+                <span className="min-w-0 flex-1 truncate">{entry.day}</span>
                 <DeleteEntryDialog
                   handleDelete={handleDelete}
                   entryId={entry.id}
