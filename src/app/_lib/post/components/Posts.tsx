@@ -26,7 +26,6 @@ import { MapSkeleton } from "../../map/components/MapSkeleton";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
 import { Curve } from "./Curve";
-import { type CSSProperties } from "react";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -48,7 +47,7 @@ export function Posts() {
   return (
     <div className="overflow-y-auto">
       <div className="grid h-full min-h-0 gap-8 pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:1fr_1fr] lg:pr-0">
-        <section className="h-full min-h-0 w-full max-w-sm pr-0 [grid-area:posts] sm:max-w-none lg:pr-4">
+        <section className="h-full min-h-0 w-full pr-0 [grid-area:posts] lg:pr-4">
           <PostsSection />
         </section>
         <section className="h-full [grid-area:map]">
@@ -74,7 +73,7 @@ function MapSection() {
   );
 
   return (
-    <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
+    <div className="mx-auto h-full w-full lg:max-w-none">
       <InteractiveMap>
         {images && <ImageClusters geoJson={images} />}
       </InteractiveMap>
@@ -176,23 +175,33 @@ function PostList({ posts }: PostsProps) {
       {/* Mobile: Vertical list layout */}
       <ul className="space-y-2 lg:hidden">
         {posts.map((post) => {
-          return <Post key={post.id} post={post} />;
+          return (
+            <li key={post.id} className="space-y-2">
+              {post.title && <PostTitle>{post.title}</PostTitle>}
+              <PostImage post={post} />
+              {post.description && (
+                <PostDescription>{post.description}</PostDescription>
+              )}
+            </li>
+          );
         })}
       </ul>
       {/* Desktop: Animated grid layout */}
       <div className="hidden h-full grid-cols-[minmax(0,1fr)_100px_1fr] lg:grid">
         {posts.flatMap((post, i) => {
           return [
-            <Post
+            <div
               className={cn(
                 "[grid-row-end:span_2]",
                 i % 2 === 0 && "col-start-1 col-end-2",
                 i % 2 === 1 && "col-start-3 col-end-4",
               )}
-              styles={{ gridRowStart: 1 + i * 2 }}
+              style={{ gridRowStart: 1 + i * 2 }}
               key={post.id}
-              post={post}
-            />,
+            >
+              {post.title && <PostTitle>{post.title}</PostTitle>}
+              <PostImage post={post} />
+            </div>,
             post.description.length > 0 && (
               <div
                 key={`description-${post.id}`}
@@ -203,11 +212,10 @@ function PostList({ posts }: PostsProps) {
                 )}
                 style={{ gridRowStart: 1 + i * 2 }}
               >
-                {/* <p className="bg-gray-red">foo</p> */}
-                <p className="">{post.description}</p>
+                <PostDescription>{post.description}</PostDescription>
               </div>
             ),
-          ].filter(Boolean);
+          ];
         })}
         {posts.length > 1 &&
           Array.from({ length: posts.length - 1 }).map((_, i) => {
@@ -335,15 +343,13 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
   return { ref: ref };
 }
 
-function Post({
-  post,
-  className,
-  styles,
-}: {
-  post: Post;
-  className?: string;
-  styles?: CSSProperties;
-}) {
+function PostTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="h-7 max-w-full truncate text-xl font-bold">{children}</h3>
+  );
+}
+
+function PostImage({ post }: { post: Post }) {
   const { scrollToImage, isScrollingProgrammatically, containerRef } =
     useScrollToImage<HTMLUListElement>();
 
@@ -365,14 +371,8 @@ function Post({
     },
     [setSelectedImageId],
   );
-
-  const postContent = (
+  return (
     <>
-      {post.title.length > 0 && (
-        <h3 className="h-7 max-w-full truncate text-xl font-bold">
-          {post.title}
-        </h3>
-      )}
       <ul
         ref={containerRef}
         className="hide-scrollbar flex aspect-square w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
@@ -438,24 +438,12 @@ function Post({
           );
         })}
       </ul>
-      {/* Mobile: description below */}
-      {post.description.length > 0 && (
-        <p className="lg:hidden">{post.description}</p>
-      )}
     </>
   );
+}
 
-  // Mobile: render as list item
-  if (!className && !styles) {
-    return <li className="space-y-2">{postContent}</li>;
-  }
-
-  // Desktop: render as grid item
-  return (
-    <div style={styles} className={cn("space-y-2", className)}>
-      {postContent}
-    </div>
-  );
+function PostDescription({ children }: { children: React.ReactNode }) {
+  return <p className="whitespace-pre-wrap">{children}</p>;
 }
 
 type ImageContainerProps<T extends Element, U extends Element> = {
