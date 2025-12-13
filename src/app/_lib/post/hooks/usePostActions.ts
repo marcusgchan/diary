@@ -24,7 +24,11 @@ export type PostActions = {
   handleStartNewPost: () => void;
   handleEditPost: (post: Post, scrollToImage: ScrollToImage) => void;
   handleDeletePost: () => void;
-  handleImageSelect: (imageId: string, scrollToImage: ScrollToImage) => void;
+  handleImageSelect: (
+    imageId: string,
+    scrollToImage: ScrollToImage,
+    imageElement: Element,
+  ) => void;
 };
 
 type UsePostActionsParams = {
@@ -135,23 +139,19 @@ export function usePostActions({
     flushSync(() => {
       dispatch({ type: "START_EDITING", payload: post.id });
     });
-
-    const firstImage = post.images[0];
-
-    if (!firstImage) {
-      throw new Error("invariant: must have at least one image in post");
-    }
-
-    scrollToImage(firstImage.id, true);
   }
 
   function handleDeletePost() {
     dispatch({ type: "DELETE_CURRENT_POST" });
   }
 
-  function handleImageSelect(imageId: string, scrollToImage: ScrollToImage) {
+  function handleImageSelect(
+    imageId: string,
+    scrollToImage: ScrollToImage,
+    imageElement: Element,
+  ) {
     dispatch({ type: "SELECT_IMAGE", payload: imageId });
-    scrollToImage(imageId);
+    scrollToImage(imageElement);
   }
 
   return {

@@ -1,16 +1,21 @@
-import { type RefObject, useState } from "react";
-import type { PostForm as Post } from "~/server/lib/types";
+import { type RefObject, useRef, useState } from "react";
 
-export function useScrollToImage(containerRef: RefObject<HTMLElement | null>) {
+export function useScrollToImage<T extends HTMLElement>(
+  containerRef?: RefObject<T | null>,
+): {
+  scrollToImage: (element: Element, instant?: boolean) => void;
+  isScrollingProgrammatically: boolean;
+  containerRef: RefObject<T | null>;
+} {
+  const internalContainerRef = useRef<T>(null);
+  const containerRefToUse: RefObject<T | null> =
+    containerRef ?? internalContainerRef;
   const [isScrollingProgrammatically, setIsScrollingProgrammatically] =
     useState(false);
 
-  function scrollToImage(id: Post["id"], instant = false) {
-    const el = document.querySelector(`[data-image-id="${id}"]`);
-    if (!el) return;
-
+  function scrollToImage(element: Element, instant = false): void {
     if (instant) {
-      el.scrollIntoView({
+      element.scrollIntoView({
         behavior: "instant",
         block: "nearest",
         inline: "center",
@@ -20,7 +25,7 @@ export function useScrollToImage(containerRef: RefObject<HTMLElement | null>) {
 
     setIsScrollingProgrammatically(true);
 
-    const container = containerRef.current;
+    const container = containerRefToUse.current;
     if (!container) return;
 
     const handleScrollEnd = () => {
@@ -29,12 +34,16 @@ export function useScrollToImage(containerRef: RefObject<HTMLElement | null>) {
     };
     container.addEventListener("scrollend", handleScrollEnd);
 
-    el.scrollIntoView({
+    element.scrollIntoView({
       behavior: "smooth",
       block: "nearest",
       inline: "center",
     });
   }
 
-  return { scrollToImage, isScrollingProgrammatically };
+  return {
+    scrollToImage,
+    isScrollingProgrammatically,
+    containerRef: containerRefToUse,
+  };
 }

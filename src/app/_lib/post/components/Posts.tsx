@@ -7,7 +7,6 @@ import {
   type ReactNode,
   type RefObject,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -26,6 +25,8 @@ import { MapSkeleton } from "../../map/components/MapSkeleton";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
 import { Curve } from "./Curve";
+import { useScrollToImage } from "../hooks/useScrollToImage";
+import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -256,93 +257,6 @@ function PostList({ posts }: PostsProps) {
   );
 }
 
-function useScrollToImage<T extends HTMLElement>() {
-  const containerRef = useRef<T>(null);
-  const [isScrollingProgrammatically, setIsScrollingProgrammatically] =
-    useState(false);
-
-  function scrollToImage(element: Element, instant = false) {
-    if (instant) {
-      element.scrollIntoView({
-        behavior: "instant",
-        block: "nearest",
-        inline: "center",
-      });
-      return;
-    }
-
-    setIsScrollingProgrammatically(true);
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleScrollEnd = () => {
-      setIsScrollingProgrammatically(false);
-      container.removeEventListener("scrollend", handleScrollEnd);
-    };
-    container.addEventListener("scrollend", handleScrollEnd);
-
-    element.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "center",
-    });
-  }
-
-  return { scrollToImage, isScrollingProgrammatically, containerRef };
-}
-
-export type IntersectionObserverReturn<T extends Element> = {
-  ref: RefObject<T | null>;
-};
-export type IntersectionObserverResult<T extends Element> = {
-  onIntersect: (element: Element, intersectId: string) => void;
-  rootElement: T;
-  intersectId: string;
-  disabled?: boolean;
-};
-export function useIntersectionObserver<T extends Element, U extends Element>({
-  onIntersect,
-  intersectId,
-  disabled,
-  rootElement,
-}: IntersectionObserverResult<T>): IntersectionObserverReturn<U> {
-  const ref = useRef<U>(null);
-  const observerRef = useRef<IntersectionObserver>(null);
-
-  useEffect(() => {
-    if (disabled) return;
-    if (ref.current === null) {
-      throw new Error("ref not set");
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const centerEntry = entries.find(
-          (entry) => entry.intersectionRatio > 0.8,
-        );
-        if (centerEntry) {
-          const element = centerEntry.target;
-          if (element) {
-            onIntersect(element, intersectId);
-          }
-        }
-      },
-      {
-        root: rootElement,
-        threshold: 0.8,
-      },
-    );
-
-    observerRef.current = observer;
-    observerRef.current.observe(ref.current);
-
-    return () => observerRef.current!.disconnect();
-  }, [ref, onIntersect, disabled, rootElement, intersectId]);
-
-  return { ref: ref };
-}
-
 function PostTitle({ children }: { children: React.ReactNode }) {
   return (
     <h3 className="mb-2 h-7 max-w-full truncate text-xl font-bold">
@@ -352,8 +266,15 @@ function PostTitle({ children }: { children: React.ReactNode }) {
 }
 
 function PostImage({ post }: { post: Post }) {
-  const { scrollToImage, isScrollingProgrammatically, containerRef } =
-    useScrollToImage<HTMLUListElement>();
+  const {
+    scrollToImage,
+    isScrollingProgrammatically,
+    containerRef,
+  }: {
+    scrollToImage: (element: Element, instant?: boolean) => void;
+    isScrollingProgrammatically: boolean;
+    containerRef: RefObject<HTMLUListElement | null>;
+  } = useScrollToImage<HTMLUListElement>();
 
   const imgsRef = useRef<Map<string, HTMLLIElement>>(null);
 
@@ -379,40 +300,52 @@ function PostImage({ post }: { post: Post }) {
         ref={containerRef}
         className="hide-scrollbar flex aspect-square w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
       >
-        {post.images.map((image) => (
-          <li
-            key={image.id}
-            ref={(node) => {
-              const map = getImgsMap();
-              if (node) {
-                map.set(image.id, node);
-              } else {
-                map.delete(image.id);
-              }
-            }}
-            className="flex-shrink-0 basis-full snap-center"
-          >
-            <ScrollableImageContainer<HTMLUListElement, HTMLImageElement>
-              id={image.id}
-              onIntersect={onIntersect}
-              isScrollingProgrammatically={isScrollingProgrammatically}
-              rootElement={containerRef.current!}
-            >
-              {({ ref }) => {
-                return (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    ref={ref}
-                    // className="aspect-square h-auto object-cover"
-                    className="aspect-square w-full object-cover"
-                    alt={image.name}
-                    src={`/api/image/${image.key}`}
-                  />
-                );
+        {post.images.map((image) => {
+          const rootElement = containerRef.current;
+          return (
+            <li
+              key={image.id}
+              ref={(node) => {
+                const map = getImgsMap();
+                if (node) {
+                  map.set(image.id, node);
+                } else {
+                  map.delete(image.id);
+                }
               }}
-            </ScrollableImageContainer>
-          </li>
-        ))}
+              className="flex-shrink-0 basis-full snap-center"
+            >
+              {rootElement ? (
+                <ScrollableImageContainer<HTMLUListElement, HTMLImageElement>
+                  id={image.id}
+                  onIntersect={onIntersect}
+                  isScrollingProgrammatically={isScrollingProgrammatically}
+                  rootElement={rootElement}
+                >
+                  {({ ref }) => {
+                    return (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        ref={ref}
+                        // className="aspect-square h-auto object-cover"
+                        className="aspect-square w-full object-cover"
+                        alt={image.name}
+                        src={`/api/image/${image.key}`}
+                      />
+                    );
+                  }}
+                </ScrollableImageContainer>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  className="aspect-square w-full object-cover"
+                  alt={image.name}
+                  src={`/api/image/${image.key}`}
+                />
+              )}
+            </li>
+          );
+        })}
       </ul>
       <ul className="flex justify-center gap-1">
         {post.images.map((image) => {

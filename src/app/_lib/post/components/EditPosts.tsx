@@ -1,8 +1,9 @@
 "use client";
 import { Image as ImageIcon, MapPin, Plus, Trash, X } from "lucide-react";
-import {
+import React, {
   type ChangeEvent,
   type RefObject,
+  type ReactNode,
   useRef,
   useCallback,
   useEffect,
@@ -20,8 +21,8 @@ import { SortableItem } from "../../shared/SortableItem";
 import { cn } from "../../utils/cx";
 import type { PostForm as Post, PostFormImage } from "~/server/lib/types";
 import { useScrollToImage } from "../hooks/useScrollToImage";
-import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
 import { usePostActions } from "../hooks/usePostActions";
+import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
 import { usePostDnD } from "../hooks/usePostDnD";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
@@ -81,8 +82,6 @@ export function EditPosts() {
     </div>
   );
 }
-
-type PostImage = Post["images"][number];
 
 function ImageUpload({
   onChange,
@@ -212,8 +211,18 @@ function SelectedPostView({
     handleFilesChange,
     handleTitleChange,
     handleDescriptionChange,
-    handleImageSelect: setSelectedImageId,
+    handleImageSelect,
   } = usePostActions({ dispatch, state });
+
+  const imageElementsRef = useRef<Map<string, HTMLLIElement>>(null);
+
+  function getImageElementsMap() {
+    if (imageElementsRef.current === null) {
+      imageElementsRef.current = new Map<string, HTMLLIElement>();
+      return imageElementsRef.current;
+    }
+    return imageElementsRef.current;
+  }
 
   const { sensors, activeImageId, handleImageDragEnd, handleImageDragStart } =
     useImageDnd(dispatch);
@@ -232,12 +241,8 @@ function SelectedPostView({
   };
 
   const onImageIntersect = useCallback(
-    (element: Element) => {
-      const imageId = element.getAttribute("data-image-id");
-      if (!imageId) {
-        throw new Error("Image is missing data-image-id attribute");
-      }
-      dispatch({ type: "SELECT_IMAGE", payload: imageId });
+    (_element: Element, intersectId: string) => {
+      dispatch({ type: "SELECT_IMAGE", payload: intersectId });
     },
     [dispatch],
   );
@@ -318,16 +323,44 @@ function SelectedPostView({
           {selectedPostForm.images.length > 0 && (
             <ul className="flex h-full">
               {selectedPostForm.images.map((image) => {
+                const rootElement = scrollContainerRef.current;
                 return (
-                  <ImageItem
+                  <li
                     key={image.id}
-                    image={image}
-                    isScrollingProgrammatically={isScrollingProgrammatically}
-                    onImageIntersect={onImageIntersect}
-                    scrollableContainerRef={scrollContainerRef}
+                    ref={(node) => {
+                      const map = getImageElementsMap();
+                      if (node) {
+                        map.set(image.id, node);
+                      } else {
+                        map.delete(image.id);
+                      }
+                    }}
+                    className="w-full flex-shrink-0 flex-grow snap-center"
                   >
-                    <ImageRenderer showErrorText={true} image={image} />
-                  </ImageItem>
+                    {rootElement ? (
+                      <ScrollableImageContainer<
+                        HTMLDivElement,
+                        HTMLImageElement
+                      >
+                        id={image.id}
+                        onIntersect={onImageIntersect}
+                        isScrollingProgrammatically={
+                          isScrollingProgrammatically
+                        }
+                        rootElement={rootElement}
+                      >
+                        {({ ref }) => (
+                          <ImageRenderer
+                            showErrorText={true}
+                            image={image}
+                            ref={ref}
+                          />
+                        )}
+                      </ScrollableImageContainer>
+                    ) : (
+                      <ImageRenderer showErrorText={true} image={image} />
+                    )}
+                  </li>
                 );
               })}
             </ul>
@@ -352,9 +385,12 @@ function SelectedPostView({
                     <li key={image.id} className="">
                       <button
                         type="button"
-                        onClick={() =>
-                          setSelectedImageId(image.id, scrollToImage)
-                        }
+                        onClick={() => {
+                          const element = getImageElementsMap().get(image.id);
+                          if (element) {
+                            handleImageSelect(image.id, scrollToImage, element);
+                          }
+                        }}
                         {...props.listeners}
                         {...props.attributes}
                         ref={props.setNodeRef}
@@ -457,9 +493,13 @@ function SelectedPostView({
 type ImageProps = {
   image: PostFormImage;
   showErrorText?: boolean;
+  ref?: RefObject<HTMLImageElement | null>;
 };
 
-function ImageRenderer({ image, showErrorText = false }: ImageProps) {
+const ImageRenderer = React.forwardRef<
+  HTMLImageElement,
+  Omit<ImageProps, "ref">
+>(function ImageRenderer({ image, showErrorText = false }, ref) {
   function stripUuid(name: string) {
     let count = 0;
     let i = 0;
@@ -478,6 +518,7 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
       <img
+        ref={ref}
         src={`/api/image/${image.key}`}
         className="pointer-events-none h-full w-full object-cover"
         alt={image.name}
@@ -487,7 +528,10 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
 
   if (image.type === "compression_error") {
     return (
-      <div className="h-full w-full content-center items-center bg-red-200 p-2 text-center">
+      <div
+        ref={ref}
+        className="h-full w-full content-center items-center bg-red-200 p-2 text-center"
+      >
         {showErrorText && (
           <p>There was a problem uploading image: {stripUuid(image.name)}</p>
         )}
@@ -495,39 +539,31 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
     );
   }
 
-  return <Skeleton className="h-full w-full" />;
-}
+  return <Skeleton ref={ref} className="h-full w-full" />;
+});
 
-type ImageContainer<T extends Element> = {
-  children: React.JSX.Element;
-  image: PostImage;
-  onImageIntersect: (image: Element) => void;
+type ImageContainerProps<T extends Element, U extends Element> = {
+  id: string;
+  children: ({ ref }: { ref: RefObject<U | null> }) => ReactNode;
   isScrollingProgrammatically: boolean;
-  scrollableContainerRef: RefObject<T | null>;
+  onIntersect: (element: Element, intersectionId: string) => void;
+  rootElement: T;
 };
 
-function ImageItem<T extends Element>({
+function ScrollableImageContainer<T extends Element, U extends Element>({
+  id,
   children,
-  image,
-  onImageIntersect,
+  onIntersect,
   isScrollingProgrammatically,
-  scrollableContainerRef,
-}: ImageContainer<T>) {
-  const { ref } = useIntersectionObserver<HTMLLIElement, T>(
-    onImageIntersect,
-    isScrollingProgrammatically,
-    scrollableContainerRef,
-  );
-  return (
-    <li
-      ref={ref}
-      key={image.id}
-      data-image-id={image.id}
-      className="w-full flex-shrink-0 flex-grow snap-center"
-    >
-      {children}
-    </li>
-  );
+  rootElement,
+}: ImageContainerProps<T, U>) {
+  const { ref } = useIntersectionObserver<T, U>({
+    onIntersect,
+    rootElement,
+    intersectId: id,
+    disabled: isScrollingProgrammatically,
+  });
+  return children({ ref });
 }
 
 type PostsAsideProps = {
