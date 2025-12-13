@@ -1,14 +1,6 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../../ui/dialog";
 import { Button } from "../../ui/button";
 import * as React from "react";
 import { CalendarIcon } from "lucide-react";
@@ -17,9 +9,16 @@ import { Calendar } from "@/app/_lib/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/_lib/ui/popover";
 import { Skeleton } from "@/app/_lib/ui/skeleton";
 import { format, isEqual, parseISO, subDays } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "~/trpc/TrpcProvider";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../ui/alert-dialog";
 
 type NextAvailableDayRes = { loading: false; data: string } | { loading: true };
 
@@ -86,45 +85,103 @@ export function CreateEmptyPost() {
     return { loading: false, data: dates } as const;
   }, [entries]);
 
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const trpc = useTRPC();
+  const createEntryMutation = useMutation(
+    trpc.diary.createEntry.mutationOptions({
+      async onSuccess(data) {
+        setIsOpen(false);
+        setSelectedDate(null);
+        await queryClient.invalidateQueries(
+          trpc.diary.getEntries.queryFilter({ diaryId }),
+        );
+        router.push(`/diaries/${diaryId}/entries/${data.id}/edit`);
+      },
+    }),
+  );
+
+  function handleCreateEntry() {
+    if (!selectedDate) {
+      return;
+    }
+    createEntryMutation.mutate({ day: selectedDate, diaryId });
+  }
+
+  const onDateChange = React.useCallback(
+    (date: string) => setSelectedDate(date),
+    [],
+  );
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <button
-          className="fixed bottom-6 right-6 rounded-full bg-foreground p-3"
-          type="button"
-        >
-          <Plus className="text-background" />
-        </button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
-        <form className="flex flex-col gap-2">
-          <DialogHeader>
-            <DialogTitle>Add Post</DialogTitle>
-            <DialogDescription>Choose a date</DialogDescription>
-          </DialogHeader>
-          {nextAvaliableDay.loading || disabledDates.loading ? (
-            <CalendarButtonSkeleton />
-          ) : (
-            <Calendar28
-              disabledDates={disabledDates.data}
-              defaultDate={nextAvaliableDay.data}
-            />
-          )}
-          <div className="mt-2 flex justify-center gap-2 sm:flex sm:gap-2">
-            <Button type="button">Create</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <button
+        className="fixed bottom-6 right-6 rounded-full bg-foreground p-3"
+        onClick={() => setIsOpen(true)}
+        type="button"
+        aria-label="Create new entry"
+        {...(isOpen && { inert: true })}
+      >
+        <Plus className="text-background" />
+      </button>
+      <AlertDialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          if (!open) {
+            setSelectedDate(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-sm">
+          <form className="flex flex-col gap-2">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Create Entry</AlertDialogTitle>
+              <AlertDialogDescription>Choose a date</AlertDialogDescription>
+            </AlertDialogHeader>
+            {nextAvaliableDay.loading || disabledDates.loading ? (
+              <CalendarButtonSkeleton />
+            ) : (
+              <Calendar28
+                disabledDates={disabledDates.data}
+                defaultDate={nextAvaliableDay.data}
+                onDateChange={onDateChange}
+              />
+            )}
+            <div className="mt-2 flex justify-center gap-2 sm:flex sm:gap-2">
+              <Button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                variant="destructive"
+              >
+                Close
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCreateEntry}
+                disabled={createEntryMutation.isPending || !selectedDate}
+              >
+                Create
+              </Button>
+            </div>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
 export function Calendar28({
   defaultDate,
   disabledDates,
+  onDateChange,
 }: {
   disabledDates: string[];
   defaultDate: string;
+  onDateChange: (date: string) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const [date, setDate] = React.useState<Date | undefined>(
@@ -132,10 +189,25 @@ export function Calendar28({
   );
   const [month, setMonth] = React.useState<Date | undefined>(date);
 
+  // Initialize selected date when defaultDate changes
+  React.useEffect(() => {
+    const parsedDate = parseISO(defaultDate);
+    setDate(parsedDate);
+    setMonth(parsedDate);
+    onDateChange(defaultDate);
+  }, [defaultDate, onDateChange]);
+
+  const isDisabled = React.useCallback(
+    (day: Date) => {
+      return disabledDates.includes(day.toLocaleDateString("en-CA"));
+    },
+    [disabledDates],
+  );
+
   return (
     <div className="flex flex-col gap-3">
       <Popover modal={true} open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild inert={open}>
           <Button
             id="date-picker"
             variant="outline"
@@ -151,13 +223,14 @@ export function Calendar28({
             mode="single"
             selected={date}
             captionLayout="dropdown"
-            disabled={(day) =>
-              disabledDates.includes(day.toLocaleDateString("en-CA"))
-            }
+            disabled={isDisabled}
             month={month}
             onMonthChange={setMonth}
             onSelect={(date) => {
               setDate(date);
+              if (date) {
+                onDateChange(date.toLocaleDateString("en-CA"));
+              }
               setOpen(false);
             }}
           />
