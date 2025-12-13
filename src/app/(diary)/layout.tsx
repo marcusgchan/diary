@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { TRPCProvider } from "~/trpc/TrpcProvider";
 import Link from "next/link";
-import { Toaster } from "../_lib/ui/toaster";
+import { Toaster as Toaster_Old } from "../_lib/ui/toaster";
 import { AuthGuard } from "../_lib/auth/AuthGuard";
 import { ProfileAvatar } from "../_lib/profile/components/ProfileAvatar";
 import { InitMapLibre } from "../_lib/map/components/InitMapLibre";
+import { Toaster } from "@/_lib/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -48,6 +49,7 @@ export default function DiaryLayout({
               </div>
             </div>
             <Toaster />
+            <Toaster_Old />
           </div>
         </AuthGuard>
       </body>

@@ -9,6 +9,7 @@
     "baseColor": "stone",
     "cssVariables": true
   },
+  "iconLibrary": "lucide",
   "aliases": {
     "components": "@/app/_lib",
     "utils": "@/app/_lib/utils",

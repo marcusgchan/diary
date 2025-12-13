@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../ui/alert-dialog";
+import { toast } from "sonner";
 
 type NextAvailableDayRes = { loading: false; data: string } | { loading: true };
 
@@ -100,6 +101,9 @@ export function CreateEmptyPost() {
           trpc.diary.getEntries.queryFilter({ diaryId }),
         );
         router.push(`/diaries/${diaryId}/entries/${data.id}/posts/edit`);
+      },
+      async onError() {
+        toast.error("Something went wrong: Unable to create entry.");
       },
     }),
   );
