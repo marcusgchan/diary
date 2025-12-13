@@ -118,8 +118,9 @@ export function CreateEmptyPost() {
 
   return (
     <>
+      {/* z index has to be greater than 2 to prevent btn being behind scrollbar on safari*/}
       <button
-        className="fixed bottom-6 right-6 rounded-full bg-foreground p-3"
+        className="fixed bottom-6 right-6 z-10 rounded-full bg-foreground p-3"
         onClick={() => setIsOpen(true)}
         type="button"
         aria-label="Create new entry"
