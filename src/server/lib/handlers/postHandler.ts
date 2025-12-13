@@ -38,7 +38,7 @@ export async function getPostsHandler(
   const [header] = await entryService.getEntryHeader(input.entryId);
 
   if (!header) {
-    throw new TRPCError({ code: "BAD_REQUEST" });
+    return [];
   }
 
   const postService = new PostService(ctx);

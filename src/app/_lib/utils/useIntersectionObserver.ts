@@ -4,18 +4,26 @@ export type IntersectionObserverReturn<T extends Element> = {
   ref: RefObject<T | null>;
 };
 
-export function useIntersectionObserver<T extends Element, U extends Element>(
-  onIntersect: (element: Element) => void,
-  disabled: boolean,
-  rootRef?: RefObject<U | null>,
-): IntersectionObserverReturn<T> {
-  const ref = useRef<T>(null);
-  const observerRef = useRef<IntersectionObserver>(null);
+export type IntersectionObserverResult<T extends Element> = {
+  onIntersect: (element: Element, intersectId: string) => void;
+  rootElement: T;
+  intersectId: string;
+  disabled?: boolean;
+};
+
+export function useIntersectionObserver<T extends Element, U extends Element>({
+  onIntersect,
+  intersectId,
+  disabled,
+  rootElement,
+}: IntersectionObserverResult<T>): IntersectionObserverReturn<U> {
+  const ref = useRef<U>(null);
 
   useEffect(() => {
     if (disabled) return;
-    if (ref.current === null) {
-      throw new Error("ref not set");
+    const element = ref.current;
+    if (element === null) {
+      throw new Error("Missing element ref. Did you forget to set the ref?");
     }
 
     const observer = new IntersectionObserver(
@@ -23,25 +31,25 @@ export function useIntersectionObserver<T extends Element, U extends Element>(
         const centerEntry = entries.find(
           (entry) => entry.intersectionRatio > 0.8,
         );
-
         if (centerEntry) {
-          const element = centerEntry.target;
-          if (element) {
-            onIntersect(element);
+          const targetElement = centerEntry.target;
+          if (targetElement) {
+            onIntersect(targetElement, intersectId);
           }
         }
       },
       {
-        root: rootRef?.current,
+        root: rootElement,
         threshold: 0.8,
       },
     );
 
-    observerRef.current = observer;
-    observerRef.current.observe(ref.current);
+    observer.observe(element);
 
-    return () => observerRef.current!.disconnect();
-  }, [ref, onIntersect, disabled, rootRef]);
+    return () => {
+      observer.disconnect();
+    };
+  }, [onIntersect, disabled, rootElement, intersectId]);
 
   return { ref: ref };
 }
