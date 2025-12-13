@@ -8,7 +8,7 @@ type ImageClustersProps = {
 };
 
 export function ImageClusters(props: ImageClustersProps) {
-  const map = useMapApi();
+  const { mapRef: map, isMapReady } = useMapApi();
 
   // const handleClusterClick = useCallback(
   //   (e: maplibregl.MapMouseEvent) => {
@@ -88,11 +88,6 @@ export function ImageClusters(props: ImageClustersProps) {
   }, [map]);
 
   useEffect(() => {
-    const mapInstance = map.current;
-    if (mapInstance === null) {
-      return;
-    }
-
     async function fetchImages(mapInstance: Map) {
       const imagesAllSettled = await Promise.allSettled(
         props.geoJson.features.map((feature) => {
@@ -114,6 +109,10 @@ export function ImageClusters(props: ImageClustersProps) {
           });
         }),
       );
+
+      if (mapInstance._removed) {
+        return;
+      }
 
       const successfulImages = imagesAllSettled
         .filter((image) => image.status === "fulfilled")
@@ -266,34 +265,35 @@ export function ImageClusters(props: ImageClustersProps) {
       void mapInstance.once("idle", updateClusterImages);
     }
 
-    void fetchImages(mapInstance);
+    void fetchImages(map.current!);
+    const currentMap = map.current!;
 
     return () => {
-      const currentMap = mapInstance;
-      if (currentMap && !currentMap._removed) {
-        // Remove event listeners
-        // currentMap.off("click", "clusters", handleClusterClick);
-        // currentMap.off("mouseenter", "clusters", handleClusterMouseEnter);
-        // currentMap.off("mouseleave", "clusters", handleClusterMouseLeave);
-        currentMap.off("moveend", updateClusterImages);
-        currentMap.off("zoomend", updateClusterImages);
+      if (!currentMap || currentMap._removed) {
+        return;
+      }
+      // Remove event listeners
+      // currentMap.off("click", "clusters", handleClusterClick);
+      // currentMap.off("mouseenter", "clusters", handleClusterMouseEnter);
+      // currentMap.off("mouseleave", "clusters", handleClusterMouseLeave);
+      currentMap.off("moveend", updateClusterImages);
+      currentMap.off("zoomend", updateClusterImages);
 
-        // Remove layers
-        if (currentMap.getLayer("unclustered-points")) {
-          currentMap.removeLayer("unclustered-points");
-        }
-        if (currentMap.getLayer("clusters")) {
-          currentMap.removeLayer("clusters");
-        }
-        if (currentMap.getLayer("cluster-count")) {
-          currentMap.removeLayer("cluster-count");
-        }
-        if (currentMap.getLayer("cluster-count-bg")) {
-          currentMap.removeLayer("cluster-count-bg");
-        }
-        if (currentMap.getSource("images")) {
-          currentMap.removeSource("images");
-        }
+      // Remove layers
+      if (currentMap.getLayer("unclustered-points")) {
+        currentMap.removeLayer("unclustered-points");
+      }
+      if (currentMap.getLayer("clusters")) {
+        currentMap.removeLayer("clusters");
+      }
+      if (currentMap.getLayer("cluster-count")) {
+        currentMap.removeLayer("cluster-count");
+      }
+      if (currentMap.getLayer("cluster-count-bg")) {
+        currentMap.removeLayer("cluster-count-bg");
+      }
+      if (currentMap.getSource("images")) {
+        currentMap.removeSource("images");
       }
     };
   }, [
@@ -303,6 +303,7 @@ export function ImageClusters(props: ImageClustersProps) {
     // handleClusterMouseEnter,
     // handleClusterMouseLeave,
     updateClusterImages,
+    isMapReady,
   ]);
   return null;
 }
