@@ -1,4 +1,4 @@
-import { type RefObject, useRef, useLayoutEffect, useEffect } from "react";
+import { type RefObject, useRef, useEffect } from "react";
 
 export type IntersectionObserverReturn<T extends Element> = {
   ref: RefObject<T | null>;
