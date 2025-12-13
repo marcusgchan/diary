@@ -25,6 +25,8 @@ import { ImageClusters } from "../../map/components/ImageClusters";
 import { MapSkeleton } from "../../map/components/MapSkeleton";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
+import { Curve } from "./Curve";
+import { type CSSProperties } from "react";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -46,7 +48,7 @@ export function Posts() {
   return (
     <div className="overflow-y-auto">
       <div className="grid h-full min-h-0 gap-8 pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:1fr_1fr] lg:pr-0">
-        <section className="mx-auto h-full min-h-0 w-full max-w-sm pr-0 [grid-area:posts] lg:pr-4">
+        <section className="h-full min-h-0 w-full max-w-sm pr-0 [grid-area:posts] sm:max-w-none lg:pr-4">
           <PostsSection />
         </section>
         <section className="h-full [grid-area:map]">
@@ -70,19 +72,9 @@ function MapSection() {
   const { data: images } = useQuery(
     api.diary.getImagesByEntryId.queryOptions({ entryId }),
   );
-  const { data: posts } = useQuery(
-    api.diary.getPosts.queryOptions({ entryId }),
-  );
-
-  const hasTitle = posts?.[0]?.title;
 
   return (
-    <div
-      className={cn(
-        "mx-auto h-full w-full max-w-sm lg:max-w-none",
-        // hasTitle && "lg:mt-2 lg:h-[calc(100%-0.5rem)] lg:pt-7",
-      )}
-    >
+    <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
       <InteractiveMap>
         {images && <ImageClusters geoJson={images} />}
       </InteractiveMap>
@@ -180,11 +172,79 @@ type PostsProps = {
 
 function PostList({ posts }: PostsProps) {
   return (
-    <ul className="space-y-2">
-      {posts.map((post) => {
-        return <Post key={post.id} post={post} />;
-      })}
-    </ul>
+    <>
+      {/* Mobile: Vertical list layout */}
+      <ul className="space-y-2 lg:hidden">
+        {posts.map((post) => {
+          return <Post key={post.id} post={post} />;
+        })}
+      </ul>
+      {/* Desktop: Animated grid layout */}
+      <div className="hidden h-full grid-cols-[minmax(0,1fr)_100px_1fr] lg:grid">
+        {posts.flatMap((post, i) => {
+          return [
+            <Post
+              className={cn(
+                "[grid-row-end:span_2]",
+                i % 2 === 0 && "col-start-1 col-end-2",
+                i % 2 === 1 && "col-start-3 col-end-4",
+              )}
+              styles={{ gridRowStart: 1 + i * 2 }}
+              key={post.id}
+              post={post}
+            />,
+            post.description.length > 0 && (
+              <div
+                key={`description-${post.id}`}
+                className={cn(
+                  "h-full min-h-0 content-center overflow-y-auto p-14 [grid-row-end:span_2]",
+                  i % 2 === 0 && "col-start-3 col-end-4",
+                  i % 2 === 1 && "col-start-1 col-end-2",
+                )}
+                style={{ gridRowStart: 1 + i * 2 }}
+              >
+                {/* <p className="bg-gray-red">foo</p> */}
+                <p className="">{post.description}</p>
+              </div>
+            ),
+          ].filter(Boolean);
+        })}
+        {posts.length > 1 &&
+          Array.from({ length: posts.length - 1 }).map((_, i) => {
+            const rotationStyle =
+              i % 2 === 1 ? { transform: "rotateY(180deg)" } : {};
+            return (
+              <div
+                key={`curve-container-${i}`}
+                style={{ gridRowStart: 2 + i * 2, ...rotationStyle }}
+                className="relative col-start-2 col-end-3 [grid-row-end:span_2]"
+              >
+                <div className="absolute inset-0">
+                  <Curve
+                    style={{
+                      strokeDasharray: 10,
+                      strokeDashoffset: 0,
+                    }}
+                  />
+                </div>
+                <div className="absolute inset-0">
+                  <Curve
+                    style={{
+                      animationName: "path",
+                      strokeDasharray: 200,
+                      strokeDashoffset: 200,
+                      strokeWidth: "2px",
+                      animationDelay: `${0.5 + i}s`,
+                      animationFillMode: "forwards",
+                      animationDuration: "1s",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    </>
   );
 }
 
@@ -275,7 +335,15 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
   return { ref: ref };
 }
 
-function Post({ post }: { post: Post }) {
+function Post({
+  post,
+  className,
+  styles,
+}: {
+  post: Post;
+  className?: string;
+  styles?: CSSProperties;
+}) {
   const { scrollToImage, isScrollingProgrammatically, containerRef } =
     useScrollToImage<HTMLUListElement>();
 
@@ -298,10 +366,12 @@ function Post({ post }: { post: Post }) {
     [setSelectedImageId],
   );
 
-  return (
-    <li key={post.id} className="space-y-2">
+  const postContent = (
+    <>
       {post.title.length > 0 && (
-        <h3 className="h-7 truncate text-xl font-bold">{post.title}</h3>
+        <h3 className="h-7 max-w-full truncate text-xl font-bold">
+          {post.title}
+        </h3>
       )}
       <ul
         ref={containerRef}
@@ -331,7 +401,8 @@ function Post({ post }: { post: Post }) {
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     ref={ref}
-                    className="aspect-square h-auto object-cover"
+                    // className="aspect-square h-auto object-cover"
+                    className="aspect-square w-full object-cover"
                     alt={image.name}
                     src={`/api/image/${image.key}`}
                   />
@@ -367,8 +438,23 @@ function Post({ post }: { post: Post }) {
           );
         })}
       </ul>
-      {post.description.length > 0 && <p>{post.description}</p>}
-    </li>
+      {/* Mobile: description below */}
+      {post.description.length > 0 && (
+        <p className="lg:hidden">{post.description}</p>
+      )}
+    </>
+  );
+
+  // Mobile: render as list item
+  if (!className && !styles) {
+    return <li className="space-y-2">{postContent}</li>;
+  }
+
+  // Desktop: render as grid item
+  return (
+    <div style={styles} className={cn("space-y-2", className)}>
+      {postContent}
+    </div>
   );
 }
 
