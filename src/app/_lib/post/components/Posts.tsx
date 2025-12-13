@@ -345,7 +345,9 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
 
 function PostTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="h-7 max-w-full truncate text-xl font-bold">{children}</h3>
+    <h3 className="mb-1 h-7 max-w-full truncate text-xl font-bold">
+      {children}
+    </h3>
   );
 }
 
@@ -372,7 +374,7 @@ function PostImage({ post }: { post: Post }) {
     [setSelectedImageId],
   );
   return (
-    <>
+    <div className="space-y-2">
       <ul
         ref={containerRef}
         className="hide-scrollbar flex aspect-square w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
@@ -438,7 +440,7 @@ function PostImage({ post }: { post: Post }) {
           );
         })}
       </ul>
-    </>
+    </div>
   );
 }
 
