@@ -49,7 +49,7 @@ export function PostListsSkeletion() {
               key={`post-${i}`}
             >
               {/* Title skeleton */}
-              <Skeleton className="mb-1 h-7 w-3/4 rounded" />
+              <Skeleton className="mb-2 h-7 w-3/4 rounded" />
               {/* Image carousel skeleton */}
               <div className="space-y-2">
                 <Skeleton className="aspect-square w-full rounded" />

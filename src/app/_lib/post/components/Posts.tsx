@@ -345,7 +345,7 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
 
 function PostTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="mb-1 h-7 max-w-full truncate text-xl font-bold">
+    <h3 className="mb-2 h-7 max-w-full truncate text-xl font-bold">
       {children}
     </h3>
   );
