@@ -99,7 +99,7 @@ export function CreateEmptyPost() {
         await queryClient.invalidateQueries(
           trpc.diary.getEntries.queryFilter({ diaryId }),
         );
-        router.push(`/diaries/${diaryId}/entries/${data.id}/edit`);
+        router.push(`/diaries/${diaryId}/entries/${data.id}/posts/edit`);
       },
     }),
   );
