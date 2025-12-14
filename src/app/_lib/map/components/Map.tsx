@@ -50,6 +50,12 @@ export default function Map({ children }: { children?: React.ReactNode }) {
     };
 
     map.on("load", handleStyleLoad);
+    map.addControl(
+      new maplibregl.NavigationControl({
+        showZoom: true,
+        visualizeRoll: false,
+      }),
+    );
 
     return () => {
       map.remove();
