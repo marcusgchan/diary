@@ -32,9 +32,9 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
           (entry) => entry.intersectionRatio > 0.8,
         );
         if (centerEntry) {
-          const targetElement = centerEntry.target;
-          if (targetElement) {
-            onIntersect(targetElement, intersectId);
+          const element = centerEntry.target;
+          if (element) {
+            onIntersect(element, intersectId);
           }
         }
       },

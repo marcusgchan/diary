@@ -294,6 +294,8 @@ function PostImage({ post }: { post: Post }) {
     },
     [setSelectedImageId],
   );
+  const rootElement = containerRef.current;
+
   return (
     <div className="space-y-2">
       <ul
@@ -301,7 +303,6 @@ function PostImage({ post }: { post: Post }) {
         className="hide-scrollbar flex aspect-square w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
       >
         {post.images.map((image) => {
-          const rootElement = containerRef.current;
           return (
             <li
               key={image.id}
