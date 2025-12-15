@@ -1,10 +1,6 @@
 import { type ChangeEvent } from "react";
 import { flushSync } from "react-dom";
 import type {
-  PostsState,
-  PostsAction,
-} from "@/_lib/post/reducers/postsReducer";
-import type {
   PostFormUploadingImage,
   PostForm as Post,
 } from "~/server/lib/types";
@@ -14,6 +10,7 @@ import { useParams } from "next/navigation";
 import { useToast } from "../../ui/use-toast";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { usePosts } from "../contexts/PostsContext";
 
 type ScrollToImage = ReturnType<typeof useScrollToImage>["scrollToImage"];
 
@@ -22,7 +19,7 @@ export type PostActions = {
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
   handleStartNewPost: () => void;
-  handleEditPost: (post: Post, scrollToImage: ScrollToImage) => void;
+  handleEditPost: (post: Post) => void;
   handleDeletePost: () => void;
   handleImageSelect: (
     imageId: string,
@@ -31,15 +28,8 @@ export type PostActions = {
   ) => void;
 };
 
-type UsePostActionsParams = {
-  dispatch: React.Dispatch<PostsAction>;
-  state: PostsState;
-};
-
-export function usePostActions({
-  dispatch,
-  state,
-}: UsePostActionsParams): PostActions {
+export function usePostActions(): PostActions {
+  const { state, dispatch } = usePosts();
   const api = useTRPC();
   const queryClient = useQueryClient();
   const params = useParams();
@@ -135,7 +125,7 @@ export function usePostActions({
     dispatch({ type: "START_NEW_POST" });
   }
 
-  function handleEditPost(post: Post, scrollToImage: ScrollToImage) {
+  function handleEditPost(post: Post) {
     flushSync(() => {
       dispatch({ type: "START_EDITING", payload: post.id });
     });

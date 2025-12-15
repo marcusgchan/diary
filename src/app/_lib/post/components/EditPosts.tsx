@@ -43,11 +43,6 @@ export function EditPosts() {
     ? state.posts.find((p) => p.id === activeId)
     : null;
 
-  const { handleStartNewPost, handleEditPost } = usePostActions({
-    dispatch,
-    state,
-  });
-
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { scrollToImage, isScrollingProgrammatically } =
     useScrollToImage(scrollContainerRef);
@@ -69,11 +64,7 @@ export function EditPosts() {
           items={state.posts.map((post) => ({ id: post.id }))}
           strategy={verticalListSortingStrategy}
         >
-          <PostsAside
-            posts={state.posts.filter((p) => p.images.length > 0)}
-            onNewPost={handleStartNewPost}
-            onEditPost={(post) => handleEditPost(post, scrollToImage)}
-          />
+          <PostsAside />
         </SortableContext>
         <DragOverlay>
           {activePost ? <DragOverlayItem post={activePost} /> : null}
@@ -212,7 +203,7 @@ function SelectedPostView({
     handleTitleChange,
     handleDescriptionChange,
     handleImageSelect,
-  } = usePostActions({ dispatch, state });
+  } = usePostActions();
 
   const imageElementsRef = useRef<Map<string, HTMLLIElement>>(null);
 
@@ -566,13 +557,13 @@ function ScrollableImageContainer<T extends Element, U extends Element>({
   return children({ ref });
 }
 
-type PostsAsideProps = {
-  posts: Post[];
-  onNewPost: () => void;
-  onEditPost: (post: Post) => void;
-};
+function PostsAside() {
+  const {
+    state: { posts },
+  } = usePosts();
+  const { handleStartNewPost: onNewPost, handleEditPost: onEditPost } =
+    usePostActions();
 
-function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
   return (
     <div className="flex flex-col items-center gap-2">
       <Button type="button" variant="outline" onClick={onNewPost}>
@@ -587,9 +578,7 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
                   <li
                     {...props.listeners}
                     {...props.attributes}
-                    onClick={() => {
-                      onEditPost(post);
-                    }}
+                    onClick={() => onEditPost(post)}
                     style={{
                       ...props.style,
                       opacity: props.isDragging ? 0 : 1,
@@ -600,16 +589,21 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
                       post.isSelected && "border-blue-400 ring-1 ring-blue-300",
                     )}
                   >
-                    <ul className="flex flex-col gap-2">
-                      {post.images.map((image) => (
-                        <li
-                          key={image.id}
-                          className="aspect-square min-h-0 w-12 flex-shrink-0 flex-grow-0 rounded border-2"
-                        >
-                          <ImageRenderer image={image} />
-                        </li>
-                      ))}
-                    </ul>
+                    {post.images.length > 0 && (
+                      <ul className="flex flex-col gap-2">
+                        {post.images.map((image) => (
+                          <li
+                            key={image.id}
+                            className="aspect-square min-h-0 w-12 flex-shrink-0 flex-grow-0 rounded border-2"
+                          >
+                            <ImageRenderer image={image} />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {post.images.length === 0 && (
+                      <ImageIcon className="h-12 w-12 text-gray-300" />
+                    )}
                   </li>
                 );
               }}

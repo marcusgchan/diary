@@ -8,6 +8,7 @@ import { updatePostSchema } from "~/server/lib/schema";
 import { useParams, useRouter } from "next/navigation";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export function EditPostsSection() {
   const api = useTRPC();
@@ -30,16 +31,16 @@ export function EditPostsSection() {
   );
 
   function handleUpdate() {
-    const parseResult = updatePostSchema.safeParse({
-      entryId,
-      posts: state.posts,
-    });
+    const moreThanOneImage = state.posts.every(
+      (post) => post.images.length > 0,
+    );
 
-    if (!parseResult.success) {
+    if (!moreThanOneImage) {
+      toast.error("There is a post with an empty image");
       return;
     }
 
-    mutation.mutate(parseResult.data);
+    mutation.mutate({ entryId, posts: state.posts });
   }
 
   function handleBack() {

@@ -13,7 +13,6 @@ import {
 } from "react";
 import { usePosts } from "../contexts/PostsContext";
 import { createPostSchema } from "~/server/lib/schema";
-import { useToast } from "../../ui/use-toast";
 import { PostListsSkeletion } from "./PostsListSkeleton";
 
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +26,7 @@ import { cn } from "../../utils/cx";
 import { Curve } from "./Curve";
 import { useScrollToImage } from "../hooks/useScrollToImage";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
+import { toast } from "sonner";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -121,19 +121,22 @@ function PostsSection() {
           ),
         ]);
       },
+      onError() {
+        toast.error("There was an error while creating your posts");
+      },
     }),
   );
-  const { toast } = useToast();
   function handleCreate() {
-    const parseResult = createPostSchema.safeParse({
-      entryId: entryId,
-      posts: state.posts,
-    });
-    if (!parseResult.success) {
-      toast({ title: "Unable to create toast" });
+    const moreThanOneImage = state.posts.every(
+      (post) => post.images.length > 0,
+    );
+
+    if (!moreThanOneImage) {
+      toast.error("There is a post with an empty image");
       return;
     }
-    mutation.mutate(parseResult.data);
+
+    mutation.mutate({ entryId: entryId, posts: state.posts });
   }
 
   if (isPending) {
