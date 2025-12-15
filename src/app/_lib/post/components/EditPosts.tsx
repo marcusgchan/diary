@@ -588,7 +588,6 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
                     {...props.listeners}
                     {...props.attributes}
                     onClick={() => {
-                      console.log("Post clicked:", post.id);
                       onEditPost(post);
                     }}
                     style={{
@@ -596,7 +595,10 @@ function PostsAside({ posts, onNewPost, onEditPost }: PostsAsideProps) {
                       opacity: props.isDragging ? 0 : 1,
                     }}
                     ref={props.setNodeRef}
-                    className="rounded border-2 p-2"
+                    className={cn(
+                      "rounded border-2 p-2",
+                      post.isSelected && "border-blue-400 ring-1 ring-blue-300",
+                    )}
                   >
                     <ul className="flex flex-col gap-2">
                       {post.images.map((image) => (
