@@ -269,15 +269,9 @@ function PostTitle({ children }: { children: React.ReactNode }) {
 }
 
 function PostImage({ post }: { post: Post }) {
-  const {
-    scrollToImage,
-    isScrollingProgrammatically,
-    containerRef,
-  }: {
-    scrollToImage: (element: Element, instant?: boolean) => void;
-    isScrollingProgrammatically: boolean;
-    containerRef: RefObject<HTMLUListElement | null>;
-  } = useScrollToImage<HTMLUListElement>();
+  const containerRef = useRef<HTMLUListElement>(null);
+  const { scrollToImage, isScrollingProgrammatically } =
+    useScrollToImage(containerRef);
 
   const imgsRef = useRef<Map<string, HTMLLIElement>>(null);
 
@@ -297,7 +291,6 @@ function PostImage({ post }: { post: Post }) {
     },
     [setSelectedImageId],
   );
-  const rootElement = containerRef.current;
 
   return (
     <div className="space-y-2">
@@ -306,6 +299,7 @@ function PostImage({ post }: { post: Post }) {
         className="hide-scrollbar flex aspect-square w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
       >
         {post.images.map((image) => {
+          const rootElement = containerRef.current;
           return (
             <li
               key={image.id}
@@ -404,6 +398,7 @@ function ScrollableImageContainer<T extends Element, U extends Element>({
     rootElement,
     intersectId: id,
     disabled: isScrollingProgrammatically,
+    threshold: 0.5,
   });
   return children({ ref });
 }

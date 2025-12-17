@@ -30,9 +30,14 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const centerEntry = entries.find(
-          (entry) =>
-            entry.isIntersecting && entry.intersectionRatio >= threshold,
+        // Find the entry with the highest intersection ratio (most centered)
+        const centerEntry = entries.reduce(
+          (max, entry) =>
+            entry.intersectionRatio >= threshold &&
+            entry.intersectionRatio > (max?.intersectionRatio ?? 0)
+              ? entry
+              : max,
+          null as IntersectionObserverEntry | null,
         );
         if (centerEntry) {
           const element = centerEntry.target;
