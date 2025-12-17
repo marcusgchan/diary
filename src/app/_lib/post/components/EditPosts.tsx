@@ -552,10 +552,10 @@ const ImageRenderer = React.forwardRef<
 
 type ImageContainerProps<T extends Element, U extends Element> = {
   id: string;
-  children: ({ ref }: { ref: RefObject<U | null> }) => ReactNode;
+  children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
   isScrollingProgrammatically: boolean;
   onIntersect: (element: Element, intersectionId: string) => void;
-  rootElement: T;
+  rootElement: T | null;
 };
 
 function ScrollableImageContainer<T extends Element, U extends Element>({

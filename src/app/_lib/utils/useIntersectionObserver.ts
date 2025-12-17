@@ -1,12 +1,12 @@
-import { type RefObject, useRef, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export type IntersectionObserverReturn<T extends Element> = {
-  ref: RefObject<T | null>;
+  ref: (node: T | null) => void;
 };
 
 export type IntersectionObserverResult<T extends Element> = {
   onIntersect: (element: Element, intersectId: string) => void;
-  rootElement: T;
+  rootElement: T | null;
   intersectId: string;
   disabled?: boolean;
   threshold?: number;
@@ -19,14 +19,12 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
   rootElement,
   threshold = 0,
 }: IntersectionObserverResult<T>): IntersectionObserverReturn<U> {
-  const ref = useRef<U>(null);
+  const [element, setElement] = useState<U | null>(null);
 
   useEffect(() => {
     if (disabled) return;
-    const element = ref.current;
-    if (element === null) {
-      throw new Error("Missing element ref. Did you forget to set the ref?");
-    }
+    if (element === null) return;
+    if (rootElement === null) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -57,7 +55,11 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
     return () => {
       observer.disconnect();
     };
-  }, [onIntersect, disabled, rootElement, intersectId, threshold]);
+  }, [onIntersect, disabled, rootElement, element, intersectId, threshold]);
 
-  return { ref: ref };
+  const setRef = useCallback((node: U | null) => {
+    setElement(node);
+  }, []);
+
+  return { ref: setRef };
 }

@@ -3,14 +3,7 @@ import { useParams } from "next/navigation";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
-import {
-  type ReactNode,
-  type RefObject,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { usePosts } from "../contexts/PostsContext";
 import { createPostSchema } from "~/server/lib/schema";
 import { PostListsSkeletion } from "./PostsListSkeleton";
@@ -381,10 +374,10 @@ function PostDescription({ children }: { children: React.ReactNode }) {
 
 type ImageContainerProps<T extends Element, U extends Element> = {
   id: string;
-  children: ({ ref }: { ref: RefObject<U | null> }) => ReactNode;
+  children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
   isScrollingProgrammatically: boolean;
   onIntersect: (element: Element, intersectionId: string) => void;
-  rootElement: T;
+  rootElement: T | null;
 };
 function ScrollableImageContainer<T extends Element, U extends Element>({
   id,
