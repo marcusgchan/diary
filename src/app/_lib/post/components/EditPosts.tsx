@@ -33,45 +33,10 @@ import { Separator } from "../../ui/separator";
 import { Textarea } from "../../ui/textarea";
 
 import { useQuery } from "@tanstack/react-query";
+import { Badge } from "../../ui/badge";
 
 export function EditPosts() {
-  const { state, dispatch } = usePosts();
-  const { activeId, handleDragStart, handleDragEnd, sensors } =
-    usePostDnD(dispatch);
-
-  const activePost = activeId
-    ? state.posts.find((p) => p.id === activeId)
-    : null;
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { scrollToImage, isScrollingProgrammatically } =
-    useScrollToImage(scrollContainerRef);
-
-  return (
-    <div className="flex gap-4">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        onDragStart={handleDragStart}
-      >
-        <SelectedPostView
-          scrollContainerRef={scrollContainerRef}
-          scrollToImage={scrollToImage}
-          isScrollingProgrammatically={isScrollingProgrammatically}
-        />
-        <SortableContext
-          items={state.posts.map((post) => ({ id: post.id }))}
-          strategy={verticalListSortingStrategy}
-        >
-          <PostsAside />
-        </SortableContext>
-        <DragOverlay>
-          {activePost ? <DragOverlayItem post={activePost} /> : null}
-        </DragOverlay>
-      </DndContext>
-    </div>
-  );
+  return <SelectedPostView />;
 }
 
 function ImageUpload({
@@ -183,21 +148,26 @@ function ImgLogo() {
   );
 }
 
-type SelectedPostViewProps = {
-  isScrollingProgrammatically: boolean;
-  scrollToImage: ReturnType<typeof useScrollToImage>["scrollToImage"];
-  scrollContainerRef: RefObject<HTMLDivElement | null>;
-};
-
-function SelectedPostView({
-  scrollToImage,
-  isScrollingProgrammatically,
-  scrollContainerRef,
-}: SelectedPostViewProps) {
+function SelectedPostView() {
   const api = useTRPC();
   const { state, dispatch } = usePosts();
+  const {
+    activeId,
+    handleDragStart,
+    handleDragEnd,
+    sensors: postSensors,
+  } = usePostDnD(dispatch);
+
+  const activePost = activeId
+    ? state.posts.find((p) => p.id === activeId)
+    : null;
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { scrollToImage, isScrollingProgrammatically } =
+    useScrollToImage(scrollContainerRef);
 
   const {
+    handleStartNewPost,
     handleDeletePost,
     handleFilesChange,
     handleTitleChange,
@@ -215,8 +185,12 @@ function SelectedPostView({
     return imageElementsRef.current;
   }
 
-  const { sensors, activeImageId, handleImageDragEnd, handleImageDragStart } =
-    useImageDnd(dispatch);
+  const {
+    sensors: imageSensors,
+    activeImageId,
+    handleImageDragEnd,
+    handleImageDragStart,
+  } = useImageDnd(dispatch);
 
   const selectedPostForm = state.posts.find((post) => post.isSelected)!;
   const draggedImage = selectedPostForm.images.find(
@@ -275,7 +249,33 @@ function SelectedPostView({
   }
 
   return (
-    <div className="flex w-80 flex-col gap-2 rounded-xl border bg-card p-6 text-card-foreground">
+    <div className="mx-auto flex w-full max-w-sm flex-col items-stretch gap-2 rounded-xl bg-card p-6 text-card-foreground">
+      <div className="flex items-center justify-between self-stretch">
+        <h3>Posts</h3>
+        <Button type="button" variant="outline" onClick={handleStartNewPost}>
+          Add
+        </Button>
+      </div>
+
+      <DndContext
+        sensors={postSensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+        onDragStart={handleDragStart}
+      >
+        <SortableContext
+          items={state.posts.map((post) => ({ id: post.id }))}
+          strategy={verticalListSortingStrategy}
+        >
+          <PostsListHeader />
+        </SortableContext>
+        <DragOverlay>
+          {activePost ? <DragOverlayItem post={activePost} /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      <Separator />
+
       <div className="relative">
         <div
           className="hide-scrollbar h-[200px] snap-x snap-mandatory overflow-x-auto scroll-smooth rounded"
@@ -359,7 +359,7 @@ function SelectedPostView({
         </div>
       </div>
       <DndContext
-        sensors={sensors}
+        sensors={imageSensors}
         collisionDetection={closestCenter}
         onDragStart={handleImageDragStart}
         onDragEnd={handleImageDragEnd}
@@ -390,7 +390,7 @@ function SelectedPostView({
                           opacity: props.isDragging ? 0 : 1,
                         }}
                         className={cn(
-                          "block aspect-square h-10 w-10 cursor-grab overflow-hidden rounded border-2 transition-all active:cursor-grabbing",
+                          "block aspect-square h-10 w-10 cursor-grab overflow-hidden rounded-lg border-2 transition-all active:cursor-grabbing",
                           image.isSelected
                             ? "scale-110 border-blue-400 ring-1 ring-blue-300"
                             : "border-gray-300 hover:border-gray-400",
@@ -413,6 +413,9 @@ function SelectedPostView({
           )}
         </DragOverlay>
       </DndContext>
+
+      <Separator />
+
       {selectedPostForm.images.length > 0 && (
         <>
           <button
@@ -452,7 +455,7 @@ function SelectedPostView({
       <Separator />
       <button type="button" className="flex gap-1 text-muted-foreground">
         <MapPin />
-        Location
+        Edit Images Location
       </button>
       <Separator />
       <Input
@@ -557,19 +560,15 @@ function ScrollableImageContainer<T extends Element, U extends Element>({
   return children({ ref });
 }
 
-function PostsAside() {
+function PostsListHeader() {
   const {
     state: { posts },
   } = usePosts();
-  const { handleStartNewPost: onNewPost, handleEditPost: onEditPost } =
-    usePostActions();
+  const { handleEditPost: onEditPost } = usePostActions();
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <Button type="button" variant="outline" onClick={onNewPost}>
-        <Plus />
-      </Button>
-      <ul className="grid grow-0 gap-2">
+      <ul className="flex grow-0 gap-2">
         {posts.map((post) => {
           return (
             <SortableItem key={post.id} id={post.id}>
@@ -585,24 +584,20 @@ function PostsAside() {
                     }}
                     ref={props.setNodeRef}
                     className={cn(
-                      "rounded border-2 p-2",
+                      "rounded-lg border-2",
                       post.isSelected && "border-blue-400 ring-1 ring-blue-300",
                     )}
                   >
                     {post.images.length > 0 && (
-                      <ul className="flex flex-col gap-2">
-                        {post.images.map((image) => (
-                          <li
-                            key={image.id}
-                            className="aspect-square min-h-0 w-12 flex-shrink-0 flex-grow-0 rounded border-2"
-                          >
-                            <ImageRenderer image={image} />
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="relative h-10 w-10">
+                        <Badge className="absolute right-0 top-0 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
+                          {post.images.length}
+                        </Badge>
+                        <ImageRenderer image={post.images[0]!} />
+                      </div>
                     )}
                     {post.images.length === 0 && (
-                      <ImageIcon className="h-12 w-12 text-gray-300" />
+                      <ImageIcon className="h-10 w-10 text-gray-300" />
                     )}
                   </li>
                 );
