@@ -26,6 +26,7 @@ export type PostActions = {
     scrollToImage: ScrollToImage,
     imageElement: Element,
   ) => void;
+  handleSwapPostById: (activeId: string, overId: string) => void;
 };
 
 export function usePostActions(): PostActions {
@@ -144,6 +145,13 @@ export function usePostActions(): PostActions {
     scrollToImage(imageElement);
   }
 
+  function handleSwapPostById(activeId: string, overId: string) {
+    dispatch({
+      type: "REORDER_POSTS",
+      payload: { activeId: activeId, overId: overId },
+    });
+  }
+
   return {
     handleFilesChange,
     handleTitleChange,
@@ -152,5 +160,6 @@ export function usePostActions(): PostActions {
     handleEditPost,
     handleDeletePost,
     handleImageSelect,
+    handleSwapPostById,
   };
 }

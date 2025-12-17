@@ -1,5 +1,5 @@
 "use client";
-import { Image as ImageIcon, MapPin, Plus, Trash, X } from "lucide-react";
+import { Image as ImageIcon, MapPin, Trash, X } from "lucide-react";
 import React, {
   type ChangeEvent,
   type RefObject,
@@ -11,18 +11,9 @@ import React, {
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import {
-  DndContext,
-  closestCenter,
-  DragOverlay,
-  rectIntersection,
-  closestCorners,
-  useDndContext,
-  useDndMonitor,
-} from "@dnd-kit/core";
+import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
-  verticalListSortingStrategy,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableItem } from "../../shared/SortableItem";
@@ -31,7 +22,6 @@ import type { PostForm as Post, PostFormImage } from "~/server/lib/types";
 import { useScrollToImage } from "../hooks/useScrollToImage";
 import { usePostActions } from "../hooks/usePostActions";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
-import { usePostDnD } from "../hooks/usePostDnD";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { useImageDnd } from "../hooks/useImageDnD";
@@ -42,9 +32,22 @@ import { Textarea } from "../../ui/textarea";
 
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "../../ui/badge";
+import {
+  PostsDndContextProvider,
+  usePostDnd,
+} from "../contexts/PostsDndContext";
 
 export function EditPosts() {
-  return <SelectedPostView />;
+  const { handleSwapPostById } = usePostActions();
+  return (
+    <PostsDndContextProvider
+      onDragEnd={(activeId, overId) => {
+        handleSwapPostById(activeId as string, overId as string);
+      }}
+    >
+      <SelectedPostView />
+    </PostsDndContextProvider>
+  );
 }
 
 function ImageUpload({
@@ -164,7 +167,7 @@ function SelectedPostView() {
     handleDragStart,
     handleDragEnd,
     sensors: postSensors,
-  } = usePostDnD();
+  } = usePostDnd();
 
   const activePost = activeId
     ? state.posts.find((p) => p.id === activeId)
@@ -278,7 +281,7 @@ function SelectedPostView() {
           items={state.posts.map((post) => ({ id: post.id }))}
           strategy={horizontalListSortingStrategy}
         >
-          <PostsListHeader isDragging={activePost != undefined} />
+          <PostsListHeader />
         </SortableContext>
         <DragOverlay>
           {activePost ? <DragOverlayItem post={activePost} /> : null}
@@ -571,10 +574,12 @@ function ScrollableImageContainer<T extends Element, U extends Element>({
   return children({ ref });
 }
 
-function PostsListHeader({ isDragging }) {
+function PostsListHeader() {
   const {
     state: { posts },
   } = usePosts();
+
+  const { isDragging } = usePostDnd();
   const { handleEditPost: onEditPost } = usePostActions();
 
   const spacers = (
