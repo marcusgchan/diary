@@ -173,9 +173,12 @@ function SelectedPostView() {
     ? state.posts.find((p) => p.id === activeId)
     : null;
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { scrollToImage, isScrollingProgrammatically } =
-    useScrollToImage(scrollContainerRef);
+  const {
+    scrollToImage,
+    isScrollingProgrammatically,
+    containerRef: scrollContainerRef,
+    containerElement,
+  } = useScrollToImage<HTMLDivElement>();
 
   const {
     handleStartNewPost,
@@ -328,7 +331,6 @@ function SelectedPostView() {
           {selectedPostForm.images.length > 0 && (
             <ul className="flex h-full">
               {selectedPostForm.images.map((image) => {
-                const rootElement = scrollContainerRef.current;
                 return (
                   <li
                     key={image.id}
@@ -342,29 +344,20 @@ function SelectedPostView() {
                     }}
                     className="w-full flex-shrink-0 flex-grow snap-center"
                   >
-                    {rootElement ? (
-                      <ScrollableImageContainer<
-                        HTMLDivElement,
-                        HTMLImageElement
-                      >
-                        id={image.id}
-                        onIntersect={onImageIntersect}
-                        isScrollingProgrammatically={
-                          isScrollingProgrammatically
-                        }
-                        rootElement={rootElement}
-                      >
-                        {({ ref }) => (
-                          <ImageRenderer
-                            showErrorText={true}
-                            image={image}
-                            ref={ref}
-                          />
-                        )}
-                      </ScrollableImageContainer>
-                    ) : (
-                      <ImageRenderer showErrorText={true} image={image} />
-                    )}
+                    <ScrollableImageContainer<HTMLDivElement, HTMLImageElement>
+                      id={image.id}
+                      onIntersect={onImageIntersect}
+                      isScrollingProgrammatically={isScrollingProgrammatically}
+                      rootElement={containerElement}
+                    >
+                      {({ ref }) => (
+                        <ImageRenderer
+                          showErrorText={true}
+                          image={image}
+                          ref={ref}
+                        />
+                      )}
+                    </ScrollableImageContainer>
                   </li>
                 );
               })}

@@ -262,9 +262,12 @@ function PostTitle({ children }: { children: React.ReactNode }) {
 }
 
 function PostImage({ post }: { post: Post }) {
-  const containerRef = useRef<HTMLUListElement>(null);
-  const { scrollToImage, isScrollingProgrammatically } =
-    useScrollToImage(containerRef);
+  const {
+    scrollToImage,
+    isScrollingProgrammatically,
+    containerRef,
+    containerElement,
+  } = useScrollToImage<HTMLUListElement>();
 
   const imgsRef = useRef<Map<string, HTMLLIElement>>(null);
 
@@ -292,7 +295,6 @@ function PostImage({ post }: { post: Post }) {
         className="hide-scrollbar flex aspect-square w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
       >
         {post.images.map((image) => {
-          const rootElement = containerRef.current;
           return (
             <li
               key={image.id}
@@ -306,34 +308,24 @@ function PostImage({ post }: { post: Post }) {
               }}
               className="flex-shrink-0 basis-full snap-center"
             >
-              {rootElement ? (
-                <ScrollableImageContainer<HTMLUListElement, HTMLImageElement>
-                  id={image.id}
-                  onIntersect={onIntersect}
-                  isScrollingProgrammatically={isScrollingProgrammatically}
-                  rootElement={rootElement}
-                >
-                  {({ ref }) => {
-                    return (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        ref={ref}
-                        // className="aspect-square h-auto object-cover"
-                        className="aspect-square w-full object-cover"
-                        alt={image.name}
-                        src={`/api/image/${image.key}`}
-                      />
-                    );
-                  }}
-                </ScrollableImageContainer>
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  className="aspect-square w-full object-cover"
-                  alt={image.name}
-                  src={`/api/image/${image.key}`}
-                />
-              )}
+              <ScrollableImageContainer<HTMLUListElement, HTMLImageElement>
+                id={image.id}
+                onIntersect={onIntersect}
+                isScrollingProgrammatically={isScrollingProgrammatically}
+                rootElement={containerElement}
+              >
+                {({ ref }) => {
+                  return (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      ref={ref}
+                      className="aspect-square w-full object-cover"
+                      alt={image.name}
+                      src={`/api/image/${image.key}`}
+                    />
+                  );
+                }}
+              </ScrollableImageContainer>
             </li>
           );
         })}
