@@ -9,6 +9,7 @@ export type IntersectionObserverResult<T extends Element> = {
   rootElement: T;
   intersectId: string;
   disabled?: boolean;
+  threshold?: number;
 };
 
 export function useIntersectionObserver<T extends Element, U extends Element>({
@@ -16,6 +17,7 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
   intersectId,
   disabled,
   rootElement,
+  threshold = 0,
 }: IntersectionObserverResult<T>): IntersectionObserverReturn<U> {
   const ref = useRef<U>(null);
 
@@ -29,7 +31,8 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
     const observer = new IntersectionObserver(
       (entries) => {
         const centerEntry = entries.find(
-          (entry) => entry.intersectionRatio > 0.8,
+          (entry) =>
+            entry.isIntersecting && entry.intersectionRatio >= threshold,
         );
         if (centerEntry) {
           const element = centerEntry.target;
@@ -40,7 +43,7 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
       },
       {
         root: rootElement,
-        threshold: 0.8,
+        threshold: threshold,
       },
     );
 
@@ -49,7 +52,7 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
     return () => {
       observer.disconnect();
     };
-  }, [onIntersect, disabled, rootElement, intersectId]);
+  }, [onIntersect, disabled, rootElement, intersectId, threshold]);
 
   return { ref: ref };
 }

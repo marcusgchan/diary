@@ -570,6 +570,7 @@ function ScrollableImageContainer<T extends Element, U extends Element>({
     rootElement,
     intersectId: id,
     disabled: isScrollingProgrammatically,
+    threshold: 0.5,
   });
   return children({ ref });
 }
