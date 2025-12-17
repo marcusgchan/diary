@@ -11,7 +11,15 @@ import React, {
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
+import {
+  DndContext,
+  closestCenter,
+  DragOverlay,
+  rectIntersection,
+  closestCorners,
+  useDndContext,
+  useDndMonitor,
+} from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -156,7 +164,7 @@ function SelectedPostView() {
     handleDragStart,
     handleDragEnd,
     sensors: postSensors,
-  } = usePostDnD(dispatch);
+  } = usePostDnD();
 
   const activePost = activeId
     ? state.posts.find((p) => p.id === activeId)
@@ -190,7 +198,7 @@ function SelectedPostView() {
     activeImageId,
     handleImageDragEnd,
     handleImageDragStart,
-  } = useImageDnd(dispatch);
+  } = useImageDnd();
 
   const selectedPostForm = state.posts.find((post) => post.isSelected)!;
   const draggedImage = selectedPostForm.images.find(
@@ -262,12 +270,15 @@ function SelectedPostView() {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
         onDragStart={handleDragStart}
+        autoScroll={{
+          acceleration: 5,
+        }}
       >
         <SortableContext
           items={state.posts.map((post) => ({ id: post.id }))}
-          strategy={verticalListSortingStrategy}
+          strategy={horizontalListSortingStrategy}
         >
-          <PostsListHeader />
+          <PostsListHeader isDragging={activePost != undefined} />
         </SortableContext>
         <DragOverlay>
           {activePost ? <DragOverlayItem post={activePost} /> : null}
@@ -560,69 +571,82 @@ function ScrollableImageContainer<T extends Element, U extends Element>({
   return children({ ref });
 }
 
-function PostsListHeader() {
+function PostsListHeader({ isDragging }) {
   const {
     state: { posts },
   } = usePosts();
   const { handleEditPost: onEditPost } = usePostActions();
 
+  const spacers = (
+    <>
+      <li className="h-10 w-10 shrink-0 bg-green-200"></li>
+      <li className="h-10 w-10 shrink-0 bg-green-200"></li>
+      <li className="h-10 w-5 shrink-0 bg-green-200"></li>
+    </>
+  );
   return (
-    <div className="flex flex-col items-center gap-2">
-      <ul className="flex grow-0 gap-2">
-        {posts.map((post) => {
-          return (
-            <SortableItem key={post.id} id={post.id}>
-              {(props) => {
-                return (
-                  <li
-                    {...props.listeners}
-                    {...props.attributes}
-                    onClick={() => onEditPost(post)}
-                    style={{
-                      ...props.style,
-                      opacity: props.isDragging ? 0 : 1,
-                    }}
-                    ref={props.setNodeRef}
-                    className={cn(
-                      "rounded-lg border-2",
-                      post.isSelected && "border-blue-400 ring-1 ring-blue-300",
-                    )}
-                  >
-                    {post.images.length > 0 && (
-                      <div className="relative h-10 w-10">
-                        <Badge className="absolute right-0 top-0 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
-                          {post.images.length}
-                        </Badge>
-                        <ImageRenderer image={post.images[0]!} />
-                      </div>
-                    )}
-                    {post.images.length === 0 && (
-                      <ImageIcon className="h-10 w-10 text-gray-300" />
-                    )}
-                  </li>
-                );
-              }}
-            </SortableItem>
-          );
-        })}
-      </ul>
-    </div>
+    <ul
+      className={cn(
+        "flex snap-x snap-mandatory gap-2 overflow-x-auto rounded bg-gray-300 px-7 py-3",
+        isDragging && "snap-none",
+      )}
+    >
+      {spacers}
+      {posts.map((post) => {
+        return (
+          <SortableItem key={post.id} id={post.id}>
+            {(props) => {
+              return (
+                <li
+                  {...props.listeners}
+                  {...props.attributes}
+                  onClick={() => onEditPost(post)}
+                  style={{
+                    ...props.style,
+                    opacity: props.isDragging ? 0 : 1,
+                  }}
+                  ref={props.setNodeRef}
+                  className={cn(
+                    "snap-center rounded-lg border-2",
+                    post.isSelected && "border-blue-400 ring-1 ring-blue-300",
+                  )}
+                >
+                  {post.images.length > 0 && (
+                    <div className="relative h-10 w-10">
+                      <Badge className="absolute right-0 top-0 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
+                        {post.images.length}
+                      </Badge>
+                      <ImageRenderer image={post.images[0]!} />
+                    </div>
+                  )}
+                  {post.images.length === 0 && (
+                    <ImageIcon className="h-10 w-10 text-foreground" />
+                  )}
+                </li>
+              );
+            }}
+          </SortableItem>
+        );
+      })}
+      {spacers}
+    </ul>
   );
 }
 
 function DragOverlayItem({ post }: { post: Post }) {
   return (
-    <div className="rotate-3 transform rounded border-2 border-black bg-white p-2 opacity-90 shadow-lg">
-      <ul className="flex flex-col gap-2">
-        {post.images.map((image) => (
-          <li
-            key={image.id}
-            className="aspect-square min-h-0 w-12 flex-shrink-0 flex-grow-0 rounded border-2 border-black"
-          >
-            <ImageRenderer image={image} />
-          </li>
-        ))}
-      </ul>
+    <div className="rotate-3 transform rounded p-2 opacity-90 shadow-lg">
+      {post.images.length > 0 && (
+        <div className="relative h-10 w-10">
+          <Badge className="absolute right-0 top-0 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
+            {post.images.length}
+          </Badge>
+          <ImageRenderer image={post.images[0]!} />
+        </div>
+      )}
+      {post.images.length === 0 && (
+        <ImageIcon className="h-10 w-10 text-foreground" />
+      )}
     </div>
   );
 }
