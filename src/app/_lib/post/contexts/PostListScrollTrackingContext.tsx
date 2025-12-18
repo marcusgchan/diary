@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import { useImageScrollTracking as useImageScrollTrackingHook } from "../hooks/useImageScrollTracking";
 
-type ImageScrollTrackingContextData<
+type PostListScrollTrackingContextData<
   TContainer extends HTMLElement,
   TElement extends HTMLElement,
 > = {
@@ -12,46 +12,50 @@ type ImageScrollTrackingContextData<
   getImageElementsMap: () => Map<string, TElement>;
 };
 
-const ImageScrollTrackingContext = createContext<ImageScrollTrackingContextData<
-  HTMLElement,
-  HTMLElement
-> | null>(null);
+const PostListScrollTrackingContext =
+  createContext<PostListScrollTrackingContextData<
+    HTMLElement,
+    HTMLElement
+  > | null>(null);
 
-type ImageScrollTrackingContextProviderProps = {
+type PostListScrollTrackingContextProviderProps = {
   children: React.ReactNode;
 };
 
-export function ImageScrollTrackingContextProvider<
+export function PostListScrollTrackingContextProvider<
   TContainer extends HTMLElement,
   TElement extends HTMLElement,
->({ children }: ImageScrollTrackingContextProviderProps) {
+>({ children }: PostListScrollTrackingContextProviderProps) {
   const scrollTrackingData = useImageScrollTrackingHook<TContainer, TElement>();
 
   return (
-    <ImageScrollTrackingContext.Provider
+    <PostListScrollTrackingContext.Provider
       value={
-        scrollTrackingData as unknown as ImageScrollTrackingContextData<
+        scrollTrackingData as unknown as PostListScrollTrackingContextData<
           HTMLElement,
           HTMLElement
         >
       }
     >
       {children}
-    </ImageScrollTrackingContext.Provider>
+    </PostListScrollTrackingContext.Provider>
   );
 }
 
-export function useImageScrollTracking<
+export function usePostListScrollTracking<
   TContainer extends HTMLElement = HTMLElement,
   TElement extends HTMLElement = HTMLElement,
->(): ImageScrollTrackingContextData<TContainer, TElement> {
-  const ctx = useContext(ImageScrollTrackingContext);
+>(): PostListScrollTrackingContextData<TContainer, TElement> {
+  const ctx = useContext(PostListScrollTrackingContext);
 
   if (!ctx) {
     throw new Error(
-      "useImageScrollTracking() must be used inside ImageScrollTrackingContextProvider",
+      "usePostListScrollTracking() must be used inside PostListScrollTrackingContextProvider",
     );
   }
 
-  return ctx as unknown as ImageScrollTrackingContextData<TContainer, TElement>;
+  return ctx as unknown as PostListScrollTrackingContextData<
+    TContainer,
+    TElement
+  >;
 }

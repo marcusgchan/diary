@@ -25,6 +25,10 @@ import {
   ImageScrollTrackingContextProvider,
   useImageScrollTracking,
 } from "../contexts/ImageScrollTrackingContext";
+import {
+  PostListScrollTrackingContextProvider,
+  usePostListScrollTracking,
+} from "../contexts/PostListScrollTrackingContext";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { useImageDnd } from "../hooks/useImageDnD";
@@ -283,7 +287,15 @@ function SelectedPostViewContent() {
           items={state.posts.map((post) => ({ id: post.id }))}
           strategy={horizontalListSortingStrategy}
         >
-          <PostsListHeader />
+          <PostListScrollTrackingContextProvider<
+            HTMLUListElement,
+            HTMLLIElement
+          >>
+            <PostsListHeader
+              scrollToImage={scrollToImage}
+              getImageElementsMap={getImageElementsMap}
+            />
+          </PostListScrollTrackingContextProvider>
         </SortableContext>
         <DragOverlay>
           {activePost ? <DragOverlayItem post={activePost} /> : null}
@@ -544,12 +556,14 @@ type ImageContainerProps<U extends Element> = {
   id: string;
   children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
   onIntersect: (element: Element, intersectionId: string) => void;
+  rootMargin?: string;
 };
 
 function ScrollableImageContainer<U extends Element>({
   id,
   children,
   onIntersect,
+  rootMargin,
 }: ImageContainerProps<U>) {
   const { isScrollingProgrammatically, containerElement } =
     useImageScrollTracking();
@@ -564,15 +578,58 @@ function ScrollableImageContainer<U extends Element>({
     rootElement: containerElement,
     disabled: isScrollingProgrammatically,
     threshold: 0.5,
+    rootMargin,
   });
   return children({ ref });
 }
 
-function PostsListHeader() {
+function PostScrollableContainer<U extends Element>({
+  id,
+  children,
+  onIntersect,
+  rootMargin,
+}: ImageContainerProps<U>) {
+  const { isScrollingProgrammatically, containerElement } =
+    usePostListScrollTracking();
+
+  const { ref } = useIntersectionObserver<HTMLElement, U>({
+    onIntersect: useCallback(
+      (element: Element) => {
+        onIntersect(element, id);
+      },
+      [onIntersect, id],
+    ),
+    rootElement: containerElement,
+    disabled: isScrollingProgrammatically,
+    threshold: 0.5,
+    rootMargin,
+  });
+  return children({ ref });
+}
+
+function PostsListHeader({
+  scrollToImage,
+  getImageElementsMap,
+}: {
+  scrollToImage: (element: Element, instant?: boolean) => void;
+  getImageElementsMap: () => Map<string, HTMLLIElement>;
+}) {
   const {
+    dispatch,
     state: { posts },
   } = usePosts();
 
+  const {
+    scrollToImage: scrollToPostImage,
+    containerRef: scrollPostContainerRef,
+    getImageElementsMap: getPostImageElementsMap,
+  } = usePostListScrollTracking<HTMLUListElement, HTMLLIElement>();
+  const onPostImageIntersect = useCallback(
+    (_element: Element, intersectId: string) => {
+      dispatch({ type: "START_EDITING", payload: intersectId });
+    },
+    [dispatch],
+  );
   const { isDragging } = usePostDnd();
   const { handleEditPost: onEditPost } = usePostActions();
 
@@ -585,6 +642,7 @@ function PostsListHeader() {
   );
   return (
     <ul
+      ref={scrollPostContainerRef}
       className={cn(
         "flex snap-x snap-mandatory gap-2 overflow-x-auto rounded bg-gray-300 px-7 py-3",
         isDragging && "snap-none",
@@ -599,28 +657,61 @@ function PostsListHeader() {
                 <li
                   {...props.listeners}
                   {...props.attributes}
-                  onClick={() => onEditPost(post)}
+                  onClick={() => {
+                    onEditPost(
+                      post,
+                      scrollToPostImage,
+                      getPostImageElementsMap().get(post.id)!,
+                    );
+                    // Scroll to first image when post is selected
+                    if (post.images.length > 0) {
+                      const firstImageId = post.images[0]!.id;
+                      const imageElement =
+                        getImageElementsMap().get(firstImageId);
+                      if (imageElement) {
+                        scrollToImage(imageElement, true);
+                      }
+                    }
+                  }}
                   style={{
                     ...props.style,
                     opacity: props.isDragging ? 0 : 1,
                   }}
-                  ref={props.setNodeRef}
+                  ref={(el) => {
+                    props.setNodeRef(el);
+                    const map = getPostImageElementsMap();
+                    if (el) {
+                      map.set(post.id, el);
+                    } else {
+                      map.delete(post.id);
+                    }
+                  }}
                   className={cn(
                     "snap-center rounded-lg border-2",
                     post.isSelected && "border-blue-400 ring-1 ring-blue-300",
                   )}
                 >
-                  {post.images.length > 0 && (
-                    <div className="relative h-10 w-10">
-                      <Badge className="absolute right-0 top-0 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
-                        {post.images.length}
-                      </Badge>
-                      <ImageRenderer image={post.images[0]!} />
-                    </div>
-                  )}
-                  {post.images.length === 0 && (
-                    <ImageIcon className="h-10 w-10 text-foreground" />
-                  )}
+                  <PostScrollableContainer<HTMLDivElement>
+                    id={post.id}
+                    onIntersect={onPostImageIntersect}
+                    rootMargin="0px -40% 0px -40%"
+                  >
+                    {({ ref }) => (
+                      <div ref={ref}>
+                        {post.images.length > 0 && (
+                          <div className="relative h-10 w-10">
+                            <Badge className="absolute right-0 top-0 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
+                              {post.images.length}
+                            </Badge>
+                            <ImageRenderer image={post.images[0]!} />
+                          </div>
+                        )}
+                        {post.images.length === 0 && (
+                          <ImageIcon className="h-10 w-10 text-foreground" />
+                        )}
+                      </div>
+                    )}
+                  </PostScrollableContainer>
                 </li>
               );
             }}

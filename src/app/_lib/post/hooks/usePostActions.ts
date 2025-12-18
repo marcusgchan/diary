@@ -19,7 +19,11 @@ export type PostActions = {
   handleTitleChange: (value: string) => void;
   handleDescriptionChange: (value: string) => void;
   handleStartNewPost: () => void;
-  handleEditPost: (post: Post) => void;
+  handleEditPost: (
+    post: Post,
+    scrollToImage: ScrollToImage,
+    imageElement: Element,
+  ) => void;
   handleDeletePost: () => void;
   handleImageSelect: (
     imageId: string,
@@ -126,10 +130,13 @@ export function usePostActions(): PostActions {
     dispatch({ type: "START_NEW_POST" });
   }
 
-  function handleEditPost(post: Post) {
-    flushSync(() => {
-      dispatch({ type: "START_EDITING", payload: post.id });
-    });
+  function handleEditPost(
+    post: Post,
+    scrollToImage: ScrollToImage,
+    imageElement: Element,
+  ) {
+    dispatch({ type: "START_EDITING", payload: post.id });
+    scrollToImage(imageElement);
   }
 
   function handleDeletePost() {
