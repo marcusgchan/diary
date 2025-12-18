@@ -16,8 +16,11 @@ import { MapSkeleton } from "../../map/components/MapSkeleton";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
 import { Curve } from "./Curve";
-import { useImageScrollTracking } from "../hooks/useImageScrollTracking";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
+import {
+  ImageScrollTrackingContextProvider,
+  useImageScrollTracking,
+} from "../contexts/ImageScrollTrackingContext";
 import { toast } from "sonner";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
@@ -261,11 +264,17 @@ function PostTitle({ children }: { children: React.ReactNode }) {
 }
 
 function PostImage({ post }: { post: Post }) {
+  return (
+    <ImageScrollTrackingContextProvider<HTMLUListElement, HTMLLIElement>>
+      <PostImageContent post={post} />
+    </ImageScrollTrackingContextProvider>
+  );
+}
+
+function PostImageContent({ post }: { post: Post }) {
   const {
     scrollToImage,
-    isScrollingProgrammatically,
     containerRef,
-    containerElement,
     getImageElementsMap: getImgsMap,
   } = useImageScrollTracking<HTMLUListElement, HTMLLIElement>();
 
@@ -297,11 +306,9 @@ function PostImage({ post }: { post: Post }) {
               }}
               className="flex-shrink-0 basis-full snap-center"
             >
-              <ScrollableImageContainer<HTMLUListElement, HTMLImageElement>
+              <ScrollableImageContainer<HTMLImageElement>
                 id={image.id}
                 onIntersect={onIntersect}
-                isScrollingProgrammatically={isScrollingProgrammatically}
-                rootElement={containerElement}
               >
                 {({ ref }) => {
                   return (
@@ -353,28 +360,27 @@ function PostDescription({ children }: { children: React.ReactNode }) {
   return <p className="whitespace-pre-wrap">{children}</p>;
 }
 
-type ImageContainerProps<T extends Element, U extends Element> = {
+type ImageContainerProps<U extends Element> = {
   id: string;
   children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
-  isScrollingProgrammatically: boolean;
   onIntersect: (element: Element, intersectionId: string) => void;
-  rootElement: T | null;
 };
-function ScrollableImageContainer<T extends Element, U extends Element>({
+function ScrollableImageContainer<U extends Element>({
   id,
   children,
   onIntersect,
-  isScrollingProgrammatically,
-  rootElement,
-}: ImageContainerProps<T, U>) {
-  const { ref } = useIntersectionObserver<T, U>({
+}: ImageContainerProps<U>) {
+  const { isScrollingProgrammatically, containerElement } =
+    useImageScrollTracking();
+
+  const { ref } = useIntersectionObserver<HTMLElement, U>({
     onIntersect: useCallback(
       (element: Element) => {
         onIntersect(element, id);
       },
       [onIntersect, id],
     ),
-    rootElement,
+    rootElement: containerElement,
     disabled: isScrollingProgrammatically,
     threshold: 0.5,
   });

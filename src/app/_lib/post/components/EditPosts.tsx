@@ -19,9 +19,12 @@ import {
 import { SortableItem } from "../../shared/SortableItem";
 import { cn } from "../../utils/cx";
 import type { PostForm as Post, PostFormImage } from "~/server/lib/types";
-import { useImageScrollTracking } from "../hooks/useImageScrollTracking";
 import { usePostActions } from "../hooks/usePostActions";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
+import {
+  ImageScrollTrackingContextProvider,
+  useImageScrollTracking,
+} from "../contexts/ImageScrollTrackingContext";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { useImageDnd } from "../hooks/useImageDnD";
@@ -160,6 +163,14 @@ function ImgLogo() {
 }
 
 function SelectedPostView() {
+  return (
+    <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
+      <SelectedPostViewContent />
+    </ImageScrollTrackingContextProvider>
+  );
+}
+
+function SelectedPostViewContent() {
   const api = useTRPC();
   const { state, dispatch } = usePosts();
   const {
@@ -175,9 +186,7 @@ function SelectedPostView() {
 
   const {
     scrollToImage,
-    isScrollingProgrammatically,
     containerRef: scrollContainerRef,
-    containerElement,
     getImageElementsMap,
   } = useImageScrollTracking<HTMLDivElement, HTMLLIElement>();
   const onImageIntersect = useCallback(
@@ -334,11 +343,9 @@ function SelectedPostView() {
                     }}
                     className="w-full flex-shrink-0 flex-grow snap-center"
                   >
-                    <ScrollableImageContainer<HTMLDivElement, HTMLImageElement>
+                    <ScrollableImageContainer<HTMLImageElement>
                       id={image.id}
                       onIntersect={onImageIntersect}
-                      isScrollingProgrammatically={isScrollingProgrammatically}
-                      rootElement={containerElement}
                     >
                       {({ ref }) => (
                         <ImageRenderer
@@ -533,29 +540,28 @@ const ImageRenderer = React.forwardRef<
   return <Skeleton ref={ref} className="h-full w-full" />;
 });
 
-type ImageContainerProps<T extends Element, U extends Element> = {
+type ImageContainerProps<U extends Element> = {
   id: string;
   children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
-  isScrollingProgrammatically: boolean;
   onIntersect: (element: Element, intersectionId: string) => void;
-  rootElement: T | null;
 };
 
-function ScrollableImageContainer<T extends Element, U extends Element>({
+function ScrollableImageContainer<U extends Element>({
   id,
   children,
   onIntersect,
-  isScrollingProgrammatically,
-  rootElement,
-}: ImageContainerProps<T, U>) {
-  const { ref } = useIntersectionObserver<T, U>({
+}: ImageContainerProps<U>) {
+  const { isScrollingProgrammatically, containerElement } =
+    useImageScrollTracking();
+
+  const { ref } = useIntersectionObserver<HTMLElement, U>({
     onIntersect: useCallback(
       (element: Element) => {
         onIntersect(element, id);
       },
       [onIntersect, id],
     ),
-    rootElement,
+    rootElement: containerElement,
     disabled: isScrollingProgrammatically,
     threshold: 0.5,
   });
