@@ -192,6 +192,7 @@ function SelectedPostViewContent() {
     scrollToImage,
     containerRef: scrollContainerRef,
     getImageElementsMap,
+    setImageElementRef,
   } = useImageScrollTracking<HTMLDivElement, HTMLLIElement>();
   const onImageIntersect = useCallback(
     (_element: Element, intersectId: string) => {
@@ -345,14 +346,7 @@ function SelectedPostViewContent() {
                 return (
                   <li
                     key={image.id}
-                    ref={(node) => {
-                      const map = getImageElementsMap();
-                      if (node) {
-                        map.set(image.id, node);
-                      } else {
-                        map.delete(image.id);
-                      }
-                    }}
+                    ref={setImageElementRef(image.id)}
                     className="w-full flex-shrink-0 flex-grow snap-center"
                   >
                     <ScrollableImageContainer<HTMLImageElement>
@@ -668,9 +662,7 @@ function PostsListHeader({
                       const firstImageId = post.images[0]!.id;
                       const imageElement =
                         getImageElementsMap().get(firstImageId);
-                      if (imageElement) {
-                        scrollToImage(imageElement, true);
-                      }
+                      scrollToImage(imageElement!, true);
                     }
                   }}
                   style={{

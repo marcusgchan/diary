@@ -1,16 +1,12 @@
 import { createContext, useContext } from "react";
-import { useImageScrollTracking as useImageScrollTrackingHook } from "../hooks/useImageScrollTracking";
+import { useScrollToImage } from "../hooks/useScrollToImage";
+import { useImageElementsMap } from "../hooks/useImageElementsMap";
 
 type PostListScrollTrackingContextData<
   TContainer extends HTMLElement,
   TElement extends HTMLElement,
-> = {
-  scrollToImage: (element: Element, instant?: boolean) => void;
-  isScrollingProgrammatically: boolean;
-  containerRef: (node: TContainer | null) => void;
-  containerElement: TContainer | null;
-  getImageElementsMap: () => Map<string, TElement>;
-};
+> = ReturnType<typeof useScrollToImage<TContainer>> &
+  ReturnType<typeof useImageElementsMap<TElement>>;
 
 const PostListScrollTrackingContext =
   createContext<PostListScrollTrackingContextData<
@@ -26,7 +22,12 @@ export function PostListScrollTrackingContextProvider<
   TContainer extends HTMLElement,
   TElement extends HTMLElement,
 >({ children }: PostListScrollTrackingContextProviderProps) {
-  const scrollTrackingData = useImageScrollTrackingHook<TContainer, TElement>();
+  const scrollToImageData = useScrollToImage<TContainer>();
+  const imageElementsMapData = useImageElementsMap<TElement>();
+  const scrollTrackingData = {
+    ...scrollToImageData,
+    ...imageElementsMapData,
+  };
 
   return (
     <PostListScrollTrackingContext.Provider

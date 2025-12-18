@@ -276,6 +276,7 @@ function PostImageContent({ post }: { post: Post }) {
     scrollToImage,
     containerRef,
     getImageElementsMap: getImgsMap,
+    setImageElementRef,
   } = useImageScrollTracking<HTMLUListElement, HTMLLIElement>();
 
   const [selectedImageId, setSelectedImageId] = useState(post.images[0]!.id);
@@ -296,14 +297,7 @@ function PostImageContent({ post }: { post: Post }) {
           return (
             <li
               key={image.id}
-              ref={(node) => {
-                const map = getImgsMap();
-                if (node) {
-                  map.set(image.id, node);
-                } else {
-                  map.delete(image.id);
-                }
-              }}
+              ref={setImageElementRef(image.id)}
               className="flex-shrink-0 basis-full snap-center"
             >
               <ScrollableImageContainer<HTMLImageElement>

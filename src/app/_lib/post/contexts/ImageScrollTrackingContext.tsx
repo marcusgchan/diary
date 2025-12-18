@@ -1,16 +1,12 @@
 import { createContext, useContext } from "react";
-import { useImageScrollTracking as useImageScrollTrackingHook } from "../hooks/useImageScrollTracking";
+import { useScrollToImage } from "../hooks/useScrollToImage";
+import { useImageElementsMap } from "../hooks/useImageElementsMap";
 
 type ImageScrollTrackingContextData<
   TContainer extends HTMLElement,
   TElement extends HTMLElement,
-> = {
-  scrollToImage: (element: Element, instant?: boolean) => void;
-  isScrollingProgrammatically: boolean;
-  containerRef: (node: TContainer | null) => void;
-  containerElement: TContainer | null;
-  getImageElementsMap: () => Map<string, TElement>;
-};
+> = ReturnType<typeof useScrollToImage<TContainer>> &
+  ReturnType<typeof useImageElementsMap<TElement>>;
 
 const ImageScrollTrackingContext = createContext<ImageScrollTrackingContextData<
   HTMLElement,
@@ -25,7 +21,12 @@ export function ImageScrollTrackingContextProvider<
   TContainer extends HTMLElement,
   TElement extends HTMLElement,
 >({ children }: ImageScrollTrackingContextProviderProps) {
-  const scrollTrackingData = useImageScrollTrackingHook<TContainer, TElement>();
+  const scrollToImageData = useScrollToImage<TContainer>();
+  const imageElementsMapData = useImageElementsMap<TElement>();
+  const scrollTrackingData = {
+    ...scrollToImageData,
+    ...imageElementsMapData,
+  };
 
   return (
     <ImageScrollTrackingContext.Provider
