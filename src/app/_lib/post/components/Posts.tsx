@@ -379,9 +379,13 @@ function ScrollableImageContainer<T extends Element, U extends Element>({
   rootElement,
 }: ImageContainerProps<T, U>) {
   const { ref } = useIntersectionObserver<T, U>({
-    onIntersect,
+    onIntersect: useCallback(
+      (element: Element) => {
+        onIntersect(element, id);
+      },
+      [onIntersect, id],
+    ),
     rootElement,
-    intersectId: id,
     disabled: isScrollingProgrammatically,
     threshold: 0.5,
   });

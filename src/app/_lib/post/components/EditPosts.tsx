@@ -179,6 +179,20 @@ function SelectedPostView() {
     containerRef: scrollContainerRef,
     containerElement,
   } = useScrollToImage<HTMLDivElement>();
+  const imageElementsRef = useRef<Map<string, HTMLLIElement>>(null);
+  function getImageElementsMap() {
+    if (imageElementsRef.current === null) {
+      imageElementsRef.current = new Map<string, HTMLLIElement>();
+      return imageElementsRef.current;
+    }
+    return imageElementsRef.current;
+  }
+  const onImageIntersect = useCallback(
+    (_element: Element, intersectId: string) => {
+      dispatch({ type: "SELECT_IMAGE", payload: intersectId });
+    },
+    [dispatch],
+  );
 
   const {
     handleStartNewPost,
@@ -188,16 +202,6 @@ function SelectedPostView() {
     handleDescriptionChange,
     handleImageSelect,
   } = usePostActions();
-
-  const imageElementsRef = useRef<Map<string, HTMLLIElement>>(null);
-
-  function getImageElementsMap() {
-    if (imageElementsRef.current === null) {
-      imageElementsRef.current = new Map<string, HTMLLIElement>();
-      return imageElementsRef.current;
-    }
-    return imageElementsRef.current;
-  }
 
   const {
     sensors: imageSensors,
@@ -218,13 +222,6 @@ function SelectedPostView() {
     } as ChangeEvent<HTMLInputElement>;
     void handleFilesChange(mockEvent);
   };
-
-  const onImageIntersect = useCallback(
-    (_element: Element, intersectId: string) => {
-      dispatch({ type: "SELECT_IMAGE", payload: intersectId });
-    },
-    [dispatch],
-  );
 
   const params = useParams();
   const diaryId = Number(params.diaryId);
@@ -559,9 +556,13 @@ function ScrollableImageContainer<T extends Element, U extends Element>({
   rootElement,
 }: ImageContainerProps<T, U>) {
   const { ref } = useIntersectionObserver<T, U>({
-    onIntersect,
+    onIntersect: useCallback(
+      (element: Element) => {
+        onIntersect(element, id);
+      },
+      [onIntersect, id],
+    ),
     rootElement,
-    intersectId: id,
     disabled: isScrollingProgrammatically,
     threshold: 0.5,
   });

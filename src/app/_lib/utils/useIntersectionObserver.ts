@@ -5,16 +5,14 @@ export type IntersectionObserverReturn<T extends Element> = {
 };
 
 export type IntersectionObserverResult<T extends Element> = {
-  onIntersect: (element: Element, intersectId: string) => void;
+  onIntersect: (element: Element) => void;
   rootElement: T | null;
-  intersectId: string;
   disabled?: boolean;
   threshold?: number;
 };
 
 export function useIntersectionObserver<T extends Element, U extends Element>({
   onIntersect,
-  intersectId,
   disabled,
   rootElement,
   threshold = 0,
@@ -40,7 +38,7 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
         if (centerEntry) {
           const element = centerEntry.target;
           if (element) {
-            onIntersect(element, intersectId);
+            onIntersect(element);
           }
         }
       },
@@ -55,7 +53,7 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
     return () => {
       observer.disconnect();
     };
-  }, [onIntersect, disabled, rootElement, element, intersectId, threshold]);
+  }, [onIntersect, disabled, rootElement, element, threshold]);
 
   const setRef = useCallback((node: U | null) => {
     setElement(node);
