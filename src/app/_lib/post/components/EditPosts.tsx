@@ -1,5 +1,5 @@
 "use client";
-import { Image as ImageIcon, MapPin, Trash, X } from "lucide-react";
+import { Image as ImageIcon, ImagePlus, MapPin, Trash, X } from "lucide-react";
 import React, {
   type ChangeEvent,
   type RefObject,
@@ -56,35 +56,10 @@ export function EditPosts() {
         handleSwapPostById(activeId as string, overId as string);
       }}
     >
-      <SelectedPostView />
+      <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
+        <SelectedPostViewContent />
+      </ImageScrollTrackingContextProvider>
     </PostsDndContextProvider>
-  );
-}
-
-function ImgLogo() {
-  return (
-    <svg
-      className="mx-auto h-8 w-8 text-accent-foreground"
-      stroke="currentColor"
-      fill="none"
-      viewBox="0 0 48 48"
-      aria-hidden="true"
-    >
-      <path
-        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SelectedPostView() {
-  return (
-    <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
-      <SelectedPostViewContent />
-    </ImageScrollTrackingContextProvider>
   );
 }
 
@@ -236,7 +211,7 @@ function SelectedPostViewContent() {
                   handleDrop={handleDrop}
                 >
                   <DropzoneContent id="image-upload">
-                    <ImgLogo />
+                    <ImagePlus />
                     <p className="text-xs leading-tight">
                       Drop images or click
                     </p>
