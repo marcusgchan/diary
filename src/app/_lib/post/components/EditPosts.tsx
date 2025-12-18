@@ -19,7 +19,7 @@ import {
 import { SortableItem } from "../../shared/SortableItem";
 import { cn } from "../../utils/cx";
 import type { PostForm as Post, PostFormImage } from "~/server/lib/types";
-import { useScrollToImage } from "../hooks/useScrollToImage";
+import { useImageScrollTracking } from "../hooks/useImageScrollTracking";
 import { usePostActions } from "../hooks/usePostActions";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
 import { Skeleton } from "../../ui/skeleton";
@@ -178,15 +178,8 @@ function SelectedPostView() {
     isScrollingProgrammatically,
     containerRef: scrollContainerRef,
     containerElement,
-  } = useScrollToImage<HTMLDivElement>();
-  const imageElementsRef = useRef<Map<string, HTMLLIElement>>(null);
-  function getImageElementsMap() {
-    if (imageElementsRef.current === null) {
-      imageElementsRef.current = new Map<string, HTMLLIElement>();
-      return imageElementsRef.current;
-    }
-    return imageElementsRef.current;
-  }
+    getImageElementsMap,
+  } = useImageScrollTracking<HTMLDivElement, HTMLLIElement>();
   const onImageIntersect = useCallback(
     (_element: Element, intersectId: string) => {
       dispatch({ type: "SELECT_IMAGE", payload: intersectId });

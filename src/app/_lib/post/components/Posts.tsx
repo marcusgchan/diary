@@ -3,9 +3,8 @@ import { useParams } from "next/navigation";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
 import { EditPosts } from "./EditPosts";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { usePosts } from "../contexts/PostsContext";
-import { createPostSchema } from "~/server/lib/schema";
 import { PostListsSkeletion } from "./PostsListSkeleton";
 
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +16,7 @@ import { MapSkeleton } from "../../map/components/MapSkeleton";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
 import { Curve } from "./Curve";
-import { useScrollToImage } from "../hooks/useScrollToImage";
+import { useImageScrollTracking } from "../hooks/useImageScrollTracking";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
 import { toast } from "sonner";
 
@@ -267,18 +266,8 @@ function PostImage({ post }: { post: Post }) {
     isScrollingProgrammatically,
     containerRef,
     containerElement,
-  } = useScrollToImage<HTMLUListElement>();
-
-  const imgsRef = useRef<Map<string, HTMLLIElement>>(null);
-
-  function getImgsMap() {
-    if (imgsRef.current === null) {
-      imgsRef.current = new Map<string, HTMLLIElement>();
-      return imgsRef.current;
-    }
-
-    return imgsRef.current;
-  }
+    getImageElementsMap: getImgsMap,
+  } = useImageScrollTracking<HTMLUListElement, HTMLLIElement>();
 
   const [selectedImageId, setSelectedImageId] = useState(post.images[0]!.id);
   const onIntersect = useCallback(
