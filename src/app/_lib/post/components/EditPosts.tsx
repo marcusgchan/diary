@@ -35,13 +35,11 @@ import {
   ImageScrollTrackingContextProvider,
   useImageScrollTracking,
 } from "../contexts/ImageScrollTrackingContext";
-import {
-  PostListScrollTrackingContextProvider,
-  usePostListScrollTracking,
-} from "../contexts/PostListScrollTrackingContext";
+import { usePostListScrollTracking } from "../contexts/PostListScrollTrackingContext";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { useImageSensors } from "../hooks/useImageSensors";
+import { useDndState } from "../hooks/useDndState";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { Separator } from "../../ui/separator";
@@ -49,8 +47,7 @@ import { Textarea } from "../../ui/textarea";
 
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "../../ui/badge";
-import { usePostsSensors } from "../hooks/usePostsSensors";
-import { useDndState } from "../hooks/useDndState";
+import { PostsHeaderDnd } from "./PostsHeaderDnd";
 
 export function EditPosts() {
   return (
@@ -63,18 +60,6 @@ export function EditPosts() {
 function SelectedPostViewContent() {
   const api = useTRPC();
   const { state, dispatch } = usePosts();
-  const { handleSwapPostById } = usePostActions();
-
-  const sensors = usePostsSensors();
-  const { activeId, onDragStart, onDragEnd } = useDndState({
-    onDragEnd: (activeId: UniqueIdentifier, overId: UniqueIdentifier) => {
-      handleSwapPostById(activeId as string, overId as string);
-    },
-  });
-
-  const activePost = activeId
-    ? state.posts.find((p) => p.id === activeId)
-    : null;
 
   const {
     scrollToImage,
@@ -173,33 +158,7 @@ function SelectedPostViewContent() {
         </Button>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        autoScroll={{
-          acceleration: 5,
-        }}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-      >
-        <SortableContext
-          items={state.posts.map((post) => ({ id: post.id }))}
-          strategy={horizontalListSortingStrategy}
-        >
-          <PostListScrollTrackingContextProvider<
-            HTMLUListElement,
-            HTMLLIElement
-          >>
-            <PostsListHeader
-              scrollToImage={scrollToImage}
-              getImageElementsMap={getImageElementsMap}
-            />
-          </PostListScrollTrackingContextProvider>
-        </SortableContext>
-        <DragOverlay>
-          {activePost ? <DragOverlayItem post={activePost} /> : null}
-        </DragOverlay>
-      </DndContext>
+      <PostsHeaderDnd />
 
       <Separator />
 
@@ -499,7 +458,7 @@ function PostScrollableContainer<U extends Element>({
   return children({ ref });
 }
 
-function PostsListHeader({
+export function PostsListHeader({
   scrollToImage,
   getImageElementsMap,
 }: {
@@ -611,23 +570,5 @@ function PostsListHeader({
       })}
       {spacers}
     </ul>
-  );
-}
-
-function DragOverlayItem({ post }: { post: Post }) {
-  return (
-    <div className="rotate-3 transform rounded p-2 opacity-90 shadow-lg">
-      {post.images.length > 0 && (
-        <div className="relative h-10 w-10">
-          <Badge className="absolute right-0 top-0 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
-            {post.images.length}
-          </Badge>
-          <ImageRenderer image={post.images[0]!} />
-        </div>
-      )}
-      {post.images.length === 0 && (
-        <ImageIcon className="h-10 w-10 text-foreground" />
-      )}
-    </div>
   );
 }
