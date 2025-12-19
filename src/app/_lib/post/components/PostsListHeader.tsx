@@ -4,7 +4,7 @@ import React, { type ReactNode, useCallback } from "react";
 import { useDndContext } from "@dnd-kit/core";
 import { SortableItem } from "../../shared/SortableItem";
 import { cn } from "../../utils/cx";
-import type { PostFormImage } from "~/server/lib/types";
+import type { PostForm, PostFormImage } from "~/server/lib/types";
 import { usePostListScrollTracking } from "../contexts/PostListScrollTrackingContext";
 import { useImageScrollTracking } from "../contexts/ImageScrollTrackingContext";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
@@ -13,7 +13,7 @@ import { usePosts } from "../contexts/PostsContext";
 import { usePostActions } from "../hooks/usePostActions";
 import { Badge } from "../../ui/badge";
 
-export function PostsListHeader() {
+export function PostsSelectionCarousel() {
   const {
     dispatch,
     state: { posts },
@@ -22,6 +22,7 @@ export function PostsListHeader() {
   const {
     scrollToImage: scrollToPostImage,
     containerRef: scrollPostContainerRef,
+    setImageElementRef,
     getImageElementsMap: getPostImageElementsMap,
   } = usePostListScrollTracking<HTMLUListElement, HTMLLIElement>();
   const { scrollToImage, getImageElementsMap } = useImageScrollTracking<
@@ -38,18 +39,34 @@ export function PostsListHeader() {
   const { active } = useDndContext();
   const isDragging = active !== null;
 
+  function handleSelectPost(post: PostForm) {
+    onEditPost(
+      post,
+      scrollToPostImage,
+      getPostImageElementsMap().get(post.id)!,
+    );
+    // Scroll to first image when post is selected
+    if (post.images.length > 0) {
+      const firstImageId = post.images[0]!.id;
+      const imageElement = getImageElementsMap().get(firstImageId);
+      if (imageElement) {
+        scrollToImage(imageElement, true);
+      }
+    }
+  }
+
   const spacers = (
     <>
-      <li className="h-10 w-10 shrink-0 bg-green-200"></li>
-      <li className="h-10 w-10 shrink-0 bg-green-200"></li>
-      <li className="h-10 w-5 shrink-0 bg-green-200"></li>
+      <li className="h-10 w-10 shrink-0"></li>
+      <li className="h-10 w-10 shrink-0"></li>
+      <li className="h-10 w-5 shrink-0"></li>
     </>
   );
   return (
     <ul
       ref={scrollPostContainerRef}
       className={cn(
-        "flex snap-x snap-mandatory gap-2 overflow-x-auto rounded bg-gray-300 px-7 py-3",
+        "hide-scrollbar flex snap-x snap-mandatory items-center gap-2 overflow-x-auto rounded px-7 py-2",
         isDragging && "snap-none",
       )}
     >
@@ -62,34 +79,14 @@ export function PostsListHeader() {
                 <li
                   {...props.listeners}
                   {...props.attributes}
-                  onClick={() => {
-                    onEditPost(
-                      post,
-                      scrollToPostImage,
-                      getPostImageElementsMap().get(post.id)!,
-                    );
-                    // Scroll to first image when post is selected
-                    if (post.images.length > 0) {
-                      const firstImageId = post.images[0]!.id;
-                      const imageElement =
-                        getImageElementsMap().get(firstImageId);
-                      if (imageElement) {
-                        scrollToImage(imageElement, true);
-                      }
-                    }
-                  }}
+                  onClick={() => handleSelectPost(post)}
                   style={{
                     ...props.style,
                     opacity: props.isDragging ? 0 : 1,
                   }}
                   ref={(el) => {
                     props.setNodeRef(el);
-                    const map = getPostImageElementsMap();
-                    if (el) {
-                      map.set(post.id, el);
-                    } else {
-                      map.delete(post.id);
-                    }
+                    setImageElementRef(post.id)(el);
                   }}
                   className={cn(
                     "snap-center rounded-lg border-2",
@@ -154,7 +151,7 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
       /* eslint-disable-next-line @next/next/no-img-element */
       <img
         src={`/api/image/${image.key}`}
-        className="pointer-events-none h-full w-full object-cover"
+        className="pointer-events-none h-full w-full rounded object-cover"
         alt={image.name}
       />
     );
