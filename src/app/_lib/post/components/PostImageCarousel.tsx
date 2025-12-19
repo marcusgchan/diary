@@ -86,6 +86,7 @@ export function PostImageCarousel() {
                   className="w-full flex-shrink-0 flex-grow snap-center"
                 >
                   <ScrollableImageContainer<HTMLImageElement>
+                    threshold={0.6}
                     id={image.id}
                     onIntersect={onImageIntersect}
                   >
@@ -163,6 +164,7 @@ type ImageContainerProps<U extends Element> = {
   id: string;
   children: ({ ref }: { ref: (node: U | null) => void }) => React.ReactNode;
   onIntersect: (element: Element, intersectionId: string) => void;
+  threshold?: number;
   rootMargin?: string;
 };
 
@@ -170,6 +172,7 @@ function ScrollableImageContainer<U extends Element>({
   id,
   children,
   onIntersect,
+  threshold = 0,
   rootMargin,
 }: ImageContainerProps<U>) {
   const { isScrollingProgrammatically, containerElement } =
@@ -184,7 +187,7 @@ function ScrollableImageContainer<U extends Element>({
     ),
     rootElement: containerElement,
     disabled: isScrollingProgrammatically,
-    threshold: 0.5,
+    threshold,
     rootMargin,
   });
   return children({ ref });

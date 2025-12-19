@@ -99,7 +99,8 @@ export function PostsListHeader() {
                   <PostScrollableContainer<HTMLDivElement>
                     id={post.id}
                     onIntersect={onPostImageIntersect}
-                    rootMargin="0px -40% 0px -40%"
+                    threshold={0.6}
+                    rootMargin="0px -45% 0px -45%"
                   >
                     {({ ref }) => (
                       <div ref={ref}>
@@ -176,6 +177,7 @@ type ImageContainerProps<U extends Element> = {
   id: string;
   children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
   onIntersect: (element: Element, intersectionId: string) => void;
+  threshold?: number;
   rootMargin?: string;
 };
 
@@ -183,6 +185,7 @@ function PostScrollableContainer<U extends Element>({
   id,
   children,
   onIntersect,
+  threshold = 0,
   rootMargin,
 }: ImageContainerProps<U>) {
   const { isScrollingProgrammatically, containerElement } =
@@ -197,7 +200,7 @@ function PostScrollableContainer<U extends Element>({
     ),
     rootElement: containerElement,
     disabled: isScrollingProgrammatically,
-    threshold: 0.5,
+    threshold,
     rootMargin,
   });
   return children({ ref });
