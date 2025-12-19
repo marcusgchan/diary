@@ -17,9 +17,8 @@ import { usePostActions } from "../hooks/usePostActions";
 import { usePostsSensors } from "../hooks/usePostsSensors";
 import { useDndState } from "../hooks/useDndState";
 import { usePosts } from "../contexts/PostsContext";
-import { useImageScrollTracking } from "../contexts/ImageScrollTrackingContext";
 import { PostListScrollTrackingContextProvider } from "../contexts/PostListScrollTrackingContext";
-import { PostsListHeader } from "./EditPosts";
+import { PostsListHeader } from "./PostsListHeader";
 import type { PostFormImage } from "~/server/lib/types";
 import { Skeleton } from "../../ui/skeleton";
 
@@ -66,10 +65,6 @@ export function PostsHeaderDnd() {
       handleSwapPostById(activeId as string, overId as string);
     },
   });
-  const { scrollToImage, getImageElementsMap } = useImageScrollTracking<
-    HTMLDivElement,
-    HTMLLIElement
-  >();
   const { active } = useDndContext();
   const activePost = active
     ? (state.posts.find((p) => p.id === active.id) ?? null)
@@ -90,10 +85,7 @@ export function PostsHeaderDnd() {
         strategy={horizontalListSortingStrategy}
       >
         <PostListScrollTrackingContextProvider<HTMLUListElement, HTMLLIElement>>
-          <PostsListHeader
-            scrollToImage={scrollToImage}
-            getImageElementsMap={getImageElementsMap}
-          />
+          <PostsListHeader />
         </PostListScrollTrackingContextProvider>
       </SortableContext>
       <DragOverlay>
