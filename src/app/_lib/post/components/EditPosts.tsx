@@ -10,7 +10,13 @@ import React, {
 } from "react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
+import {
+  DndContext,
+  closestCenter,
+  DragOverlay,
+  useDndContext,
+  type UniqueIdentifier,
+} from "@dnd-kit/core";
 import {
   SortableContext,
   horizontalListSortingStrategy,
@@ -35,7 +41,7 @@ import {
 } from "../contexts/PostListScrollTrackingContext";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
-import { useImageDnd } from "../hooks/useImageDnD";
+import { useImageSensors } from "../hooks/useImageSensors";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { Separator } from "../../ui/separator";
@@ -43,35 +49,28 @@ import { Textarea } from "../../ui/textarea";
 
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "../../ui/badge";
-import {
-  PostsDndContextProvider,
-  usePostDnd,
-} from "../contexts/PostsDndContext";
+import { usePostsSensors } from "../hooks/usePostsSensors";
+import { useDndState } from "../hooks/useDndState";
 
 export function EditPosts() {
-  const { handleSwapPostById } = usePostActions();
   return (
-    <PostsDndContextProvider
-      onDragEnd={(activeId, overId) => {
-        handleSwapPostById(activeId as string, overId as string);
-      }}
-    >
-      <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
-        <SelectedPostViewContent />
-      </ImageScrollTrackingContextProvider>
-    </PostsDndContextProvider>
+    <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
+      <SelectedPostViewContent />
+    </ImageScrollTrackingContextProvider>
   );
 }
 
 function SelectedPostViewContent() {
   const api = useTRPC();
   const { state, dispatch } = usePosts();
-  const {
-    activeId,
-    handleDragStart,
-    handleDragEnd,
-    sensors: postSensors,
-  } = usePostDnd();
+  const { handleSwapPostById } = usePostActions();
+
+  const sensors = usePostsSensors();
+  const { activeId, onDragStart, onDragEnd } = useDndState({
+    onDragEnd: (activeId: UniqueIdentifier, overId: UniqueIdentifier) => {
+      handleSwapPostById(activeId as string, overId as string);
+    },
+  });
 
   const activePost = activeId
     ? state.posts.find((p) => p.id === activeId)
@@ -99,12 +98,22 @@ function SelectedPostViewContent() {
     handleImageSelect,
   } = usePostActions();
 
+  const imageSensors = useImageSensors();
   const {
-    sensors: imageSensors,
-    activeImageId,
-    handleImageDragEnd,
-    handleImageDragStart,
-  } = useImageDnd();
+    activeId: activeImageId,
+    onDragStart: handleImageDragStart,
+    onDragEnd: handleImageDragEnd,
+  } = useDndState({
+    onDragEnd: (activeId: UniqueIdentifier, overId: UniqueIdentifier) => {
+      dispatch({
+        type: "REORDER_IMAGES",
+        payload: {
+          activeImageId: activeId as string,
+          overImageId: overId as string,
+        },
+      });
+    },
+  });
 
   const selectedPostForm = state.posts.find((post) => post.isSelected)!;
   const draggedImage = selectedPostForm.images.find(
@@ -165,13 +174,13 @@ function SelectedPostViewContent() {
       </div>
 
       <DndContext
-        sensors={postSensors}
+        sensors={sensors}
         collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        onDragStart={handleDragStart}
         autoScroll={{
           acceleration: 5,
         }}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
       >
         <SortableContext
           items={state.posts.map((post) => ({ id: post.id }))}
@@ -513,8 +522,9 @@ function PostsListHeader({
     },
     [dispatch],
   );
-  const { isDragging } = usePostDnd();
   const { handleEditPost: onEditPost } = usePostActions();
+  const { active } = useDndContext();
+  const isDragging = active !== null;
 
   const spacers = (
     <>

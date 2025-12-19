@@ -41,10 +41,6 @@ export function PostsDndContextProvider({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      // dispatch({
-      //   type: "REORDER_POSTS",
-      //   payload: { activeId: active.id as string, overId: over.id as string },
-      // });
       onDragEnd(active.id, over.id);
     }
 
