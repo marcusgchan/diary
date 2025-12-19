@@ -18,7 +18,7 @@ import { usePostsSensors } from "../hooks/usePostsSensors";
 import { useDndState } from "../hooks/useDndState";
 import { usePosts } from "../contexts/PostsContext";
 import { PostListScrollTrackingContextProvider } from "../contexts/PostListScrollTrackingContext";
-import { PostsListHeader } from "./PostsListHeader";
+import { PostsListHeader as PostSelectionCarousel } from "./PostsListHeader";
 import type { PostFormImage } from "~/server/lib/types";
 import { Skeleton } from "../../ui/skeleton";
 
@@ -85,7 +85,7 @@ export function PostsHeaderDnd() {
         strategy={horizontalListSortingStrategy}
       >
         <PostListScrollTrackingContextProvider<HTMLUListElement, HTMLLIElement>>
-          <PostsListHeader />
+          <PostSelectionCarousel />
         </PostListScrollTrackingContextProvider>
       </SortableContext>
       <DragOverlay>
