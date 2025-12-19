@@ -31,4 +31,3 @@ export function useImageElementsMap<TElement extends HTMLElement>(): {
     setImageElementRef,
   };
 }
-

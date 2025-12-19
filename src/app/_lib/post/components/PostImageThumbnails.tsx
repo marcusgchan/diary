@@ -160,4 +160,3 @@ const ImageRenderer = React.forwardRef<
 
   return <Skeleton ref={ref} className="h-full w-full" />;
 });
-

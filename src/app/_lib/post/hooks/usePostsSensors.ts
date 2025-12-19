@@ -1,4 +1,9 @@
-import { useSensors, useSensor, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
+import {
+  useSensors,
+  useSensor,
+  PointerSensor,
+  KeyboardSensor,
+} from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 export function usePostsSensors() {
@@ -14,4 +19,3 @@ export function usePostsSensors() {
     }),
   );
 }
-

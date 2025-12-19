@@ -71,7 +71,8 @@ export function PostsListHeader() {
                     // Scroll to first image when post is selected
                     if (post.images.length > 0) {
                       const firstImageId = post.images[0]!.id;
-                      const imageElement = getImageElementsMap().get(firstImageId);
+                      const imageElement =
+                        getImageElementsMap().get(firstImageId);
                       if (imageElement) {
                         scrollToImage(imageElement, true);
                       }
@@ -201,4 +202,3 @@ function PostScrollableContainer<U extends Element>({
   });
   return children({ ref });
 }
-
