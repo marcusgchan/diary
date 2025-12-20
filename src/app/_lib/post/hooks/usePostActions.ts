@@ -1,10 +1,8 @@
-import { type ChangeEvent } from "react";
-import { flushSync } from "react-dom";
+import { useCallback, type ChangeEvent } from "react";
 import type {
   PostFormUploadingImage,
   PostForm as Post,
 } from "~/server/lib/types";
-import { type useScrollToImage } from "./useScrollToImage";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "../../ui/use-toast";
@@ -12,25 +10,16 @@ import { useToast } from "../../ui/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePosts } from "../contexts/PostsContext";
 
-type ScrollToImage = ReturnType<typeof useScrollToImage>["scrollToImage"];
-
 export type PostActions = {
-  handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleTitleChange: (value: string) => void;
-  handleDescriptionChange: (value: string) => void;
-  handleStartNewPost: () => void;
-  handleEditPost: (
-    post: Post,
-    scrollToImage: ScrollToImage,
-    imageElement: Element,
-  ) => void;
-  handleDeletePost: () => void;
-  handleImageSelect: (
-    imageId: string,
-    scrollToImage: ScrollToImage,
-    imageElement: Element,
-  ) => void;
-  handleSwapPostById: (activeId: string, overId: string) => void;
+  filesChangeAction: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  titleChangeAction: (value: string) => void;
+  descriptionChangeAction: (value: string) => void;
+  startNewPostAction: () => void;
+  editPostAction: (post: Post) => void;
+  deletePostAction: () => void;
+  imageSelectAction: (imageId: string) => void;
+  swapPostByIdAction: (activeId: string, overId: string) => void;
+  postIntersectAction: (postId: string) => void;
 };
 
 export function usePostActions(): PostActions {
@@ -40,7 +29,7 @@ export function usePostActions(): PostActions {
   const params = useParams();
   const { toast } = useToast();
 
-  async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
+  async function filesChangeAction(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -112,61 +101,59 @@ export function usePostActions(): PostActions {
     dispatch({ type: "ADD_IMAGES", payload });
   }
 
-  function handleTitleChange(value: string) {
+  function titleChangeAction(value: string) {
     dispatch({
       type: "UPDATE_POST",
       payload: { updates: { title: value } },
     });
   }
 
-  function handleDescriptionChange(value: string) {
+  function descriptionChangeAction(value: string) {
     dispatch({
       type: "UPDATE_POST",
       payload: { updates: { description: value } },
     });
   }
 
-  function handleStartNewPost() {
+  function startNewPostAction() {
     dispatch({ type: "START_NEW_POST" });
   }
 
-  function handleEditPost(
-    post: Post,
-    scrollToImage: ScrollToImage,
-    imageElement: Element,
-  ) {
+  function editPostAction(post: Post) {
     dispatch({ type: "START_EDITING", payload: post.id });
-    scrollToImage(imageElement);
   }
 
-  function handleDeletePost() {
+  function deletePostAction() {
     dispatch({ type: "DELETE_CURRENT_POST" });
   }
 
-  function handleImageSelect(
-    imageId: string,
-    scrollToImage: ScrollToImage,
-    imageElement: Element,
-  ) {
+  function imageSelectAction(imageId: string) {
     dispatch({ type: "SELECT_IMAGE", payload: imageId });
-    scrollToImage(imageElement);
   }
 
-  function handleSwapPostById(activeId: string, overId: string) {
+  function swapPostByIdAction(activeId: string, overId: string) {
     dispatch({
       type: "REORDER_POSTS",
       payload: { activeId: activeId, overId: overId },
     });
   }
 
+  const postIntersectAction = useCallback(
+    (postId: string) => {
+      dispatch({ type: "START_EDITING", payload: postId });
+    },
+    [dispatch],
+  );
+
   return {
-    handleFilesChange,
-    handleTitleChange,
-    handleDescriptionChange,
-    handleStartNewPost,
-    handleEditPost,
-    handleDeletePost,
-    handleImageSelect,
-    handleSwapPostById,
+    filesChangeAction,
+    titleChangeAction,
+    descriptionChangeAction,
+    startNewPostAction,
+    editPostAction,
+    deletePostAction,
+    imageSelectAction,
+    swapPostByIdAction,
+    postIntersectAction,
   };
 }

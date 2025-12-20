@@ -15,7 +15,6 @@ import { Badge } from "../../ui/badge";
 
 export function PostsSelectionCarousel() {
   const {
-    dispatch,
     state: { posts },
   } = usePosts();
 
@@ -29,26 +28,19 @@ export function PostsSelectionCarousel() {
     HTMLDivElement,
     HTMLLIElement
   >();
-  const onPostImageIntersect = useCallback(
-    (_element: Element, intersectId: string) => {
-      dispatch({ type: "START_EDITING", payload: intersectId });
-    },
-    [dispatch],
-  );
-  const { handleEditPost: onEditPost } = usePostActions();
+  const { editPostAction, postIntersectAction } = usePostActions();
   const { active } = useDndContext();
   const isDragging = active !== null;
 
   function handleSelectPost(post: PostForm) {
-    onEditPost(
-      post,
-      scrollToPostImage,
-      getPostImageElementsMap().get(post.id)!,
-    );
-    // Scroll to first image when post is selected
+    editPostAction(post);
+    const el = getPostImageElementsMap().get(post.id)!;
+    scrollToPostImage(el);
+
+    // Scroll to first image when clicking same post after selecting non-first image
     if (post.images.length > 0) {
       const firstImageId = post.images[0]!.id;
-      const imageElement = getImageElementsMap().get(firstImageId);
+      const imageElement = getImageElementsMap().get(firstImageId)!;
       if (imageElement) {
         scrollToImage(imageElement, true);
       }
@@ -95,7 +87,7 @@ export function PostsSelectionCarousel() {
                 >
                   <PostScrollableContainer<HTMLDivElement>
                     id={post.id}
-                    onIntersect={onPostImageIntersect}
+                    onIntersect={postIntersectAction}
                     threshold={0.6}
                     rootMargin="0px -45% 0px -45%"
                   >
@@ -173,7 +165,7 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
 type ImageContainerProps<U extends Element> = {
   id: string;
   children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
-  onIntersect: (element: Element, intersectionId: string) => void;
+  onIntersect: (intersectionId: string) => void;
   threshold?: number;
   rootMargin?: string;
 };
@@ -190,8 +182,8 @@ function PostScrollableContainer<U extends Element>({
 
   const { ref } = useIntersectionObserver<HTMLElement, U>({
     onIntersect: useCallback(
-      (element: Element) => {
-        onIntersect(element, id);
+      (_element: Element) => {
+        onIntersect(id);
       },
       [onIntersect, id],
     ),

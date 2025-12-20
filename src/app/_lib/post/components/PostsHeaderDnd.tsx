@@ -58,11 +58,11 @@ function DragOverlayItem({ post }: { post: Post }) {
 
 export function PostsHeaderDnd() {
   const { state } = usePosts();
-  const { handleSwapPostById } = usePostActions();
+  const { swapPostByIdAction } = usePostActions();
   const sensors = usePostsSensors();
   const { onDragStart, onDragEnd } = useDndState({
     onDragEnd: (activeId: UniqueIdentifier, overId: UniqueIdentifier) => {
-      handleSwapPostById(activeId as string, overId as string);
+      swapPostByIdAction(activeId as string, overId as string);
     },
   });
   const { active } = useDndContext();

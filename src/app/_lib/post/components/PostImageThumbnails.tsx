@@ -26,7 +26,7 @@ export function PostImageThumbnails() {
     HTMLDivElement,
     HTMLLIElement
   >();
-  const { handleImageSelect } = usePostActions();
+  const { imageSelectAction } = usePostActions();
 
   const imageSensors = useImageSensors();
   const {
@@ -70,9 +70,10 @@ export function PostImageThumbnails() {
                     <button
                       type="button"
                       onClick={() => {
+                        imageSelectAction(image.id);
                         const element = getImageElementsMap().get(image.id);
                         if (element) {
-                          handleImageSelect(image.id, scrollToImage, element);
+                          scrollToImage(element);
                         }
                       }}
                       {...props.listeners}

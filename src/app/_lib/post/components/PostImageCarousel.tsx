@@ -21,7 +21,7 @@ import type { PostFormImage } from "~/server/lib/types";
 
 export function PostImageCarousel() {
   const { state, dispatch } = usePosts();
-  const { handleFilesChange } = usePostActions();
+  const { filesChangeAction } = usePostActions();
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const selectedPostForm = state.posts.find((post) => post.isSelected)!;
@@ -42,7 +42,7 @@ export function PostImageCarousel() {
     const mockEvent = {
       target: { files },
     } as ChangeEvent<HTMLInputElement>;
-    void handleFilesChange(mockEvent);
+    void filesChangeAction(mockEvent);
   };
 
   return (
@@ -66,7 +66,7 @@ export function PostImageCarousel() {
                     ref={imageInputRef}
                     id="image-upload"
                     type="file"
-                    onChange={handleFilesChange}
+                    onChange={filesChangeAction}
                     multiple
                     accept="image/*"
                     className="sr-only"

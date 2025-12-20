@@ -29,11 +29,11 @@ function SelectedPostViewContent() {
   const { state, dispatch } = usePosts();
 
   const {
-    handleStartNewPost,
-    handleDeletePost,
-    handleFilesChange,
-    handleTitleChange,
-    handleDescriptionChange,
+    startNewPostAction,
+    deletePostAction,
+    filesChangeAction,
+    titleChangeAction,
+    descriptionChangeAction,
   } = usePostActions();
 
   const selectedPostForm = state.posts.find((post) => post.isSelected)!;
@@ -78,7 +78,7 @@ function SelectedPostViewContent() {
     <div className="mx-auto flex w-full max-w-sm flex-col items-stretch gap-2 rounded-xl bg-card p-6 text-card-foreground">
       <div className="flex items-center justify-between self-stretch">
         <h3>Posts</h3>
-        <Button type="button" variant="outline" onClick={handleStartNewPost}>
+        <Button type="button" variant="outline" onClick={startNewPostAction}>
           Add
         </Button>
       </div>
@@ -106,7 +106,7 @@ function SelectedPostViewContent() {
           <input
             ref={imageInputRef}
             type="file"
-            onChange={handleFilesChange}
+            onChange={filesChangeAction}
             multiple
             accept="image/*"
             className="sr-only"
@@ -138,18 +138,18 @@ function SelectedPostViewContent() {
       <Input
         placeholder="Title..."
         value={selectedPostForm.title}
-        onChange={(e) => handleTitleChange(e.target.value)}
+        onChange={(e) => titleChangeAction(e.target.value)}
       />
       <Textarea
         placeholder="Description..."
         className="h-[100px] resize-none p-2"
         value={selectedPostForm.description}
-        onChange={(e) => handleDescriptionChange(e.target.value)}
+        onChange={(e) => descriptionChangeAction(e.target.value)}
       />
       <div className="flex items-center">
         {state.posts.length > 1 && (
           <Button
-            onClick={handleDeletePost}
+            onClick={deletePostAction}
             variant="destructive"
             type="button"
           >
