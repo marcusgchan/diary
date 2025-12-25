@@ -6,6 +6,7 @@ import { EditPosts } from "./EditPosts";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { usePosts } from "../contexts/PostsContext";
 import { PostListsSkeletion } from "./PostsListSkeleton";
+import { env } from "~/env.mjs";
 
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
@@ -31,14 +32,15 @@ export function Posts() {
   const params = useParams();
   const entryId = Number(params.entryId);
   const api = useTRPC();
-  const { data, isPending } = useQuery(
-    api.diary.getPosts.queryOptions({ entryId }),
-  );
-  const { isPending: imagesPending } = useQuery(
-    api.diary.getImagesByEntryId.queryOptions({ entryId }),
-  );
+  const { data } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
 
-  const isLoading = isPending || imagesPending;
+  if (data && data.length === 0) {
+    return (
+      <div className="overflow-y-auto">
+        <PostsSection />
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-y-auto">
@@ -47,13 +49,7 @@ export function Posts() {
           <PostsSection />
         </section>
         <section className="h-full [grid-area:map]">
-          {isLoading ? (
-            <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
-              <MapSkeleton />
-            </div>
-          ) : (
-            data && data.length > 0 && <MapSection />
-          )}
+          <MapSection />
         </section>
       </div>
     </div>
@@ -64,13 +60,37 @@ function MapSection() {
   const params = useParams();
   const entryId = Number(params.entryId);
   const api = useTRPC();
-  const { data: images } = useQuery(
-    api.diary.getImagesByEntryId.queryOptions({ entryId }),
+  const { data: images, isPending } = useQuery(
+    api.diary.getImagesWithLocationByEntryId.queryOptions({ entryId }),
   );
+
+  const defaultCenter = useMemo(() => {
+    if (!images) {
+      return { lat: 0, lng: 0 };
+    }
+
+    const coordinates = images.features.map(
+      (feature) => feature.geometry.coordinates,
+    );
+    const avgLng =
+      coordinates.reduce((sum, [lng]) => sum + lng, 0) / coordinates.length;
+    const avgLat =
+      coordinates.reduce((sum, [, lat]) => sum + lat, 0) / coordinates.length;
+
+    return { lat: avgLat, lng: avgLng };
+  }, [images]);
+
+  if (isPending) {
+    return (
+      <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
+        <MapSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto h-full w-full lg:max-w-none">
-      <InteractiveMap>
+      <InteractiveMap defaultCenter={defaultCenter}>
         {images && <ImageClusters geoJson={images} />}
       </InteractiveMap>
     </div>
@@ -112,7 +132,7 @@ function PostsSection() {
             api.diary.getPosts.queryFilter({ entryId }),
           ),
           queryClient.invalidateQueries(
-            api.diary.getImagesByEntryId.queryFilter({ entryId }),
+            api.diary.getImagesWithLocationByEntryId.queryFilter({ entryId }),
           ),
         ]);
       },

@@ -77,6 +77,7 @@ export interface GeoJson<TFeature extends GeoJsonFeature> {
 
 export interface GeoJsonFeature {
   type: "Feature";
+  id: string | number;
   geometry: {
     type: "Point";
     coordinates: [number, number];

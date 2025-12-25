@@ -42,4 +42,3 @@ export function Curve({
     </svg>
   );
 }
-
