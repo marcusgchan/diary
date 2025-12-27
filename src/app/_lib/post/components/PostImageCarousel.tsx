@@ -97,7 +97,7 @@ const ImageRenderer = React.forwardRef<
       <img
         ref={ref}
         src={`/api/image/${image.key}`}
-        className="pointer-events-none h-full w-full object-cover"
+        className="pointer-events-none h-full w-full rounded object-cover"
         alt={image.name}
       />
     );
@@ -107,7 +107,7 @@ const ImageRenderer = React.forwardRef<
     return (
       <div
         ref={ref}
-        className="h-full w-full content-center items-center bg-red-200 p-2 text-center"
+        className="h-full w-full content-center items-center rounded bg-red-200 p-2 text-center"
       >
         {showErrorText && (
           <p>There was a problem uploading image: {stripUuid(image.name)}</p>
@@ -116,5 +116,5 @@ const ImageRenderer = React.forwardRef<
     );
   }
 
-  return <Skeleton className="h-full w-full" />;
+  return <Skeleton className="h-full w-full rounded" />;
 });
