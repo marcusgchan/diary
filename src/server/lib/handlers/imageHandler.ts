@@ -200,6 +200,7 @@ export async function getImagesByEntryId(
     features: successfulImages.map((image) => {
       return {
         type: "Feature",
+        id: image.id,
         geometry: {
           type: "Point",
           coordinates: [image.longitude, image.lattitude],

@@ -1,46 +1,53 @@
-import { type RefObject, useRef, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export type IntersectionObserverReturn<T extends Element> = {
-  ref: RefObject<T | null>;
+  ref: (node: T | null) => void;
 };
 
 export type IntersectionObserverResult<T extends Element> = {
-  onIntersect: (element: Element, intersectId: string) => void;
-  rootElement: T;
-  intersectId: string;
+  onIntersect: (element: Element) => void;
+  rootElement: T | null;
   disabled?: boolean;
+  threshold?: number;
+  rootMargin?: string;
 };
 
 export function useIntersectionObserver<T extends Element, U extends Element>({
   onIntersect,
-  intersectId,
   disabled,
   rootElement,
+  threshold = 0,
+  rootMargin,
 }: IntersectionObserverResult<T>): IntersectionObserverReturn<U> {
-  const ref = useRef<U>(null);
+  const [element, setElement] = useState<U | null>(null);
 
   useEffect(() => {
     if (disabled) return;
-    const element = ref.current;
-    if (element === null) {
-      throw new Error("Missing element ref. Did you forget to set the ref?");
-    }
+    if (element === null) return;
+    if (rootElement === null) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const centerEntry = entries.find(
-          (entry) => entry.intersectionRatio > 0.8,
+        // Find the entry with the highest intersection ratio (most centered)
+        const centerEntry = entries.reduce(
+          (max, entry) =>
+            entry.intersectionRatio >= threshold &&
+            entry.intersectionRatio > (max?.intersectionRatio ?? 0)
+              ? entry
+              : max,
+          null as IntersectionObserverEntry | null,
         );
         if (centerEntry) {
           const element = centerEntry.target;
           if (element) {
-            onIntersect(element, intersectId);
+            onIntersect(element);
           }
         }
       },
       {
         root: rootElement,
-        threshold: 0.8,
+        threshold: threshold,
+        rootMargin: rootMargin,
       },
     );
 
@@ -49,7 +56,11 @@ export function useIntersectionObserver<T extends Element, U extends Element>({
     return () => {
       observer.disconnect();
     };
-  }, [onIntersect, disabled, rootElement, intersectId]);
+  }, [onIntersect, disabled, rootElement, element, threshold, rootMargin]);
 
-  return { ref: ref };
+  const setRef = useCallback((node: U | null) => {
+    setElement(node);
+  }, []);
+
+  return { ref: setRef };
 }

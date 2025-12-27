@@ -210,7 +210,7 @@ export const diaryRouter = createTRPCRouter({
     }),
 
   // Map endpoints
-  getImagesByEntryId: protectedProcedure
+  getImagesWithLocationByEntryId: protectedProcedure
     .input(getImagesByEntryIdSchema)
     .query(async ({ ctx, input }) => {
       return await getImagesByEntryId(ctx, input);
