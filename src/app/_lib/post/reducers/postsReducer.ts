@@ -24,6 +24,8 @@ export type PostsAction =
   | { type: "SELECT_IMAGE"; payload: string }
   | { type: "DELETE_CURRENT_POST" }
   | { type: "REORDER_POSTS"; payload: { activeId: string; overId: string } }
+  | { type: "SELECT_NEXT_POST" }
+  | { type: "SELECT_PREVIOUS_POST" }
   | {
       type: "REORDER_IMAGES";
       payload: { activeImageId: string; overImageId: string };
@@ -233,6 +235,66 @@ export function postsReducer(
         ...state,
         posts: postsWithUpdatedOrder,
       };
+    }
+
+    case "SELECT_NEXT_POST": {
+      const selectedPostIndex = state.posts.findIndex(
+        (post) => post.isSelected,
+      );
+      if (selectedPostIndex === state.posts.length - 1) {
+        return state;
+      }
+
+      const nextPostIndex = selectedPostIndex + 1;
+
+      const newPosts = state.posts.map((post, postIndex) => {
+        if (postIndex === nextPostIndex) {
+          const images = post.images.map((image, i) => {
+            if (i === 0) {
+              return { ...image, isSelected: true };
+            }
+            return { ...image, isSelected: false };
+          });
+
+          return { ...post, isSelected: true, images };
+        }
+        const images = post.images.map((image, i) => {
+          return { ...image, isSelected: false };
+        });
+        return { ...post, isSelected: false, images };
+      });
+
+      return { ...state, posts: newPosts };
+    }
+
+    case "SELECT_PREVIOUS_POST": {
+      const selectedPostIndex = state.posts.findIndex(
+        (post) => post.isSelected,
+      );
+      if (selectedPostIndex === 0) {
+        return state;
+      }
+
+      const previousPostIndex = selectedPostIndex - 1;
+
+      const newPosts = state.posts.map((post, postIndex) => {
+        if (postIndex === previousPostIndex) {
+          const images = post.images.map((image, i) => {
+            if (i === 0) {
+              return { ...image, isSelected: true };
+            }
+            return { ...image, isSelected: false };
+          });
+
+          return { ...post, isSelected: true, images };
+        }
+        const images = post.images.map((image) => {
+          return { ...image, isSelected: false };
+        });
+        return { ...post, isSelected: false, images };
+      });
+
+      return { ...state, posts: newPosts };
     }
 
     case "REORDER_IMAGES": {

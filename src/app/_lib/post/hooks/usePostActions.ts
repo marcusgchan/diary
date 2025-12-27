@@ -20,6 +20,8 @@ export type PostActions = {
   imageSelectAction: (imageId: string) => void;
   swapPostByIdAction: (activeId: string, overId: string) => void;
   postIntersectAction: (postId: string) => void;
+  nextPostAction: () => void;
+  previousPostAction: () => void;
 };
 
 export function usePostActions(): PostActions {
@@ -145,6 +147,14 @@ export function usePostActions(): PostActions {
     [dispatch],
   );
 
+  function nextPostAction() {
+    dispatch({ type: "SELECT_NEXT_POST" });
+  }
+
+  function previousPostAction() {
+    dispatch({ type: "SELECT_PREVIOUS_POST" });
+  }
+
   return {
     filesChangeAction,
     titleChangeAction,
@@ -155,5 +165,7 @@ export function usePostActions(): PostActions {
     imageSelectAction,
     swapPostByIdAction,
     postIntersectAction,
+    nextPostAction,
+    previousPostAction,
   };
 }
