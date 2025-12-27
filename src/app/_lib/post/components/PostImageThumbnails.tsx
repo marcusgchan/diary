@@ -189,7 +189,7 @@ export function PostImageThumbnails() {
                             ref={ref}
                             {...props.listeners}
                             {...props.attributes}
-                            className="h-10 w-10 cursor-grab overflow-hidden active:cursor-grabbing"
+                            className="h-10 w-10 cursor-grab active:cursor-grabbing"
                           >
                             <ImageRenderer image={image} />
                           </div>
@@ -280,7 +280,7 @@ const ImageRenderer = React.forwardRef<
       <img
         ref={ref}
         src={`/api/image/${image.key}`}
-        className="pointer-events-none h-full w-full object-cover"
+        className="pointer-events-none h-full w-full rounded object-cover"
         alt={image.name}
       />
     );
