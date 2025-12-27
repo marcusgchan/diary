@@ -20,6 +20,7 @@ export default function InteractiveMap({
       defaultZoom={defaultZoom}
       defaultCenter={defaultCenter}
       mapId={env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
+      gestureHandling="cooperative"
       style={{ width: "100%", height: "100%" }}
       onZoomChanged={(zoom) => {
         if (typeof zoom === "number" && onZoomChanged) {
