@@ -53,4 +53,3 @@ function degreesPerPixel(zoomLevel: number) {
   // 360° divided by the number of pixels at the zoom-level
   return 360 / (Math.pow(2, zoomLevel) * 256);
 }
-

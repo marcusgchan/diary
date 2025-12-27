@@ -85,8 +85,7 @@ export const env = createEnv({
     GOOGLE_EMAIL_PASSWORD: process.env.GOOGLE_EMAIL_PASSWORD,
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-    NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID:
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID,
+    NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
