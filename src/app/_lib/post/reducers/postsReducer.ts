@@ -26,6 +26,8 @@ export type PostsAction =
   | { type: "REORDER_POSTS"; payload: { activeId: string; overId: string } }
   | { type: "SELECT_NEXT_POST" }
   | { type: "SELECT_PREVIOUS_POST" }
+  | { type: "SELECT_NEXT_IMAGE" }
+  | { type: "SELECT_PREVIOUS_IMAGE" }
   | {
       type: "REORDER_IMAGES";
       payload: { activeImageId: string; overImageId: string };
@@ -295,6 +297,66 @@ export function postsReducer(
       });
 
       return { ...state, posts: newPosts };
+    }
+
+    case "SELECT_NEXT_IMAGE": {
+      const selectedPost = state.posts.find((post) => post.isSelected);
+      if (!selectedPost) return state;
+
+      const selectedImageIndex = selectedPost.images.findIndex(
+        (image) => image.isSelected,
+      );
+      if (selectedImageIndex === selectedPost.images.length - 1) {
+        return state;
+      }
+
+      const nextImageIndex = selectedImageIndex + 1;
+
+      return {
+        ...state,
+        posts: state.posts.map((post) => {
+          if (post.isSelected) {
+            return {
+              ...post,
+              images: post.images.map((image, i) => ({
+                ...image,
+                isSelected: i === nextImageIndex,
+              })),
+            };
+          }
+          return post;
+        }),
+      };
+    }
+
+    case "SELECT_PREVIOUS_IMAGE": {
+      const selectedPost = state.posts.find((post) => post.isSelected);
+      if (!selectedPost) return state;
+
+      const selectedImageIndex = selectedPost.images.findIndex(
+        (image) => image.isSelected,
+      );
+      if (selectedImageIndex === 0) {
+        return state;
+      }
+
+      const previousImageIndex = selectedImageIndex - 1;
+
+      return {
+        ...state,
+        posts: state.posts.map((post) => {
+          if (post.isSelected) {
+            return {
+              ...post,
+              images: post.images.map((image, i) => ({
+                ...image,
+                isSelected: i === previousImageIndex,
+              })),
+            };
+          }
+          return post;
+        }),
+      };
     }
 
     case "REORDER_IMAGES": {

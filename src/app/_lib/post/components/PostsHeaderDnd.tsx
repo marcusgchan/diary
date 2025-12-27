@@ -3,9 +3,9 @@ import {
   DndContext,
   closestCenter,
   DragOverlay,
-  useDndContext,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
+import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import {
   SortableContext,
   horizontalListSortingStrategy,
@@ -60,20 +60,21 @@ export function PostsHeaderDnd() {
   const { state } = usePosts();
   const { swapPostByIdAction } = usePostActions();
   const sensors = usePostsSensors();
-  const { onDragStart, onDragEnd } = useDndState({
+  const { activeId, onDragStart, onDragEnd } = useDndState({
     onDragEnd: (activeId: UniqueIdentifier, overId: UniqueIdentifier) => {
       swapPostByIdAction(activeId as string, overId as string);
     },
   });
-  const { active } = useDndContext();
-  const activePost = active
-    ? (state.posts.find((p) => p.id === active.id) ?? null)
+
+  const activePost = activeId
+    ? (state.posts.find((p) => p.id === activeId) ?? null)
     : null;
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      modifiers={[restrictToHorizontalAxis]}
       autoScroll={{
         acceleration: 5,
       }}
@@ -84,7 +85,7 @@ export function PostsHeaderDnd() {
         items={state.posts.map((post) => ({ id: post.id }))}
         strategy={horizontalListSortingStrategy}
       >
-        <PostListScrollTrackingContextProvider<HTMLUListElement, HTMLLIElement>>
+        <PostListScrollTrackingContextProvider>
           <PostsSelectionCarousel />
         </PostListScrollTrackingContextProvider>
       </SortableContext>

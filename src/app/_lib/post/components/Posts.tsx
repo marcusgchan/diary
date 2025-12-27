@@ -297,7 +297,7 @@ function PostImageContent({ post }: { post: Post }) {
     containerRef,
     getImageElementsMap: getImgsMap,
     setImageElementRef,
-  } = useImageScrollTracking<HTMLUListElement, HTMLLIElement>();
+  } = useImageScrollTracking();
 
   const [selectedImageId, setSelectedImageId] = useState(post.images[0]!.id);
   const onIntersect = useCallback(

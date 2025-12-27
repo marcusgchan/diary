@@ -18,10 +18,13 @@ export type PostActions = {
   editPostAction: (post: Post) => void;
   deletePostAction: () => void;
   imageSelectAction: (imageId: string) => void;
+  imageIntersectAction: (imageId: string) => void;
   swapPostByIdAction: (activeId: string, overId: string) => void;
   postIntersectAction: (postId: string) => void;
   nextPostAction: () => void;
   previousPostAction: () => void;
+  nextImageAction: () => void;
+  previousImageAction: () => void;
 };
 
 export function usePostActions(): PostActions {
@@ -155,6 +158,21 @@ export function usePostActions(): PostActions {
     dispatch({ type: "SELECT_PREVIOUS_POST" });
   }
 
+  function nextImageAction() {
+    dispatch({ type: "SELECT_NEXT_IMAGE" });
+  }
+
+  function previousImageAction() {
+    dispatch({ type: "SELECT_PREVIOUS_IMAGE" });
+  }
+
+  const imageIntersectAction = useCallback(
+    (imageId: string) => {
+      dispatch({ type: "SELECT_IMAGE", payload: imageId });
+    },
+    [dispatch],
+  );
+
   return {
     filesChangeAction,
     titleChangeAction,
@@ -163,9 +181,12 @@ export function usePostActions(): PostActions {
     editPostAction,
     deletePostAction,
     imageSelectAction,
+    imageIntersectAction,
     swapPostByIdAction,
     postIntersectAction,
     nextPostAction,
     previousPostAction,
+    nextImageAction,
+    previousImageAction,
   };
 }

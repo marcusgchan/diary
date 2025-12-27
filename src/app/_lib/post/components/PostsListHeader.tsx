@@ -27,11 +27,8 @@ export function PostsSelectionCarousel() {
     containerRef: scrollPostContainerRef,
     setImageElementRef,
     getImageElementsMap: getPostImageElementsMap,
-  } = usePostListScrollTracking<HTMLUListElement, HTMLLIElement>();
-  const { scrollToImage, getImageElementsMap } = useImageScrollTracking<
-    HTMLDivElement,
-    HTMLLIElement
-  >();
+  } = usePostListScrollTracking();
+  const { scrollToImage, getImageElementsMap } = useImageScrollTracking();
   const {
     nextPostAction,
     previousPostAction,
@@ -144,6 +141,7 @@ export function PostsSelectionCarousel() {
                       onIntersect={postIntersectAction}
                       threshold={0.6}
                       rootMargin="0px -45% 0px -45%"
+                      disabled={isDragging}
                     >
                       {({ ref }) => (
                         <div ref={ref}>
@@ -223,6 +221,7 @@ type ImageContainerProps<U extends Element> = {
   onIntersect: (intersectionId: string) => void;
   threshold?: number;
   rootMargin?: string;
+  disabled?: boolean;
 };
 
 function PostScrollableContainer<U extends Element>({
@@ -231,6 +230,7 @@ function PostScrollableContainer<U extends Element>({
   onIntersect,
   threshold = 0,
   rootMargin,
+  disabled = false,
 }: ImageContainerProps<U>) {
   const { isScrollingProgrammatically, containerElement } =
     usePostListScrollTracking();
@@ -243,7 +243,7 @@ function PostScrollableContainer<U extends Element>({
       [onIntersect, id],
     ),
     rootElement: containerElement,
-    disabled: isScrollingProgrammatically,
+    disabled: isScrollingProgrammatically || disabled,
     threshold,
     rootMargin,
   });
