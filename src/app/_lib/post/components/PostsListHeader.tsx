@@ -60,7 +60,6 @@ export function PostsSelectionCarousel() {
   function handlePreviousPost() {
     previousPostAction();
     const previousPostIndex = posts.findIndex((post) => post.isSelected) - 1;
-    console.log({ previousPostIndex });
     const el = getPostImageElementsMap().get(posts[previousPostIndex]!.id)!;
     scrollToPostImage(el);
   }
@@ -68,7 +67,6 @@ export function PostsSelectionCarousel() {
   function handleNextPost() {
     nextPostAction();
     const nextPostIndex = posts.findIndex((post) => post.isSelected) + 1;
-    console.log({ previousPostIndex: nextPostIndex });
     const el = getPostImageElementsMap().get(posts[nextPostIndex]!.id)!;
     scrollToPostImage(el);
   }
@@ -141,7 +139,7 @@ export function PostsSelectionCarousel() {
                       post.isSelected && "border-blue-400 ring-1 ring-blue-300",
                     )}
                   >
-                    <PostScrollableContainer<HTMLDivElement>
+                    <PostScrollableContainer
                       id={post.id}
                       onIntersect={postIntersectAction}
                       threshold={0.6}

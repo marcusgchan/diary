@@ -84,7 +84,7 @@ export function DropzoneContent({
   return (
     <Label
       htmlFor={id}
-      className="grid h-full w-full cursor-pointer content-center justify-center gap-1 rounded border-2 border-dashed p-4 text-center text-accent-foreground backdrop-blur-sm  [grid-auto-rows:max-content]"
+      className="grid h-full w-full cursor-pointer content-center items-center justify-center justify-items-center gap-1 rounded border-2 border-dashed p-4 text-center text-accent-foreground backdrop-blur-sm  [grid-auto-rows:max-content]"
     >
       {children}
     </Label>
