@@ -215,27 +215,27 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
   return <Skeleton className="h-full w-full" />;
 }
 
-type ImageContainerProps<U extends Element> = {
+type ImageContainerProps = {
   id: string;
-  children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
+  children: ({ ref }: { ref: (node: Element | null) => void }) => ReactNode;
   onIntersect: (intersectionId: string) => void;
   threshold?: number;
   rootMargin?: string;
   disabled?: boolean;
 };
 
-function PostScrollableContainer<U extends Element>({
+function PostScrollableContainer({
   id,
   children,
   onIntersect,
   threshold = 0,
   rootMargin,
   disabled = false,
-}: ImageContainerProps<U>) {
+}: ImageContainerProps) {
   const { isScrollingProgrammatically, containerElement } =
     usePostListScrollTracking();
 
-  const { ref } = useIntersectionObserver<HTMLElement, U>({
+  const { ref } = useIntersectionObserver({
     onIntersect: useCallback(
       (_element: Element) => {
         onIntersect(id);
