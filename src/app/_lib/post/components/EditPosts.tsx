@@ -1,5 +1,5 @@
 "use client";
-import { Image as ImageIcon, MapPin, Trash, X } from "lucide-react";
+import { Image as ImageIcon, Trash, X } from "lucide-react";
 import React, { useRef, useEffect } from "react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PostsHeaderDnd } from "./PostsHeaderDnd";
 import { PostImageCarousel } from "./PostImageCarousel";
 import { PostImageThumbnails } from "./PostImageThumbnails";
+import { LocationDrawer } from "./LocationDrawer";
 
 export function EditPosts() {
   return (
@@ -129,12 +130,13 @@ function SelectedPostViewContent() {
           Delete Image
         </button>
       )}
+
       <Separator />
-      <button type="button" className="flex gap-1 text-muted-foreground">
-        <MapPin />
-        Edit Images Location
-      </button>
+
+      <LocationDrawer />
+
       <Separator />
+
       <Input
         placeholder="Title..."
         value={selectedPostForm.title}

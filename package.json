@@ -69,6 +69,7 @@
     "class-variance-authority": "^0.7.1",
     "client-only": "^0.0.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.36.4",
     "exifreader": "^4.28.1",
@@ -91,6 +92,7 @@
     "superjson": "^2.2.2",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "vaul": "^1.1.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {
