@@ -18,12 +18,13 @@ import {
 } from "@/_lib/ui/popover";
 import { useAutocompleteSuggestions } from "../hooks/useAutocompleteSuggestions";
 import { useMap } from "@vis.gl/react-google-maps";
+import { Skeleton } from "../../ui/skeleton";
 
 export function SearchPlaceCombobox() {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [selectedPlace, setSelectedPlace] = React.useState();
+  const [selectedPlace, setSelectedPlace] = React.useState("");
 
   const { suggestions, resetSession, isLoading } =
     useAutocompleteSuggestions(value);
@@ -36,7 +37,7 @@ export function SearchPlaceCombobox() {
   );
 
   const map = useMap();
-  console.log("value", !value, "suggestion length", suggestions.length);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -44,31 +45,33 @@ export function SearchPlaceCombobox() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between bg-background"
+          className="mt-4 w-[200px] justify-between bg-background"
         >
-          {selectedPlace ?? "Search place"}
+          {selectedPlace || "Search place"}
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContentInline className="w-[200px] p-0">
+      <PopoverContentInline className="w-[200px]">
         <Command shouldFilter={false}>
           <CommandInput
             ref={inputRef}
+            className="outline-none"
             placeholder="Search for a place..."
             value={value}
             onValueChange={setValue}
           />
           <CommandList>
-            {!value && suggestions.length === 0 && (
+            {!isLoading && !value && suggestions.length === 0 && (
               <CommandEmpty>No Place Found</CommandEmpty>
             )}
+
             <CommandGroup>
               {predictions.map((prediction) => {
                 return (
                   <CommandItem
                     value={prediction.placeId}
                     onSelect={async () => {
-                      setSelectedPlace(prediction.mainText?.text);
+                      setSelectedPlace(prediction.mainText!.text);
                       setValue("");
                       setOpen(false);
 
@@ -76,7 +79,7 @@ export function SearchPlaceCombobox() {
                         .toPlace()
                         .fetchFields({ fields: ["location"] });
 
-                      map!.panTo(fields.place.location);
+                      map!.panTo(fields.place.location!);
                       map!.setZoom(15);
 
                       resetSession();
