@@ -28,4 +28,3 @@ export function LocationMarker({ position }: LocationMarkerProps) {
     </AdvancedMarker>
   );
 }
-
