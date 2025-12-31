@@ -10,6 +10,9 @@ export type GetPostFormQuery = {
   title: string;
   description: string;
   order: number;
+  address: string | null;
+  longitude: number | null;
+  latitude: number | null;
   image: {
     id: string;
     name: string;
@@ -67,6 +70,9 @@ export type PostForm = {
   description: string;
   order: number;
   isSelected: boolean;
+  address?: string | null;
+  longitude?: number | null;
+  latitude?: number | null;
   images: PostFormImage[];
 };
 

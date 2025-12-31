@@ -40,7 +40,24 @@ export function EditPostsSection() {
       return;
     }
 
-    mutation.mutate({ entryId, posts: state.posts });
+    // Filter out location fields when they're null/undefined
+    // Only include location fields when all three are present
+    const postsToSend = state.posts.map((post) => {
+      const { address, longitude, latitude, ...rest } = post;
+      const hasCompleteLocation =
+        address !== null &&
+        address !== undefined &&
+        longitude !== null &&
+        longitude !== undefined &&
+        latitude !== null &&
+        latitude !== undefined;
+
+      return hasCompleteLocation
+        ? { ...rest, address, longitude, latitude }
+        : rest;
+    });
+
+    mutation.mutate({ entryId, posts: postsToSend });
   }
 
   function handleBack() {

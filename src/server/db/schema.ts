@@ -169,6 +169,16 @@ export const posts = pgTable("posts", {
 });
 export type Posts = typeof posts.$inferSelect;
 
+export const postLocations = pgTable("post_locations", {
+  postId: uuid("post_id")
+    .references(() => posts.id, { onDelete: "cascade" })
+    .primaryKey(),
+  address: text("address").notNull(),
+  longitude: doublePrecision("longitude").notNull(),
+  latitude: doublePrecision("latitude").notNull(),
+});
+export type PostLocations = typeof postLocations.$inferSelect;
+
 export const postImages = pgTable("post_images", {
   id: uuid("id").primaryKey(),
   postId: uuid("post_id")
