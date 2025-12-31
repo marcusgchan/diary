@@ -66,6 +66,12 @@ export const createPostSchema = z.object({
 });
 export type CreatePost = z.infer<typeof createPostSchema>;
 
+const locationSchema = z.object({
+  address: z.string(),
+  longitude: z.number(),
+  latitude: z.number(),
+});
+
 export const updatePostSchema = z.object({
   entryId: z.number(),
   posts: z
@@ -73,9 +79,7 @@ export const updatePostSchema = z.object({
       id: z.string(),
       title: z.string(),
       description: z.string(),
-      address: z.string().optional(),
-      longitude: z.number().optional(),
-      latitude: z.number().optional(),
+      location: locationSchema.optional(),
       images: z
         .object({
           id: z.string(),
@@ -84,24 +88,6 @@ export const updatePostSchema = z.object({
         })
         .array(),
     })
-    .refine(
-      (post) => {
-        // If any location field is provided, all must be provided
-        const hasLocation =
-          post.address !== undefined ||
-          post.longitude !== undefined ||
-          post.latitude !== undefined;
-        if (!hasLocation) return true; // No location is fine
-        return (
-          post.address !== undefined &&
-          post.longitude !== undefined &&
-          post.latitude !== undefined
-        );
-      },
-      {
-        message: "Location must include address, longitude, and latitude",
-      },
-    )
     .array(),
 });
 export type UpdatePost = z.infer<typeof updatePostSchema>;

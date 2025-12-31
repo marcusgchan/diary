@@ -34,25 +34,8 @@ export function LocationDrawer() {
   const post = state.posts.find((post) => post.isSelected)!;
 
   // Initialize selected location from post's existing location
-  // Only create if we have coordinates AND address (complete location)
-  const initialLocation = useMemo(() => {
-    const postLng: number | null | undefined = post.longitude;
-    const postLat: number | null | undefined = post.latitude;
-    if (
-      postLng !== null &&
-      postLng !== undefined &&
-      postLat !== null &&
-      postLat !== undefined &&
-      post.address
-    ) {
-      return {
-        address: post.address,
-        longitude: Number(postLng),
-        latitude: Number(postLat),
-      };
-    }
-    return null;
-  }, [post.longitude, post.latitude, post.address]);
+  // location is all-or-nothing due to DB constraints
+  const initialLocation = post.location ?? null;
 
   // State for selected location (always has address when it exists)
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -79,15 +62,8 @@ export function LocationDrawer() {
   // Initialize with post's existing location or calculate from images
   const averageCoordinates = useMemo(() => {
     // If post has location, use it
-    const postLng: number | null | undefined = post.longitude;
-    const postLat: number | null | undefined = post.latitude;
-    if (
-      postLng !== null &&
-      postLng !== undefined &&
-      postLat !== null &&
-      postLat !== undefined
-    ) {
-      return { lng: Number(postLng), lat: Number(postLat) };
+    if (post.location) {
+      return { lng: post.location.longitude, lat: post.location.latitude };
     }
 
     // Otherwise calculate from images
@@ -229,9 +205,7 @@ export function LocationDrawer() {
       type: "UPDATE_POST",
       payload: {
         updates: {
-          address: selectedLocation.address,
-          longitude: selectedLocation.longitude,
-          latitude: selectedLocation.latitude,
+          location: selectedLocation,
         },
       },
     });
@@ -244,14 +218,7 @@ export function LocationDrawer() {
     : (averageCoordinates ?? { lng: 0, lat: 0 });
 
   // Compute initial zoom from post data - always use 15 for saved locations, 10 for average
-  const initialZoom = useMemo(() => {
-    const postLng = post.longitude;
-    const postLat = post.latitude;
-    if (postLng != undefined && postLat != null && post.address) {
-      return 15;
-    }
-    return 10;
-  }, [post.longitude, post.latitude, post.address]);
+  const initialZoom = post.location ? 15 : 10;
 
   // Track zoom level to maintain consistency when drawer reopens
   // Map remounts when drawer closes, so we need to persist zoom state

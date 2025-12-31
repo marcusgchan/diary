@@ -1,7 +1,16 @@
+export type PostLocation = {
+  address: string;
+  longitude: number;
+  latitude: number;
+};
+
 export type GetPostQuery = {
   id: string;
   title: string;
   description: string;
+  address: string | null;
+  longitude: number | null;
+  latitude: number | null;
   image: { id: string; key: string; name: string };
 };
 
@@ -33,6 +42,7 @@ export type Post = {
   id: string;
   title: string;
   description: string;
+  location: PostLocation | null;
   images: PostImage[];
 };
 
@@ -70,9 +80,7 @@ export type PostForm = {
   description: string;
   order: number;
   isSelected: boolean;
-  address?: string | null;
-  longitude?: number | null;
-  latitude?: number | null;
+  location?: PostLocation | null;
   images: PostFormImage[];
 };
 

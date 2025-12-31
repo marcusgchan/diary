@@ -6,7 +6,6 @@ import { EditPosts } from "./EditPosts";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { usePosts } from "../contexts/PostsContext";
 import { PostListsSkeletion } from "./PostsListSkeleton";
-import { env } from "~/env.mjs";
 
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
@@ -14,6 +13,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { ImageClusters } from "../../map/components/ImageClusters";
 import { MapSkeleton } from "../../map/components/MapSkeleton";
+import { LocationMarker } from "../../map/components/LocationMarker";
+import { MapPin } from "lucide-react";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
 import { Curve } from "./Curve";
@@ -60,27 +61,61 @@ function MapSection() {
   const params = useParams();
   const entryId = Number(params.entryId);
   const api = useTRPC();
-  const { data: images, isPending } = useQuery(
+  const { data: images, isPending: imagesLoading } = useQuery(
     api.diary.getImagesWithLocationByEntryId.queryOptions({ entryId }),
   );
+  const { data: posts, isPending: postsLoading } = useQuery(
+    api.diary.getPosts.queryOptions({ entryId }),
+  );
+
+  // Get unique posts with location
+  const postsWithLocation = useMemo(() => {
+    if (!posts) return [];
+
+    const seen = new Set<string>();
+    return posts
+      .filter((post) => {
+        if (!post.location || seen.has(post.id)) return false;
+        seen.add(post.id);
+        return true;
+      })
+      .map((post) => ({
+        id: post.id,
+        location: post.location!,
+      }));
+  }, [posts]);
+
+  // Check if there are any images with location
+  const hasImageLocations = images && images.features.length > 0;
 
   const defaultCenter = useMemo(() => {
-    if (!images) {
-      return { lat: 0, lng: 0 };
+    // First try image locations
+    if (images && images.features.length > 0) {
+      const coordinates = images.features.map(
+        (feature) => feature.geometry.coordinates,
+      );
+      const avgLng =
+        coordinates.reduce((sum, [lng]) => sum + lng, 0) / coordinates.length;
+      const avgLat =
+        coordinates.reduce((sum, [, lat]) => sum + lat, 0) / coordinates.length;
+      return { lat: avgLat, lng: avgLng };
     }
 
-    const coordinates = images.features.map(
-      (feature) => feature.geometry.coordinates,
-    );
-    const avgLng =
-      coordinates.reduce((sum, [lng]) => sum + lng, 0) / coordinates.length;
-    const avgLat =
-      coordinates.reduce((sum, [, lat]) => sum + lat, 0) / coordinates.length;
+    // Fall back to post locations
+    if (postsWithLocation.length > 0) {
+      const avgLng =
+        postsWithLocation.reduce((sum, p) => sum + p.location.longitude, 0) /
+        postsWithLocation.length;
+      const avgLat =
+        postsWithLocation.reduce((sum, p) => sum + p.location.latitude, 0) /
+        postsWithLocation.length;
+      return { lat: avgLat, lng: avgLng };
+    }
 
-    return { lat: avgLat, lng: avgLng };
-  }, [images]);
+    return { lat: 0, lng: 0 };
+  }, [images, postsWithLocation]);
 
-  if (isPending) {
+  if (imagesLoading || postsLoading) {
     return (
       <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
         <MapSkeleton />
@@ -92,6 +127,17 @@ function MapSection() {
     <div className="mx-auto h-full w-full lg:max-w-none">
       <InteractiveMap defaultCenter={defaultCenter}>
         {images && <ImageClusters geoJson={images} />}
+        {/* Show post location markers only if no images exist */}
+        {!hasImageLocations &&
+          postsWithLocation.map((post) => (
+            <LocationMarker
+              key={post.id}
+              position={{
+                lat: post.location.latitude,
+                lng: post.location.longitude,
+              }}
+            />
+          ))}
       </InteractiveMap>
     </div>
   );
@@ -197,6 +243,9 @@ function PostList({ posts }: PostsProps) {
           return (
             <li key={post.id} className="space-y-2">
               {post.title && <PostTitle>{post.title}</PostTitle>}
+              {post.location && (
+                <PostLocation>{post.location.address}</PostLocation>
+              )}
               <PostImage post={post} />
               {post.description && (
                 <PostDescription>{post.description}</PostDescription>
@@ -219,6 +268,9 @@ function PostList({ posts }: PostsProps) {
               key={post.id}
             >
               {post.title && <PostTitle>{post.title}</PostTitle>}
+              {post.location && (
+                <PostLocation>{post.location.address}</PostLocation>
+              )}
               <PostImage post={post} />
             </div>,
             post.description.length > 0 && (
@@ -280,6 +332,15 @@ function PostTitle({ children }: { children: React.ReactNode }) {
     <h3 className="mb-2 h-7 max-w-full truncate text-xl font-bold">
       {children}
     </h3>
+  );
+}
+
+function PostLocation({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
+      <MapPin size={14} />
+      {children}
+    </p>
   );
 }
 

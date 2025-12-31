@@ -72,6 +72,9 @@ export class PostService {
         id: posts.id,
         title: posts.title,
         description: posts.description,
+        address: postLocations.address,
+        longitude: postLocations.longitude,
+        latitude: postLocations.latitude,
         image: {
           id: postImages.id,
           key: imageKeys.key,
@@ -83,6 +86,7 @@ export class PostService {
       .innerJoin(imageKeys, eq(imageKeys.key, postImages.imageKey))
       .innerJoin(entries, eq(entries.id, posts.entryId))
       .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+      .leftJoin(postLocations, eq(postLocations.postId, posts.id))
       .where(
         and(
           eq(entries.id, entryId),
@@ -227,29 +231,19 @@ export class PostService {
         )
         .onConflictDoNothing({ target: postImages.id });
 
-      // Handle location data - only insert if all fields are present
+      // Handle location data - location is all-or-nothing
       const locationsToUpsert = postsToInsert
-        .filter(
-          (post) =>
-            post.address !== undefined &&
-            post.longitude !== undefined &&
-            post.latitude !== undefined,
-        )
+        .filter((post) => post.location !== undefined)
         .map((post) => ({
           postId: post.id,
-          address: post.address!,
-          longitude: post.longitude!,
-          latitude: post.latitude!,
+          address: post.location!.address,
+          longitude: post.location!.longitude,
+          latitude: post.location!.latitude,
         }));
 
-      // Delete locations for posts that don't have complete location data
+      // Delete locations for posts that don't have location
       const postIdsToDeleteLocations = postsToInsert
-        .filter(
-          (post) =>
-            post.address === undefined ||
-            post.longitude === undefined ||
-            post.latitude === undefined,
-        )
+        .filter((post) => post.location === undefined)
         .map((post) => post.id);
 
       if (postIdsToDeleteLocations.length > 0) {
