@@ -41,18 +41,35 @@ export function Entries() {
   const deleteEntryMutation = useMutation(
     api.diary.deleteEntry.mutationOptions({
       onSuccess(deletedId) {
-        if (deletedId) {
-          queryClient.setQueryData(
-            api.diary.getEntries.queryKey({ diaryId: Number(diaryId) }),
-            (entries) => {
-              if (entries === undefined) {
-                return [];
-              }
-              return entries.filter((entry) => entry.id !== deletedId);
-            },
-          );
-          router.push(`/diaries/${diaryId}/entries`);
+        if (!deletedId) {
+          return;
         }
+
+        // Update the query cache and get the remaining entries
+        const remainingEntries = queryClient.setQueryData(
+          api.diary.getEntries.queryKey({ diaryId: Number(diaryId) }),
+          (entries) => {
+            if (entries === undefined) {
+              return [];
+            }
+            return entries.filter((entry) => entry.id !== deletedId);
+          },
+        );
+
+        // Redirect to the latest entry after deletion
+        const hasRemainingEntries =
+          remainingEntries && remainingEntries.length > 0;
+        const latestEntry = hasRemainingEntries
+          ? remainingEntries[0]
+          : undefined;
+
+        if (latestEntry) {
+          router.push(`/diaries/${diaryId}/entries/${latestEntry.id}/posts`);
+          return;
+        }
+
+        // No entries remaining, go to entries list
+        router.push(`/diaries/${diaryId}/entries`);
       },
     }),
   );
