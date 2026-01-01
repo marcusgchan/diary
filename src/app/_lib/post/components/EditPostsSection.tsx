@@ -57,20 +57,17 @@ export function EditPostsSection() {
   }
 
   return (
-    <>
-      <EditPosts />
-      <div className="space-x-2">
-        <Button
-          type="button"
-          variant="destructive"
-          onClick={() => handleBack()}
-        >
-          Back
-        </Button>
-        <Button type="button" onClick={() => handleUpdate()}>
-          Edit Posts
-        </Button>
-      </div>
-    </>
+    <EditPosts
+      footer={
+        <div className="flex justify-between">
+          <Button type="button" variant="outline" onClick={() => handleBack()}>
+            Back
+          </Button>
+          <Button type="button" onClick={() => handleUpdate()}>
+            Save
+          </Button>
+        </div>
+      }
+    />
   );
 }

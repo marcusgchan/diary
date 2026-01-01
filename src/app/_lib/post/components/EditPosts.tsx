@@ -15,17 +15,21 @@ import { useQuery } from "@tanstack/react-query";
 import { PostsHeaderDnd } from "./PostsHeaderDnd";
 import { PostImageCarousel } from "./PostImageCarousel";
 import { PostImageThumbnails } from "./PostImageThumbnails";
-import { LocationDrawer } from "./LocationDrawer";
+import { LocationDisplay } from "./LocationDrawer";
 
-export function EditPosts() {
+type EditPostsProps = {
+  footer?: React.ReactNode;
+};
+
+export function EditPosts({ footer }: EditPostsProps) {
   return (
     <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
-      <SelectedPostViewContent />
+      <SelectedPostViewContent footer={footer} />
     </ImageScrollTrackingContextProvider>
   );
 }
 
-function SelectedPostViewContent() {
+function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
   const api = useTRPC();
   const { state, dispatch } = usePosts();
 
@@ -88,6 +92,8 @@ function SelectedPostViewContent() {
 
       <Separator />
 
+      <LocationDisplay />
+
       <PostImageCarousel />
 
       <PostImageThumbnails />
@@ -98,7 +104,7 @@ function SelectedPostViewContent() {
         <>
           <button
             type="button"
-            className="text-md flex gap-1 text-muted-foreground"
+            className="text-md flex gap-1 py-1 text-muted-foreground"
             onClick={() => selectNewImage()}
           >
             <ImageIcon />
@@ -112,13 +118,12 @@ function SelectedPostViewContent() {
             accept="image/*"
             className="sr-only"
           />
-          <Separator />
         </>
       )}
       {!!selectedImage && (
         <button
           type="button"
-          className="text-md flex gap-1 text-muted-foreground"
+          className="text-md flex gap-1 py-1 text-muted-foreground"
           onClick={() => {
             dispatch({
               type: "DELETE_CURRENT_IMAGE",
@@ -130,12 +135,6 @@ function SelectedPostViewContent() {
           Delete Image
         </button>
       )}
-
-      <Separator />
-
-      <LocationDrawer />
-
-      <Separator />
 
       <Input
         placeholder="Title..."
@@ -159,6 +158,8 @@ function SelectedPostViewContent() {
           </Button>
         )}
       </div>
+
+      {footer && footer}
     </div>
   );
 }
