@@ -120,12 +120,19 @@ export function CreateEmptyPost() {
     [],
   );
 
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+
   return (
     <>
       {/* z index has to be greater than 2 to prevent btn being behind scrollbar on safari*/}
       <button
+        ref={buttonRef}
         className="fixed bottom-6 right-6 z-10 rounded-full bg-foreground p-3"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true);
+          // Blur the button to prevent it from retaining focus when aria-hidden is applied
+          buttonRef.current?.blur();
+        }}
         type="button"
         aria-label="Create new entry"
         {...(isOpen && { inert: true })}
