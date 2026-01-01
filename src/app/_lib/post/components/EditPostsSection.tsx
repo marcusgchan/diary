@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useMemo } from "react";
 
 export function EditPostsSection() {
   const api = useTRPC();
@@ -28,6 +29,33 @@ export function EditPostsSection() {
   const { isPending } = useQuery(
     api.diary.getPostsForForm.queryOptions({ entryId }),
   );
+
+  const isSaveDisabled = useMemo(() => {
+    // Disable if mutation is pending
+    if (mutation.isPending) {
+      return true;
+    }
+
+    // Disable if there are no posts
+    if (!state.posts || state.posts.length === 0) {
+      return true;
+    }
+
+    // Disable if any post has no images uploaded
+    const hasPostWithNoImages = state.posts.some(
+      (post) => post.images.length === 0,
+    );
+    if (hasPostWithNoImages) {
+      return true;
+    }
+
+    // Disable if any images are loading (not "loaded")
+    const hasLoadingImages = state.posts.some((post) =>
+      post.images.some((image) => image.type !== "loaded"),
+    );
+
+    return hasLoadingImages;
+  }, [state.posts, mutation.isPending]);
 
   function handleUpdate() {
     const moreThanOneImage = state.posts.every(
@@ -63,7 +91,11 @@ export function EditPostsSection() {
           <Button type="button" variant="outline" onClick={() => handleBack()}>
             Back
           </Button>
-          <Button type="button" onClick={() => handleUpdate()}>
+          <Button
+            type="button"
+            onClick={() => handleUpdate()}
+            disabled={isSaveDisabled}
+          >
             Save
           </Button>
         </div>
