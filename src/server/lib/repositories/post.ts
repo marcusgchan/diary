@@ -7,6 +7,7 @@ import {
   type ImageKeys,
   imageKeys,
   postImages,
+  postLocations,
   posts,
   type Posts,
   type Users,
@@ -34,6 +35,9 @@ export class PostService {
         title: posts.title,
         description: posts.description,
         order: posts.order,
+        address: postLocations.address,
+        longitude: postLocations.longitude,
+        latitude: postLocations.latitude,
         // Image state
         image: {
           id: postImages.id,
@@ -47,6 +51,7 @@ export class PostService {
       .from(posts)
       .innerJoin(entries, eq(entries.id, posts.entryId))
       .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+      .leftJoin(postLocations, eq(postLocations.postId, posts.id))
       .innerJoin(postImages, eq(postImages.postId, posts.id))
       .innerJoin(imageKeys, eq(imageKeys.key, postImages.imageKey))
       .where(
@@ -67,6 +72,9 @@ export class PostService {
         id: posts.id,
         title: posts.title,
         description: posts.description,
+        address: postLocations.address,
+        longitude: postLocations.longitude,
+        latitude: postLocations.latitude,
         image: {
           id: postImages.id,
           key: imageKeys.key,
@@ -78,6 +86,7 @@ export class PostService {
       .innerJoin(imageKeys, eq(imageKeys.key, postImages.imageKey))
       .innerJoin(entries, eq(entries.id, posts.entryId))
       .innerJoin(diariesToUsers, eq(diariesToUsers.diaryId, entries.diaryId))
+      .leftJoin(postLocations, eq(postLocations.postId, posts.id))
       .where(
         and(
           eq(entries.id, entryId),
@@ -154,6 +163,9 @@ export class PostService {
           })),
         ),
       );
+
+      // Note: CreatePost schema doesn't include location fields yet
+      // Location can be added later via updatePosts
     });
     const [err] = await tryCatch(query);
     if (err) {
@@ -218,6 +230,42 @@ export class PostService {
           ),
         )
         .onConflictDoNothing({ target: postImages.id });
+
+      // Handle location data - location is all-or-nothing
+      const locationsToUpsert = postsToInsert
+        .filter((post) => post.location !== undefined)
+        .map((post) => ({
+          postId: post.id,
+          address: post.location!.address,
+          longitude: post.location!.longitude,
+          latitude: post.location!.latitude,
+        }));
+
+      // Delete locations for posts that don't have location
+      const postIdsToDeleteLocations = postsToInsert
+        .filter((post) => post.location === undefined)
+        .map((post) => post.id);
+
+      if (postIdsToDeleteLocations.length > 0) {
+        await tx
+          .delete(postLocations)
+          .where(inArray(postLocations.postId, postIdsToDeleteLocations));
+      }
+
+      // Upsert location data
+      if (locationsToUpsert.length > 0) {
+        await tx
+          .insert(postLocations)
+          .values(locationsToUpsert)
+          .onConflictDoUpdate({
+            target: postLocations.postId,
+            set: {
+              address: sql.raw(`excluded.${postLocations.address.name}`),
+              longitude: sql.raw(`excluded.${postLocations.longitude.name}`),
+              latitude: sql.raw(`excluded.${postLocations.latitude.name}`),
+            },
+          });
+      }
     });
     const [err] = await tryCatch(query);
     if (err) {

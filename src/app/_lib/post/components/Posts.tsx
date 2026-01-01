@@ -2,31 +2,24 @@
 import { useParams } from "next/navigation";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
-import { EditPosts } from "./EditPosts";
-import {
-  type ReactNode,
-  type RefObject,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { usePosts } from "../contexts/PostsContext";
-import { createPostSchema } from "~/server/lib/schema";
-import { useToast } from "../../ui/use-toast";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { PostListsSkeletion } from "./PostsListSkeleton";
+import Link from "next/link";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMutation } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { ImageClusters } from "../../map/components/ImageClusters";
 import { MapSkeleton } from "../../map/components/MapSkeleton";
+import { LocationMarker } from "../../map/components/LocationMarker";
+import { MapPin } from "lucide-react";
 import { type RouterOutputs } from "~/server/trpc";
 import { cn } from "../../utils/cx";
 import { Curve } from "./Curve";
-import { useScrollToImage } from "../hooks/useScrollToImage";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
+import {
+  ImageScrollTrackingContextProvider,
+  useImageScrollTracking,
+} from "../contexts/ImageScrollTrackingContext";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -36,14 +29,35 @@ export function Posts() {
   const params = useParams();
   const entryId = Number(params.entryId);
   const api = useTRPC();
-  const { data, isPending } = useQuery(
+  const { data: posts } = useQuery(
     api.diary.getPosts.queryOptions({ entryId }),
   );
-  const { isPending: imagesPending } = useQuery(
-    api.diary.getImagesByEntryId.queryOptions({ entryId }),
+  const { data: images } = useQuery(
+    api.diary.getImagesWithLocationByEntryId.queryOptions({ entryId }),
   );
 
-  const isLoading = isPending || imagesPending;
+  // Check if we have any location data to show on map
+  const hasImageLocations = (images?.features.length ?? 0) > 0;
+  const hasPostLocations =
+    posts?.some((post) => post.location !== null) ?? false;
+  const shouldShowMap = hasImageLocations || hasPostLocations;
+
+  if (posts && posts.length === 0) {
+    return (
+      <div className="overflow-y-auto">
+        <PostsSection />
+      </div>
+    );
+  }
+
+  // No map - just show posts
+  if (!shouldShowMap) {
+    return (
+      <div className="overflow-y-auto">
+        <PostsSection />
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-y-auto">
@@ -52,13 +66,7 @@ export function Posts() {
           <PostsSection />
         </section>
         <section className="h-full [grid-area:map]">
-          {isLoading ? (
-            <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
-              <MapSkeleton />
-            </div>
-          ) : (
-            data && data.length > 0 && <MapSection />
-          )}
+          <MapSection />
         </section>
       </div>
     </div>
@@ -69,15 +77,100 @@ function MapSection() {
   const params = useParams();
   const entryId = Number(params.entryId);
   const api = useTRPC();
-  const { data: images } = useQuery(
-    api.diary.getImagesByEntryId.queryOptions({ entryId }),
+  const { data: images, isPending: imagesLoading } = useQuery(
+    api.diary.getImagesWithLocationByEntryId.queryOptions({ entryId }),
+  );
+  const { data: posts, isPending: postsLoading } = useQuery(
+    api.diary.getPosts.queryOptions({ entryId }),
   );
 
+  // Get unique posts with location
+  const postsWithLocation = useMemo(() => {
+    if (!posts) return [];
+
+    const seen = new Set<string>();
+    return posts
+      .filter((post) => {
+        if (!post.location || seen.has(post.id)) return false;
+        seen.add(post.id);
+        return true;
+      })
+      .map((post) => ({
+        id: post.id,
+        location: post.location!,
+      }));
+  }, [posts]);
+
+  // Check if there are any images with location
+  const hasImageLocations = images && images.features.length > 0;
+
+  const defaultCenter = useMemo(() => {
+    // First try image locations
+    if (images && images.features.length > 0) {
+      const coordinates = images.features.map(
+        (feature) => feature.geometry.coordinates,
+      );
+      const avgLng =
+        coordinates.reduce((sum, [lng]) => sum + lng, 0) / coordinates.length;
+      const avgLat =
+        coordinates.reduce((sum, [, lat]) => sum + lat, 0) / coordinates.length;
+      return { lat: avgLat, lng: avgLng };
+    }
+
+    // Fall back to post locations
+    if (postsWithLocation.length > 0) {
+      const avgLng =
+        postsWithLocation.reduce((sum, p) => sum + p.location.longitude, 0) /
+        postsWithLocation.length;
+      const avgLat =
+        postsWithLocation.reduce((sum, p) => sum + p.location.latitude, 0) /
+        postsWithLocation.length;
+      return { lat: avgLat, lng: avgLng };
+    }
+
+    return { lat: 0, lng: 0 };
+  }, [images, postsWithLocation]);
+
+  if (imagesLoading || postsLoading) {
+    return (
+      <div className="mx-auto h-full w-full max-w-sm lg:max-w-none">
+        <MapSkeleton />
+      </div>
+    );
+  }
+
+  // Don't show map if no images with location and no post locations
+  if (!hasImageLocations && postsWithLocation.length === 0) {
+    return null;
+  }
+
+  // Get unique location address to display above map
+  const locationAddress = postsWithLocation[0]?.location.address;
+
   return (
-    <div className="mx-auto h-full w-full lg:max-w-none">
-      <InteractiveMap>
-        {images && <ImageClusters geoJson={images} />}
-      </InteractiveMap>
+    <div className="mx-auto flex h-full w-full flex-col lg:max-w-none">
+      {locationAddress && (
+        <p className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
+          <MapPin size={14} />
+          {locationAddress}
+        </p>
+      )}
+      <div className="min-h-0 flex-1">
+        <InteractiveMap defaultCenter={defaultCenter}>
+          {images && <ImageClusters geoJson={images} />}
+          {/* Show post location markers only if no images exist */}
+          {!hasImageLocations &&
+            postsWithLocation.map((post) => (
+              <LocationMarker
+                key={post.id}
+                position={{
+                  lat: post.location.latitude,
+                  lng: post.location.longitude,
+                }}
+              />
+            ))}
+        </InteractiveMap>
+      </div>
     </div>
   );
 }
@@ -86,55 +179,13 @@ function PostsSection() {
   const api = useTRPC();
   const params = useParams();
   const entryId = Number(params.entryId);
+  const diaryId = Number(params.diaryId);
 
   const {
     data: posts,
     isError,
     isPending,
   } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
-
-  const { state } = usePosts();
-  const disableCreate = useMemo(() => {
-    if (!state.posts) {
-      return true;
-    }
-
-    const hasAtLeastOnePostWithNonLoadedImage = state.posts.some((post) => {
-      return (
-        post.images.length === 0 ||
-        post.images.some((image) => image.type !== "loaded")
-      );
-    });
-    return hasAtLeastOnePostWithNonLoadedImage;
-  }, [state.posts]);
-
-  const queryClient = useQueryClient();
-  const mutation = useMutation(
-    api.diary.createPosts.mutationOptions({
-      async onSuccess() {
-        return Promise.all([
-          queryClient.invalidateQueries(
-            api.diary.getPosts.queryFilter({ entryId }),
-          ),
-          queryClient.invalidateQueries(
-            api.diary.getImagesByEntryId.queryFilter({ entryId }),
-          ),
-        ]);
-      },
-    }),
-  );
-  const { toast } = useToast();
-  function handleCreate() {
-    const parseResult = createPostSchema.safeParse({
-      entryId: entryId,
-      posts: state.posts,
-    });
-    if (!parseResult.success) {
-      toast({ title: "Unable to create toast" });
-      return;
-    }
-    mutation.mutate(parseResult.data);
-  }
 
   if (isPending) {
     return <PostListsSkeletion />;
@@ -146,15 +197,11 @@ function PostsSection() {
 
   if (!posts || posts.length === 0) {
     return (
-      <div className="space-y-2">
-        <EditPosts />
-        <Button
-          onClick={() => handleCreate()}
-          disabled={disableCreate}
-          type="button"
-        >
-          Create Post
-        </Button>
+      <div className="flex h-full flex-col items-center justify-center space-y-4 p-8 text-center">
+        <p className="text-lg text-muted-foreground">No posts</p>
+        <Link href={`/diaries/${diaryId}/entries/${entryId}/posts/edit`}>
+          <Button type="button">Create Post</Button>
+        </Link>
       </div>
     );
   }
@@ -266,26 +313,20 @@ function PostTitle({ children }: { children: React.ReactNode }) {
 }
 
 function PostImage({ post }: { post: Post }) {
+  return (
+    <ImageScrollTrackingContextProvider<HTMLUListElement, HTMLLIElement>>
+      <PostImageContent post={post} />
+    </ImageScrollTrackingContextProvider>
+  );
+}
+
+function PostImageContent({ post }: { post: Post }) {
   const {
     scrollToImage,
-    isScrollingProgrammatically,
     containerRef,
-  }: {
-    scrollToImage: (element: Element, instant?: boolean) => void;
-    isScrollingProgrammatically: boolean;
-    containerRef: RefObject<HTMLUListElement | null>;
-  } = useScrollToImage<HTMLUListElement>();
-
-  const imgsRef = useRef<Map<string, HTMLLIElement>>(null);
-
-  function getImgsMap() {
-    if (imgsRef.current === null) {
-      imgsRef.current = new Map<string, HTMLLIElement>();
-      return imgsRef.current;
-    }
-
-    return imgsRef.current;
-  }
+    getImageElementsMap: getImgsMap,
+    setImageElementRef,
+  } = useImageScrollTracking();
 
   const [selectedImageId, setSelectedImageId] = useState(post.images[0]!.id);
   const onIntersect = useCallback(
@@ -294,7 +335,6 @@ function PostImage({ post }: { post: Post }) {
     },
     [setSelectedImageId],
   );
-  const rootElement = containerRef.current;
 
   return (
     <div className="space-y-2">
@@ -306,44 +346,25 @@ function PostImage({ post }: { post: Post }) {
           return (
             <li
               key={image.id}
-              ref={(node) => {
-                const map = getImgsMap();
-                if (node) {
-                  map.set(image.id, node);
-                } else {
-                  map.delete(image.id);
-                }
-              }}
+              ref={setImageElementRef(image.id)}
               className="flex-shrink-0 basis-full snap-center"
             >
-              {rootElement ? (
-                <ScrollableImageContainer<HTMLUListElement, HTMLImageElement>
-                  id={image.id}
-                  onIntersect={onIntersect}
-                  isScrollingProgrammatically={isScrollingProgrammatically}
-                  rootElement={rootElement}
-                >
-                  {({ ref }) => {
-                    return (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        ref={ref}
-                        // className="aspect-square h-auto object-cover"
-                        className="aspect-square w-full object-cover"
-                        alt={image.name}
-                        src={`/api/image/${image.key}`}
-                      />
-                    );
-                  }}
-                </ScrollableImageContainer>
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  className="aspect-square w-full object-cover"
-                  alt={image.name}
-                  src={`/api/image/${image.key}`}
-                />
-              )}
+              <ScrollableImageContainer<HTMLImageElement>
+                id={image.id}
+                onIntersect={onIntersect}
+              >
+                {({ ref }) => {
+                  return (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      ref={ref}
+                      className="aspect-square w-full object-cover"
+                      alt={image.name}
+                      src={`/api/image/${image.key}`}
+                    />
+                  );
+                }}
+              </ScrollableImageContainer>
             </li>
           );
         })}
@@ -382,25 +403,29 @@ function PostDescription({ children }: { children: React.ReactNode }) {
   return <p className="whitespace-pre-wrap">{children}</p>;
 }
 
-type ImageContainerProps<T extends Element, U extends Element> = {
+type ImageContainerProps<U extends Element> = {
   id: string;
-  children: ({ ref }: { ref: RefObject<U | null> }) => ReactNode;
-  isScrollingProgrammatically: boolean;
+  children: ({ ref }: { ref: (node: U | null) => void }) => ReactNode;
   onIntersect: (element: Element, intersectionId: string) => void;
-  rootElement: T;
 };
-function ScrollableImageContainer<T extends Element, U extends Element>({
+function ScrollableImageContainer<U extends Element>({
   id,
   children,
   onIntersect,
-  isScrollingProgrammatically,
-  rootElement,
-}: ImageContainerProps<T, U>) {
-  const { ref } = useIntersectionObserver<T, U>({
-    onIntersect,
-    rootElement,
-    intersectId: id,
+}: ImageContainerProps<U>) {
+  const { isScrollingProgrammatically, containerElement } =
+    useImageScrollTracking();
+
+  const { ref } = useIntersectionObserver<HTMLElement, U>({
+    onIntersect: useCallback(
+      (element: Element) => {
+        onIntersect(element, id);
+      },
+      [onIntersect, id],
+    ),
+    rootElement: containerElement,
     disabled: isScrollingProgrammatically,
+    threshold: 0.5,
   });
   return children({ ref });
 }

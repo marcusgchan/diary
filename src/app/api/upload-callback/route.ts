@@ -115,6 +115,7 @@ export async function POST(req: Request) {
       });
     } else {
       const formattedDate = formatDate(parsedGps.data.dateTimeTaken);
+      const coordinates = parsedGps.data.gps;
       await createMetadataOnImageCallback({
         db,
         key,
@@ -123,11 +124,7 @@ export async function POST(req: Request) {
         mimetype: image.mimetype,
         name,
         size: originalImageSize,
-        gps:
-          parsedGps.data.gps?.lon !== undefined &&
-          parsedGps.data.gps.lat !== undefined
-            ? { lat: parsedGps.data.gps.lat, lon: parsedGps.data.gps.lon }
-            : undefined,
+        gps: coordinates ?? undefined,
         compressionStatus: "success",
         dateTimeTaken: formattedDate,
       });

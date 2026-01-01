@@ -1,51 +1,40 @@
-import { type ChangeEvent } from "react";
-import { flushSync } from "react-dom";
-import type {
-  PostsState,
-  PostsAction,
-} from "@/_lib/post/reducers/postsReducer";
+import { useCallback, type ChangeEvent } from "react";
 import type {
   PostFormUploadingImage,
   PostForm as Post,
 } from "~/server/lib/types";
-import { type useScrollToImage } from "./useScrollToImage";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { useToast } from "../../ui/use-toast";
 
 import { useQueryClient } from "@tanstack/react-query";
-
-type ScrollToImage = ReturnType<typeof useScrollToImage>["scrollToImage"];
+import { usePosts } from "../contexts/PostsContext";
 
 export type PostActions = {
-  handleFilesChange: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleTitleChange: (value: string) => void;
-  handleDescriptionChange: (value: string) => void;
-  handleStartNewPost: () => void;
-  handleEditPost: (post: Post, scrollToImage: ScrollToImage) => void;
-  handleDeletePost: () => void;
-  handleImageSelect: (
-    imageId: string,
-    scrollToImage: ScrollToImage,
-    imageElement: Element,
-  ) => void;
+  filesChangeAction: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  titleChangeAction: (value: string) => void;
+  descriptionChangeAction: (value: string) => void;
+  startNewPostAction: () => void;
+  editPostAction: (post: Post) => void;
+  deletePostAction: () => void;
+  imageSelectAction: (imageId: string) => void;
+  imageIntersectAction: (imageId: string) => void;
+  swapPostByIdAction: (activeId: string, overId: string) => void;
+  postIntersectAction: (postId: string) => void;
+  nextPostAction: () => void;
+  previousPostAction: () => void;
+  nextImageAction: () => void;
+  previousImageAction: () => void;
 };
 
-type UsePostActionsParams = {
-  dispatch: React.Dispatch<PostsAction>;
-  state: PostsState;
-};
-
-export function usePostActions({
-  dispatch,
-  state,
-}: UsePostActionsParams): PostActions {
+export function usePostActions(): PostActions {
+  const { state, dispatch } = usePosts();
   const api = useTRPC();
   const queryClient = useQueryClient();
   const params = useParams();
   const { toast } = useToast();
 
-  async function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
+  async function filesChangeAction(e: ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -117,50 +106,87 @@ export function usePostActions({
     dispatch({ type: "ADD_IMAGES", payload });
   }
 
-  function handleTitleChange(value: string) {
+  function titleChangeAction(value: string) {
     dispatch({
       type: "UPDATE_POST",
       payload: { updates: { title: value } },
     });
   }
 
-  function handleDescriptionChange(value: string) {
+  function descriptionChangeAction(value: string) {
     dispatch({
       type: "UPDATE_POST",
       payload: { updates: { description: value } },
     });
   }
 
-  function handleStartNewPost() {
+  function startNewPostAction() {
     dispatch({ type: "START_NEW_POST" });
   }
 
-  function handleEditPost(post: Post, scrollToImage: ScrollToImage) {
-    flushSync(() => {
-      dispatch({ type: "START_EDITING", payload: post.id });
-    });
+  function editPostAction(post: Post) {
+    dispatch({ type: "START_EDITING", payload: post.id });
   }
 
-  function handleDeletePost() {
+  function deletePostAction() {
     dispatch({ type: "DELETE_CURRENT_POST" });
   }
 
-  function handleImageSelect(
-    imageId: string,
-    scrollToImage: ScrollToImage,
-    imageElement: Element,
-  ) {
+  function imageSelectAction(imageId: string) {
     dispatch({ type: "SELECT_IMAGE", payload: imageId });
-    scrollToImage(imageElement);
   }
 
+  function swapPostByIdAction(activeId: string, overId: string) {
+    dispatch({
+      type: "REORDER_POSTS",
+      payload: { activeId: activeId, overId: overId },
+    });
+  }
+
+  const postIntersectAction = useCallback(
+    (postId: string) => {
+      dispatch({ type: "START_EDITING", payload: postId });
+    },
+    [dispatch],
+  );
+
+  function nextPostAction() {
+    dispatch({ type: "SELECT_NEXT_POST" });
+  }
+
+  function previousPostAction() {
+    dispatch({ type: "SELECT_PREVIOUS_POST" });
+  }
+
+  function nextImageAction() {
+    dispatch({ type: "SELECT_NEXT_IMAGE" });
+  }
+
+  function previousImageAction() {
+    dispatch({ type: "SELECT_PREVIOUS_IMAGE" });
+  }
+
+  const imageIntersectAction = useCallback(
+    (imageId: string) => {
+      dispatch({ type: "SELECT_IMAGE", payload: imageId });
+    },
+    [dispatch],
+  );
+
   return {
-    handleFilesChange,
-    handleTitleChange,
-    handleDescriptionChange,
-    handleStartNewPost,
-    handleEditPost,
-    handleDeletePost,
-    handleImageSelect,
+    filesChangeAction,
+    titleChangeAction,
+    descriptionChangeAction,
+    startNewPostAction,
+    editPostAction,
+    deletePostAction,
+    imageSelectAction,
+    imageIntersectAction,
+    swapPostByIdAction,
+    postIntersectAction,
+    nextPostAction,
+    previousPostAction,
+    nextImageAction,
+    previousImageAction,
   };
 }

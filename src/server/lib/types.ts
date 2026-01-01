@@ -1,7 +1,16 @@
+export type PostLocation = {
+  address: string;
+  longitude: number;
+  latitude: number;
+};
+
 export type GetPostQuery = {
   id: string;
   title: string;
   description: string;
+  address: string | null;
+  longitude: number | null;
+  latitude: number | null;
   image: { id: string; key: string; name: string };
 };
 
@@ -10,6 +19,9 @@ export type GetPostFormQuery = {
   title: string;
   description: string;
   order: number;
+  address: string | null;
+  longitude: number | null;
+  latitude: number | null;
   image: {
     id: string;
     name: string;
@@ -30,6 +42,7 @@ export type Post = {
   id: string;
   title: string;
   description: string;
+  location: PostLocation | null;
   images: PostImage[];
 };
 
@@ -67,6 +80,7 @@ export type PostForm = {
   description: string;
   order: number;
   isSelected: boolean;
+  location?: PostLocation | null;
   images: PostFormImage[];
 };
 
@@ -77,6 +91,7 @@ export interface GeoJson<TFeature extends GeoJsonFeature> {
 
 export interface GeoJsonFeature {
   type: "Feature";
+  id: string | number;
   geometry: {
     type: "Point";
     coordinates: [number, number];

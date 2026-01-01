@@ -4,15 +4,29 @@ import type {
   PostForm,
   Post,
   PostFormLoadedImage,
+  PostLocation,
 } from "../types";
+
+// Convert flat location fields to location object (all-or-nothing due to DB constraints)
+function toLocation(
+  address: string | null,
+  longitude: number | null,
+  latitude: number | null,
+): PostLocation | null {
+  if (address != null && longitude != null && latitude != null) {
+    return { address, longitude, latitude };
+  }
+  return null;
+}
 
 export function postsView(posts: GetPostQuery[]): Post[] {
   const postMap = posts.reduce((acc, cur) => {
     const post = acc.get(cur.id);
     if (!post) {
-      const { image, ...rest } = cur;
+      const { image, address, longitude, latitude, ...rest } = cur;
       acc.set(cur.id, {
         ...rest,
+        location: toLocation(address, longitude, latitude),
         images: [{ ...image }],
       });
     } else {
@@ -28,9 +42,10 @@ export function postsView(posts: GetPostQuery[]): Post[] {
 export function postsViewForForm(posts: GetPostFormQuery[]): PostForm[] {
   const postMap = posts
     .map((post) => {
-      const { image, ...restOfPost } = post;
+      const { image, address, longitude, latitude, ...restOfPost } = post;
       return {
         ...restOfPost,
+        location: toLocation(address, longitude, latitude),
         isSelected: restOfPost.order === 0,
         image: {
           ...image,

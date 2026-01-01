@@ -66,6 +66,12 @@ export const createPostSchema = z.object({
 });
 export type CreatePost = z.infer<typeof createPostSchema>;
 
+const locationSchema = z.object({
+  address: z.string(),
+  longitude: z.number(),
+  latitude: z.number(),
+});
+
 export const updatePostSchema = z.object({
   entryId: z.number(),
   posts: z
@@ -73,6 +79,7 @@ export const updatePostSchema = z.object({
       id: z.string(),
       title: z.string(),
       description: z.string(),
+      location: locationSchema.optional(),
       images: z
         .object({
           id: z.string(),
