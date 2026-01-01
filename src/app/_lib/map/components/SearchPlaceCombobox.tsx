@@ -21,22 +21,18 @@ import { useMap } from "@vis.gl/react-google-maps";
 type SearchPlaceComboboxProps = {
   onPlaceSelect?: (place: google.maps.places.Place) => void;
   defaultAddress?: string | null;
-  onZoomChange?: (zoom: number) => void;
 };
 
 export function SearchPlaceCombobox({
   onPlaceSelect,
   defaultAddress,
-  onZoomChange,
 }: SearchPlaceComboboxProps = {}) {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
-  const inputRef = React.useRef<HTMLInputElement>(null);
   const [selectedPlace, setSelectedPlace] = React.useState(
     defaultAddress ?? "",
   );
 
-  // Update selectedPlace when defaultAddress changes
   React.useEffect(() => {
     if (defaultAddress) {
       setSelectedPlace(defaultAddress);
@@ -71,7 +67,6 @@ export function SearchPlaceCombobox({
       <PopoverContentInline className="w-[200px]">
         <Command shouldFilter={false}>
           <CommandInput
-            ref={inputRef}
             className="outline-none"
             placeholder="Search for a place..."
             value={value}
@@ -97,12 +92,7 @@ export function SearchPlaceCombobox({
                         .fetchFields({ fields: ["location"] });
 
                       map!.panTo(fields.place.location!);
-                      const newZoom = 15;
-                      map!.setZoom(newZoom);
-
-                      if (onZoomChange) {
-                        onZoomChange(newZoom);
-                      }
+                      map!.setZoom(15);
 
                       if (onPlaceSelect) {
                         onPlaceSelect(fields.place);
