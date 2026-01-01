@@ -21,16 +21,20 @@ import { PostListScrollTrackingContextProvider } from "../contexts/PostListScrol
 import { PostsSelectionCarousel } from "./PostsListHeader";
 import type { PostFormImage } from "~/server/lib/types";
 import { Skeleton } from "../../ui/skeleton";
+import Image from "next/image";
+import { customImageLoader } from "../../utils/imageLoader";
 
 // Simple image renderer for drag overlay
 function ImageRenderer({ image }: { image: PostFormImage }) {
   if (image.type === "loaded") {
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={`/api/image/${image.key}`}
-        className="pointer-events-none h-full w-full object-cover"
+      <Image
+        src={image.key}
         alt={image.name}
+        fill
+        className="pointer-events-none object-cover"
+        sizes="40px"
+        loader={customImageLoader}
       />
     );
   }

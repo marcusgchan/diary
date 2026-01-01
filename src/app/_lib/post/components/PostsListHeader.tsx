@@ -16,6 +16,8 @@ import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { usePostActions } from "../hooks/usePostActions";
 import { Badge } from "../../ui/badge";
+import Image from "next/image";
+import { customImageLoader } from "../../utils/imageLoader";
 
 export function PostsSelectionCarousel() {
   const {
@@ -193,11 +195,13 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
 
   if (image.type === "loaded") {
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={`/api/image/${image.key}`}
-        className="pointer-events-none h-full w-full rounded object-cover"
+      <Image
+        src={image.key}
         alt={image.name}
+        fill
+        className="pointer-events-none rounded object-cover"
+        sizes="40px"
+        loader={customImageLoader}
       />
     );
   }

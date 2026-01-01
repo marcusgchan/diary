@@ -3,6 +3,13 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  images: {
+    // Enable image optimization
+    formats: ["image/webp", "image/avif"],
+    // Since images are served through your API route, you don't need remotePatterns
+    // The loader will handle the routing
+    unoptimized: false,
+  },
   redirects() {
     return [
       {

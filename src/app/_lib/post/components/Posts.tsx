@@ -20,6 +20,8 @@ import {
   ImageScrollTrackingContextProvider,
   useImageScrollTracking,
 } from "../contexts/ImageScrollTrackingContext";
+import Image from "next/image";
+import { customImageLoader } from "../../utils/imageLoader";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -347,7 +349,7 @@ function PostImageContent({ post }: { post: Post }) {
             <li
               key={image.id}
               ref={setImageElementRef(image.id)}
-              className="flex-shrink-0 basis-full snap-center"
+              className="relative flex-shrink-0 basis-full snap-center"
             >
               <ScrollableImageContainer<HTMLImageElement>
                 id={image.id}
@@ -355,12 +357,14 @@ function PostImageContent({ post }: { post: Post }) {
               >
                 {({ ref }) => {
                   return (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
+                    <Image
                       ref={ref}
-                      className="aspect-square w-full object-cover"
+                      src={image.key}
                       alt={image.name}
-                      src={`/api/image/${image.key}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      loader={customImageLoader}
                     />
                   );
                 }}
@@ -375,7 +379,7 @@ function PostImageContent({ post }: { post: Post }) {
             <li key={image.id}>
               <button
                 className={cn(
-                  "rounded border-2 border-gray-300",
+                  "relative aspect-square h-10 w-10 overflow-hidden rounded border-2 border-gray-300",
                   selectedImageId === image.id &&
                     "border-2 border-blue-400 ring-1 ring-blue-300",
                 )}
@@ -384,11 +388,13 @@ function PostImageContent({ post }: { post: Post }) {
                   setSelectedImageId(image.id);
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="aspect-square w-[40px] object-cover"
+                <Image
+                  src={image.key}
                   alt=""
-                  src={`/api/image/${image.key}`}
+                  fill
+                  className="object-cover"
+                  loader={customImageLoader}
+                  sizes="40px"
                 />
               </button>
             </li>

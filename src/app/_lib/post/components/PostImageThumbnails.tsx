@@ -27,6 +27,8 @@ import { usePostActions } from "../hooks/usePostActions";
 import { useImageSensors } from "../hooks/useImageSensors";
 import { useDndState } from "../hooks/useDndState";
 import { Skeleton } from "../../ui/skeleton";
+import Image from "next/image";
+import { customImageLoader } from "../../utils/imageLoader";
 
 export function PostImageThumbnails() {
   const { state, dispatch } = usePosts();
@@ -189,7 +191,7 @@ export function PostImageThumbnails() {
                             ref={ref}
                             {...props.listeners}
                             {...props.attributes}
-                            className="h-10 w-10 cursor-grab active:cursor-grabbing"
+                            className="relative h-10 w-10 cursor-grab active:cursor-grabbing"
                           >
                             <ImageRenderer image={image} />
                           </div>
@@ -206,7 +208,7 @@ export function PostImageThumbnails() {
       </SortableContext>
       <DragOverlay>
         {draggedImage && (
-          <div className="aspect-square h-10 w-10 rotate-6 transform overflow-hidden rounded border-2 border-blue-500 opacity-90 shadow-lg">
+          <div className="relative aspect-square h-10 w-10 rotate-6 transform overflow-hidden rounded border-2 border-blue-500 opacity-90 shadow-lg">
             <ImageRenderer image={draggedImage} />
           </div>
         )}
@@ -276,12 +278,14 @@ const ImageRenderer = React.forwardRef<
 
   if (image.type === "loaded") {
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
+      <Image
         ref={ref}
-        src={`/api/image/${image.key}`}
-        className="pointer-events-none h-full w-full rounded object-cover"
+        src={image.key}
         alt={image.name}
+        fill
+        className="pointer-events-none rounded object-cover"
+        sizes="40px"
+        loader={customImageLoader}
       />
     );
   }

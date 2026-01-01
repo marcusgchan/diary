@@ -7,7 +7,10 @@ import { getEntryIdByEntryAndDiaryId } from "~/server/lib/repositories/entry";
 import { getImage, uploadImage } from "~/server/lib/integrations/s3Service";
 import sharp from "sharp";
 import ExifReader from "exifreader";
-import { getCompressedImageKey } from "~/app/_lib/utils/getCompressedImageKey";
+import {
+  getOptimizedImageKey,
+  IMAGE_SIZES,
+} from "~/app/_lib/utils/getCompressedImageKey";
 
 export async function POST(req: Request) {
   const rawToken = req.headers.get("authorization");
@@ -41,6 +44,7 @@ export async function POST(req: Request) {
   }
 
   const { key, userId, diaryId, entryId, name } = content;
+
   const res = await getEntryIdByEntryAndDiaryId({
     db,
     userId,
@@ -71,10 +75,11 @@ export async function POST(req: Request) {
     return Response.json({}, { status: 400 });
   }
 
-  const compressImageBuf = await compressImage(image.buffer);
+  // Generate optimized versions at multiple sizes
+  const optimizedImages = await generateOptimizedSizes(image.buffer);
 
-  if (compressImageBuf === undefined) {
-    console.log("unable to compress image");
+  if (optimizedImages.length === 0) {
+    console.log("unable to generate optimized images");
     await createMetadataOnImageCallback({
       db,
       key,
@@ -94,11 +99,17 @@ export async function POST(req: Request) {
   }
 
   try {
-    console.log("uploading image");
+    console.log("uploading optimized images");
 
-    await uploadImage(image.buffer, getCompressedImageKey(key), {
-      Compressed: "true",
-    });
+    // Upload all optimized sizes in parallel
+    await Promise.all(
+      optimizedImages.map(({ width, buffer }) =>
+        uploadImage(buffer, getOptimizedImageKey(key, width), {
+          Compressed: "true",
+          Width: width.toString(),
+        }),
+      ),
+    );
 
     const parsedGps = getGpsMetadata(image.buffer);
     if (!parsedGps.success) {
@@ -202,16 +213,41 @@ function getGpsMetadata(
   };
 }
 
-async function compressImage(buffer: Buffer): Promise<Buffer | undefined> {
-  try {
-    const compressed = await sharp(buffer)
-      .resize(500)
-      .webp({ quality: 70 })
-      .toBuffer();
-    return compressed;
-  } catch (e) {
-    console.error("unable to compress image", e);
+type OptimizedImage = {
+  width: (typeof IMAGE_SIZES)[number];
+  buffer: Buffer;
+};
+
+async function generateOptimizedSizes(
+  buffer: Buffer,
+): Promise<OptimizedImage[]> {
+  const results: OptimizedImage[] = [];
+
+  // Get original image dimensions
+  const metadata = await sharp(buffer).metadata();
+  const originalWidth = metadata.width ?? 0;
+
+  for (const width of IMAGE_SIZES) {
+    // Skip sizes larger than original
+    if (width > originalWidth) continue;
+
+    try {
+      const optimized = await sharp(buffer)
+        .rotate() // Auto-rotate based on EXIF orientation
+        .resize(width, undefined, {
+          withoutEnlargement: true,
+          fit: "inside",
+        })
+        .webp({ quality: 65 })
+        .toBuffer();
+
+      results.push({ width, buffer: optimized });
+    } catch (e) {
+      console.error(`unable to generate ${width}w image`, e);
+    }
   }
+
+  return results;
 }
 
 function formatDate(date: string | null): string | undefined {
