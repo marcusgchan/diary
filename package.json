@@ -73,6 +73,7 @@
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.36.4",
     "exifreader": "^4.28.1",
+    "heic-convert": "^2.1.0",
     "lexical": "^0.17.1",
     "lucide-react": "^0.436.0",
     "maplibre-gl": "^5.7.1",

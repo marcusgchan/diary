@@ -7,6 +7,7 @@ import { getEntryIdByEntryAndDiaryId } from "~/server/lib/repositories/entry";
 import { getImage, uploadImage } from "~/server/lib/integrations/s3Service";
 import sharp from "sharp";
 import ExifReader from "exifreader";
+import convert from "heic-convert";
 import {
   getOptimizedImageKey,
   IMAGE_SIZES,
@@ -76,7 +77,10 @@ export async function POST(req: Request) {
   }
 
   // Generate optimized versions at multiple sizes
-  const optimizedImages = await generateOptimizedSizes(image.buffer);
+  const optimizedImages = await generateOptimizedSizes(
+    image.buffer,
+    image.mimetype,
+  );
 
   if (optimizedImages.length === 0) {
     console.log("unable to generate optimized images");
@@ -220,11 +224,31 @@ type OptimizedImage = {
 
 async function generateOptimizedSizes(
   buffer: Buffer,
+  mimetype: string,
 ): Promise<OptimizedImage[]> {
   const results: OptimizedImage[] = [];
 
+  // Convert HEIC/HEIF to JPEG first (Sharp doesn't support HEIC natively)
+  let imageBuffer: Buffer = buffer;
+  if (mimetype === "image/heic" || mimetype === "image/heif") {
+    try {
+      const converted = await convert({
+        buffer: buffer,
+        format: "JPEG",
+        quality: 1,
+      });
+      imageBuffer = Buffer.from(converted);
+    } catch (e) {
+      console.error(
+        "Failed to convert HEIC image",
+        e instanceof Error ? e.message : e,
+      );
+      return results;
+    }
+  }
+
   // Get original image dimensions
-  const metadata = await sharp(buffer).metadata();
+  const metadata = await sharp(imageBuffer).metadata();
   const originalWidth = metadata.width ?? 0;
 
   for (const width of IMAGE_SIZES) {
@@ -232,7 +256,7 @@ async function generateOptimizedSizes(
     if (width > originalWidth) continue;
 
     try {
-      const optimized = await sharp(buffer)
+      const optimized = await sharp(imageBuffer)
         .rotate() // Auto-rotate based on EXIF orientation
         .resize(width, undefined, {
           withoutEnlargement: true,

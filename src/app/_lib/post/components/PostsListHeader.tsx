@@ -149,7 +149,7 @@ export function PostsSelectionCarousel() {
                         <div ref={ref}>
                           {post.images.length > 0 && (
                             <div className="relative h-10 w-10">
-                              <Badge className="absolute right-0 top-0 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
+                              <Badge className="absolute right-0 top-0 z-10 block h-5 min-w-5 -translate-y-1/2 translate-x-1/2 rounded-full p-0 text-center font-mono tabular-nums">
                                 {post.images.length}
                               </Badge>
                               <ImageRenderer image={post.images[0]!} />
