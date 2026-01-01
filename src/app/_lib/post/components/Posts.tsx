@@ -2,14 +2,11 @@
 import { useParams } from "next/navigation";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { Button } from "../../ui/button";
-import { EditPosts } from "./EditPosts";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
-import { usePosts } from "../contexts/PostsContext";
 import { PostListsSkeletion } from "./PostsListSkeleton";
+import Link from "next/link";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMutation } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { ImageClusters } from "../../map/components/ImageClusters";
 import { MapSkeleton } from "../../map/components/MapSkeleton";
@@ -23,7 +20,6 @@ import {
   ImageScrollTrackingContextProvider,
   useImageScrollTracking,
 } from "../contexts/ImageScrollTrackingContext";
-import { toast } from "sonner";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -183,58 +179,13 @@ function PostsSection() {
   const api = useTRPC();
   const params = useParams();
   const entryId = Number(params.entryId);
+  const diaryId = Number(params.diaryId);
 
   const {
     data: posts,
     isError,
     isPending,
   } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
-
-  const { state } = usePosts();
-  const disableCreate = useMemo(() => {
-    if (!state.posts) {
-      return true;
-    }
-
-    const hasAtLeastOnePostWithNonLoadedImage = state.posts.some((post) => {
-      return (
-        post.images.length === 0 ||
-        post.images.some((image) => image.type !== "loaded")
-      );
-    });
-    return hasAtLeastOnePostWithNonLoadedImage;
-  }, [state.posts]);
-
-  const queryClient = useQueryClient();
-  const mutation = useMutation(
-    api.diary.createPosts.mutationOptions({
-      async onSuccess() {
-        return Promise.all([
-          queryClient.invalidateQueries(
-            api.diary.getPosts.queryFilter({ entryId }),
-          ),
-          queryClient.invalidateQueries(
-            api.diary.getImagesWithLocationByEntryId.queryFilter({ entryId }),
-          ),
-        ]);
-      },
-      onError() {
-        toast.error("There was an error while creating your posts");
-      },
-    }),
-  );
-  function handleCreate() {
-    const moreThanOneImage = state.posts.every(
-      (post) => post.images.length > 0,
-    );
-
-    if (!moreThanOneImage) {
-      toast.error("There is a post with an empty image");
-      return;
-    }
-
-    mutation.mutate({ entryId: entryId, posts: state.posts });
-  }
 
   if (isPending) {
     return <PostListsSkeletion />;
@@ -246,15 +197,11 @@ function PostsSection() {
 
   if (!posts || posts.length === 0) {
     return (
-      <div className="space-y-2">
-        <EditPosts />
-        <Button
-          onClick={() => handleCreate()}
-          disabled={disableCreate}
-          type="button"
-        >
-          Create Post
-        </Button>
+      <div className="flex h-full flex-col items-center justify-center space-y-4 p-8 text-center">
+        <p className="text-lg text-muted-foreground">No posts</p>
+        <Link href={`/diaries/${diaryId}/entries/${entryId}/posts/edit`}>
+          <Button type="button">Create Post</Button>
+        </Link>
       </div>
     );
   }
