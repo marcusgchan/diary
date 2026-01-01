@@ -40,9 +40,7 @@ export class DiaryService {
     const inner = this.db
       .select({
         diaryId: sql<number>`${diaries.id}`.as("inner_diary_id"),
-        firstEntryDate: sql<Date>`MAX(${entries.createdAt})`.as(
-          "first_entry_date",
-        ),
+        latestEntryDay: sql<string>`MAX(${entries.day})`.as("latest_entry_day"),
       })
       .from(diaries)
       .leftJoin(entries, eq(diaries.id, entries.diaryId))
@@ -54,7 +52,13 @@ export class DiaryService {
       .from(diariesToUsers)
       .innerJoin(diaries, eq(diaries.id, diariesToUsers.diaryId))
       .leftJoin(inner, eq(inner.diaryId, diaries.id))
-      .leftJoin(entries, eq(inner.firstEntryDate, entries.createdAt))
+      .leftJoin(
+        entries,
+        and(
+          eq(inner.latestEntryDay, entries.day),
+          eq(entries.diaryId, diaries.id),
+        ),
+      )
       .where(
         and(
           eq(diariesToUsers.userId, this.userId),

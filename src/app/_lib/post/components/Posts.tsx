@@ -33,9 +33,29 @@ export function Posts() {
   const params = useParams();
   const entryId = Number(params.entryId);
   const api = useTRPC();
-  const { data } = useQuery(api.diary.getPosts.queryOptions({ entryId }));
+  const { data: posts } = useQuery(
+    api.diary.getPosts.queryOptions({ entryId }),
+  );
+  const { data: images } = useQuery(
+    api.diary.getImagesWithLocationByEntryId.queryOptions({ entryId }),
+  );
 
-  if (data && data.length === 0) {
+  // Check if we have any location data to show on map
+  const hasImageLocations = (images?.features.length ?? 0) > 0;
+  const hasPostLocations =
+    posts?.some((post) => post.location !== null) ?? false;
+  const shouldShowMap = hasImageLocations || hasPostLocations;
+
+  if (posts && posts.length === 0) {
+    return (
+      <div className="overflow-y-auto">
+        <PostsSection />
+      </div>
+    );
+  }
+
+  // No map - just show posts
+  if (!shouldShowMap) {
     return (
       <div className="overflow-y-auto">
         <PostsSection />
@@ -123,22 +143,38 @@ function MapSection() {
     );
   }
 
+  // Don't show map if no images with location and no post locations
+  if (!hasImageLocations && postsWithLocation.length === 0) {
+    return null;
+  }
+
+  // Get unique location address to display above map
+  const locationAddress = postsWithLocation[0]?.location.address;
+
   return (
-    <div className="mx-auto h-full w-full lg:max-w-none">
-      <InteractiveMap defaultCenter={defaultCenter}>
-        {images && <ImageClusters geoJson={images} />}
-        {/* Show post location markers only if no images exist */}
-        {!hasImageLocations &&
-          postsWithLocation.map((post) => (
-            <LocationMarker
-              key={post.id}
-              position={{
-                lat: post.location.latitude,
-                lng: post.location.longitude,
-              }}
-            />
-          ))}
-      </InteractiveMap>
+    <div className="mx-auto flex h-full w-full flex-col lg:max-w-none">
+      {locationAddress && (
+        <p className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
+          <MapPin size={14} />
+          {locationAddress}
+        </p>
+      )}
+      <div className="min-h-0 flex-1">
+        <InteractiveMap defaultCenter={defaultCenter}>
+          {images && <ImageClusters geoJson={images} />}
+          {/* Show post location markers only if no images exist */}
+          {!hasImageLocations &&
+            postsWithLocation.map((post) => (
+              <LocationMarker
+                key={post.id}
+                position={{
+                  lat: post.location.latitude,
+                  lng: post.location.longitude,
+                }}
+              />
+            ))}
+        </InteractiveMap>
+      </div>
     </div>
   );
 }
@@ -243,9 +279,6 @@ function PostList({ posts }: PostsProps) {
           return (
             <li key={post.id} className="space-y-2">
               {post.title && <PostTitle>{post.title}</PostTitle>}
-              {post.location && (
-                <PostLocation>{post.location.address}</PostLocation>
-              )}
               <PostImage post={post} />
               {post.description && (
                 <PostDescription>{post.description}</PostDescription>
@@ -268,9 +301,6 @@ function PostList({ posts }: PostsProps) {
               key={post.id}
             >
               {post.title && <PostTitle>{post.title}</PostTitle>}
-              {post.location && (
-                <PostLocation>{post.location.address}</PostLocation>
-              )}
               <PostImage post={post} />
             </div>,
             post.description.length > 0 && (
@@ -332,15 +362,6 @@ function PostTitle({ children }: { children: React.ReactNode }) {
     <h3 className="mb-2 h-7 max-w-full truncate text-xl font-bold">
       {children}
     </h3>
-  );
-}
-
-function PostLocation({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
-      <MapPin size={14} />
-      {children}
-    </p>
   );
 }
 
