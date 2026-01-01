@@ -79,7 +79,11 @@ function LocationDrawerWithState({
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-    if (open && initialLocation) {
+    if (open) {
+      // Reset to initial location when opening
+      setSelectedLocation(initialLocation);
+    } else {
+      // Reset to initial location when closing (discard unsaved changes)
       setSelectedLocation(initialLocation);
     }
   };
@@ -253,7 +257,7 @@ function LocationDrawerWithState({
   }, [initialZoom]);
 
   return (
-    <Drawer open={isOpen} onOpenChange={handleOpenChange}>
+    <Drawer open={isOpen} onOpenChange={handleOpenChange} dismissible={false}>
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>Location Search</DrawerTitle>
@@ -286,7 +290,9 @@ function LocationDrawerWithState({
         </div>
         <DrawerFooter className="flex md:flex-row md:justify-end">
           <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Cancel
+            </Button>
           </DrawerClose>
           <Button onClick={handleSubmit} disabled={!selectedLocation}>
             Save
