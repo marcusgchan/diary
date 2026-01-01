@@ -6,6 +6,7 @@ import type {
   PostFormUploadingImage,
   PostFormCompressionErrorImage,
 } from "~/server/lib/types";
+import { MAX_IMAGES_PER_POST } from "~/server/lib/schema";
 
 export type PostsState = {
   posts: PostForm[];
@@ -126,7 +127,9 @@ export function postsReducer(
         posts: state.posts.map((post) => {
           if (post.isSelected) {
             const currentImageCount = post.images.length;
-            const imagesWithOrder = action.payload.map((image, index) => ({
+            const availableSlots = MAX_IMAGES_PER_POST - currentImageCount;
+            const imagesToAdd = action.payload.slice(0, availableSlots);
+            const imagesWithOrder = imagesToAdd.map((image, index) => ({
               ...image,
               isSelected: post.images.length === 0 && index === 0,
               order: currentImageCount + index,

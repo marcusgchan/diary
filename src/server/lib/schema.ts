@@ -46,6 +46,8 @@ export const createDiarySchema = z.object({
 });
 export type CreateDiary = z.infer<typeof createDiarySchema>;
 
+export const MAX_IMAGES_PER_POST = 7;
+
 export const createPostSchema = z.object({
   entryId: z.number(),
   posts: z
@@ -60,7 +62,8 @@ export const createPostSchema = z.object({
           key: z.string(),
           order: z.number().int(),
         })
-        .array(),
+        .array()
+        .max(MAX_IMAGES_PER_POST),
     })
     .array(),
 });
@@ -86,7 +89,8 @@ export const updatePostSchema = z.object({
           key: z.string(),
           order: z.number().int(),
         })
-        .array(),
+        .array()
+        .max(MAX_IMAGES_PER_POST),
     })
     .array(),
 });
