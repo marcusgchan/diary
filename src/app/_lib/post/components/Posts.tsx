@@ -62,12 +62,12 @@ export function Posts() {
   }
 
   return (
-    <div className="overflow-y-auto">
-      <div className="grid h-full min-h-0 gap-8 pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:1fr_1fr] lg:pr-0">
-        <section className="h-full min-h-0 w-full pr-0 [grid-area:posts] lg:pr-4">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+      <div className="grid min-h-full flex-1 gap-8 pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:1fr_1fr] lg:pr-0">
+        <section className="flex min-h-0 w-full flex-col pr-0 [grid-area:posts] lg:pr-4">
           <PostsSection />
         </section>
-        <section className="h-full [grid-area:map]">
+        <section className="flex min-h-0 flex-col [grid-area:map]">
           <MapSection />
         </section>
       </div>
@@ -194,7 +194,11 @@ function PostsSection() {
   }
 
   if (isError) {
-    return "Something went wrong";
+    return (
+      <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+        <p className="text-lg text-muted-foreground">Something went wrong</p>
+      </div>
+    );
   }
 
   if (!posts || posts.length === 0) {
