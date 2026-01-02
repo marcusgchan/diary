@@ -174,30 +174,9 @@ export async function getImagesByEntryId(
   const imageRepo = new ImageService(ctx);
   const images = await imageRepo.getImagesByEntryId(input.entryId);
 
-  const imageWithUrl = await Promise.all(
-    images.map(async (image) => {
-      const [err, data] = await tryCatch(getImageSignedUrl(image.key));
-      if (err) {
-        return {
-          type: "failed" as const,
-        };
-      }
-
-      return {
-        type: "success" as const,
-        url: data,
-        ...image,
-      };
-    }),
-  );
-
-  const successfulImages = imageWithUrl.filter(
-    (image) => image.type === "success",
-  );
-
   const geoJson: GeoJson<GeoJsonImageFeature> = {
     type: "FeatureCollection",
-    features: successfulImages.map((image) => {
+    features: images.map((image) => {
       return {
         type: "Feature",
         id: image.id,
@@ -207,7 +186,7 @@ export async function getImagesByEntryId(
         },
         properties: {
           id: image.id,
-          url: image.url,
+          key: image.key,
           postId: image.postId,
         },
       };

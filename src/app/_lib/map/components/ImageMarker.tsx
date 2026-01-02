@@ -6,8 +6,10 @@ import {
   useAdvancedMarkerRef,
   useMap,
 } from "@vis.gl/react-google-maps";
+import Image from "next/image";
 import type { Feature, Point } from "geojson";
 import type { GeoJsonImageFeature } from "~/server/lib/types";
+import { customImageLoader } from "~/app/_lib/utils/imageLoader";
 
 type ImageMarkerProps = {
   position: google.maps.LatLngLiteral;
@@ -43,17 +45,16 @@ export function ImageMarker({
           overflow: "hidden",
           cursor: "pointer",
           boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+          position: "relative",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={feature.properties.url}
+        <Image
+          src={feature.properties.key}
           alt={`Image ${featureId}`}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
+          fill
+          className="object-cover"
+          sizes="40px"
+          loader={customImageLoader}
         />
       </div>
       {showInfo && (
@@ -71,16 +72,16 @@ export function ImageMarker({
             maxWidth: "200px",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={feature.properties.url}
-            alt={`Image ${featureId}`}
-            style={{
-              width: "100%",
-              maxHeight: "150px",
-              objectFit: "contain",
-            }}
-          />
+          <div style={{ position: "relative", width: "100%", height: "150px" }}>
+            <Image
+              src={feature.properties.key}
+              alt={`Image ${featureId}`}
+              fill
+              className="object-contain"
+              sizes="200px"
+              loader={customImageLoader}
+            />
+          </div>
         </div>
       )}
     </AdvancedMarker>

@@ -102,7 +102,7 @@ export interface GeoJsonFeature {
 export interface GeoJsonImageFeature extends GeoJsonFeature {
   properties: {
     id: string;
-    url: string;
+    key: string;
     postId: string;
   };
 }
