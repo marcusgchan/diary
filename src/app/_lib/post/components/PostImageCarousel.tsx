@@ -11,6 +11,8 @@ import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { usePostActions } from "../hooks/usePostActions";
 import type { PostFormImage } from "~/server/lib/types";
+import Image from "next/image";
+import { customImageLoader } from "../../utils/imageLoader";
 
 export function PostImageCarousel() {
   const { state } = usePosts();
@@ -58,7 +60,7 @@ export function PostImageCarousel() {
           </ImageUpload>
         )}
         {selectedImage && (
-          <div className="h-full w-full">
+          <div className="relative h-full w-full">
             <ImageRenderer showErrorText={true} image={selectedImage} />
           </div>
         )}
@@ -93,12 +95,14 @@ const ImageRenderer = React.forwardRef<
 
   if (image.type === "loaded") {
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
+      <Image
         ref={ref}
-        src={`/api/image/${image.key}`}
-        className="pointer-events-none h-full w-full rounded object-cover"
+        src={image.key}
         alt={image.name}
+        fill
+        className="pointer-events-none rounded object-cover"
+        sizes="(max-width: 768px) 100vw, 50vw"
+        loader={customImageLoader}
       />
     );
   }

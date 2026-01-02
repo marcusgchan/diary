@@ -9,6 +9,9 @@ import { useToast } from "../../ui/use-toast";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { usePosts } from "../contexts/PostsContext";
+import { MAX_IMAGES_PER_POST } from "~/server/lib/schema";
+
+export { MAX_IMAGES_PER_POST };
 
 export type PostActions = {
   filesChangeAction: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -38,7 +41,28 @@ export function usePostActions(): PostActions {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const metadata = Array.from(files).map((file) => ({
+    const selectedPost = state.posts.find((post) => post.isSelected)!;
+    const currentImageCount = selectedPost.images.length;
+    const availableSlots = MAX_IMAGES_PER_POST - currentImageCount;
+
+    if (availableSlots <= 0) {
+      toast({
+        title: `Maximum ${MAX_IMAGES_PER_POST} images per post`,
+        description: "Delete some images to add more.",
+      });
+      return;
+    }
+
+    // Limit files to available slots
+    const filesToAdd = Array.from(files).slice(0, availableSlots);
+    if (filesToAdd.length < files.length) {
+      toast({
+        title: `Only adding ${filesToAdd.length} of ${files.length} images`,
+        description: `Maximum ${MAX_IMAGES_PER_POST} images per post.`,
+      });
+    }
+
+    const metadata = filesToAdd.map((file) => ({
       name: file.name,
       size: file.size,
       mimetype: file.type,
@@ -63,8 +87,6 @@ export function usePostActions(): PostActions {
       }),
     );
 
-    const selectedPost = state.posts.find((post) => post.isSelected)!;
-
     const payload: PostFormUploadingImage[] = res
       .filter((res) => res.status === "fulfilled")
       .map((res, index) => {
@@ -84,7 +106,7 @@ export function usePostActions(): PostActions {
     await Promise.allSettled(
       res.map((item, index) => {
         if (item.status === "rejected") {
-          toast({ title: "Unable to add file " + files[index]!.name });
+          toast({ title: "Unable to add file " + filesToAdd[index]!.name });
           return Promise.reject(
             item.reason instanceof Error ? item.reason : new Error(),
           );
@@ -94,7 +116,7 @@ export function usePostActions(): PostActions {
         for (const [key, value] of Object.entries(item.value.fields)) {
           formData.append(key, value);
         }
-        formData.append("file", files[index]!);
+        formData.append("file", filesToAdd[index]!);
 
         return fetch(item.value.url, {
           method: "post",
