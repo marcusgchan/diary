@@ -9,7 +9,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { env } from "~/env.mjs";
 import { config } from "~/server/config";
-import { s3Client } from "./s3Client";
+import { s3Client, s3PublicClient } from "./s3Client";
 import { type Readable } from "stream";
 import type { ProtectedContext } from "../../trpc";
 import { tryCatch } from "~/app/_lib/utils/tryCatch";
@@ -24,7 +24,7 @@ export async function getPresignedPost(
 ) {
   const filename = `${uuid}-${imageMetadata.name}`;
   const key = `${userId}/${diaryId}/${entryId}/${filename}`;
-  const presignedPost = await createPresignedPost(s3Client, {
+  const presignedPost = await createPresignedPost(s3PublicClient, {
     Bucket: env.BUCKET_NAME,
     Key: key,
     Expires: config.s3.presignedUrlDuration,
@@ -54,7 +54,7 @@ export async function getImageSignedUrl(key: string) {
     Bucket: env.BUCKET_NAME,
     Key: key,
   });
-  return getSignedUrl(s3Client, getCommand);
+  return getSignedUrl(s3PublicClient, getCommand);
 }
 
 export class S3DeleteImageError extends Error {
