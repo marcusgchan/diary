@@ -8,9 +8,7 @@ import { sendMail } from "../integrations/email";
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
-  trustedOrigins: [
-    "https://anapaestically-acclimatizable-mindi.ngrok-free.dev",
-  ],
+  baseURL: env.BETTER_AUTH_URL,
   session: {
     cookieCache: {
       enabled: true,
