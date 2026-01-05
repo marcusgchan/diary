@@ -6,6 +6,8 @@ import { Input } from "../../ui/input";
 import { usePostActions } from "../hooks/usePostActions";
 import { ImageScrollTrackingContextProvider } from "../contexts/ImageScrollTrackingContext";
 import { usePosts } from "../contexts/PostsContext";
+import { usePostListScrollTracking } from "../contexts/PostListScrollTrackingContext";
+import { PostListScrollTrackingContextProvider } from "../contexts/PostListScrollTrackingContext";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { Separator } from "../../ui/separator";
@@ -23,9 +25,11 @@ type EditPostsProps = {
 
 export function EditPosts({ footer }: EditPostsProps) {
   return (
-    <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
-      <SelectedPostViewContent footer={footer} />
-    </ImageScrollTrackingContextProvider>
+    <PostListScrollTrackingContextProvider>
+      <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
+        <SelectedPostViewContent footer={footer} />
+      </ImageScrollTrackingContextProvider>
+    </PostListScrollTrackingContextProvider>
   );
 }
 
@@ -41,7 +45,13 @@ function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
     descriptionChangeAction,
   } = usePostActions();
 
+  const {
+    scrollToImage: scrollToPostImage,
+    getImageElementsMap: getPostImageElementsMap,
+  } = usePostListScrollTracking();
+
   const selectedPostForm = state.posts.find((post) => post.isSelected)!;
+  const previousPostsLengthRef = useRef(state.posts.length);
 
   const params = useParams();
   const diaryId = Number(params.diaryId);
@@ -66,6 +76,29 @@ function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
     }
     dispatch({ type: "UPDATE_IMAGES_STATUS", payload: uploadingState });
   }, [uploadingState, dispatch]);
+
+  // Scroll to newly created post when it's added
+  useEffect(() => {
+    const postsLengthIncreased =
+      state.posts.length > previousPostsLengthRef.current;
+    if (postsLengthIncreased) {
+      previousPostsLengthRef.current = state.posts.length;
+      const newPost = state.posts.find((post) => post.isSelected);
+      if (newPost) {
+        const el = getPostImageElementsMap().get(newPost.id);
+        if (el) {
+          scrollToPostImage(el);
+        }
+      }
+    } else {
+      previousPostsLengthRef.current = state.posts.length;
+    }
+  }, [
+    state.posts.length,
+    state.posts,
+    getPostImageElementsMap,
+    scrollToPostImage,
+  ]);
 
   const selectedImage = selectedPostForm.images.find(
     (image) => image.isSelected,
