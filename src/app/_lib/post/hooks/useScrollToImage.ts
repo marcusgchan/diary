@@ -21,11 +21,17 @@ export function useScrollToImage<T extends HTMLElement>(): {
         return;
       }
 
-      setIsScrollingProgrammatically(true);
-
       if (!containerElement) return;
 
+      setIsScrollingProgrammatically(true);
+
+      // Timeout fallback in case scrollend doesn't fire (e.g., scroll interrupted)
+      const timeoutId = setTimeout(() => {
+        setIsScrollingProgrammatically(false);
+      }, 500);
+
       const handleScrollEnd = () => {
+        clearTimeout(timeoutId);
         setIsScrollingProgrammatically(false);
         containerElement.removeEventListener("scrollend", handleScrollEnd);
       };
