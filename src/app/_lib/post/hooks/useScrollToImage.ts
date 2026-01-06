@@ -21,9 +21,9 @@ export function useScrollToImage<T extends HTMLElement>(): {
         return;
       }
 
-      setIsScrollingProgrammatically(true);
-
       if (!containerElement) return;
+
+      setIsScrollingProgrammatically(true);
 
       const handleScrollEnd = () => {
         setIsScrollingProgrammatically(false);

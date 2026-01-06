@@ -6,6 +6,8 @@ import { Input } from "../../ui/input";
 import { usePostActions } from "../hooks/usePostActions";
 import { ImageScrollTrackingContextProvider } from "../contexts/ImageScrollTrackingContext";
 import { usePosts } from "../contexts/PostsContext";
+import { usePostListScrollTracking } from "../contexts/PostListScrollTrackingContext";
+import { PostListScrollTrackingContextProvider } from "../contexts/PostListScrollTrackingContext";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
 import { Separator } from "../../ui/separator";
@@ -19,17 +21,26 @@ import { LocationDisplay } from "./LocationDrawer";
 
 type EditPostsProps = {
   footer?: React.ReactNode;
+  deleteButton?: React.ReactNode;
 };
 
-export function EditPosts({ footer }: EditPostsProps) {
+export function EditPosts({ footer, deleteButton }: EditPostsProps) {
   return (
-    <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
-      <SelectedPostViewContent footer={footer} />
-    </ImageScrollTrackingContextProvider>
+    <PostListScrollTrackingContextProvider>
+      <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
+        <SelectedPostViewContent footer={footer} deleteButton={deleteButton} />
+      </ImageScrollTrackingContextProvider>
+    </PostListScrollTrackingContextProvider>
   );
 }
 
-function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
+function SelectedPostViewContent({
+  footer,
+  deleteButton,
+}: {
+  footer?: React.ReactNode;
+  deleteButton?: React.ReactNode;
+}) {
   const api = useTRPC();
   const { state, dispatch } = usePosts();
 
@@ -41,7 +52,13 @@ function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
     descriptionChangeAction,
   } = usePostActions();
 
+  const {
+    scrollToImage: scrollToPostImage,
+    getImageElementsMap: getPostImageElementsMap,
+  } = usePostListScrollTracking();
+
   const selectedPostForm = state.posts.find((post) => post.isSelected)!;
+  const previousPostsLengthRef = useRef(state.posts.length);
 
   const params = useParams();
   const diaryId = Number(params.diaryId);
@@ -66,6 +83,29 @@ function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
     }
     dispatch({ type: "UPDATE_IMAGES_STATUS", payload: uploadingState });
   }, [uploadingState, dispatch]);
+
+  // Scroll to newly created post when it's added
+  useEffect(() => {
+    const postsLengthIncreased =
+      state.posts.length > previousPostsLengthRef.current;
+    if (postsLengthIncreased) {
+      previousPostsLengthRef.current = state.posts.length;
+      const newPost = state.posts.find((post) => post.isSelected);
+      if (newPost) {
+        const el = getPostImageElementsMap().get(newPost.id);
+        if (el) {
+          scrollToPostImage(el);
+        }
+      }
+    } else {
+      previousPostsLengthRef.current = state.posts.length;
+    }
+  }, [
+    state.posts.length,
+    state.posts,
+    getPostImageElementsMap,
+    scrollToPostImage,
+  ]);
 
   const selectedImage = selectedPostForm.images.find(
     (image) => image.isSelected,
@@ -147,19 +187,14 @@ function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
         value={selectedPostForm.description}
         onChange={(e) => descriptionChangeAction(e.target.value)}
       />
-      <div className="flex items-center">
-        {state.posts.length > 1 && (
-          <Button
-            onClick={deletePostAction}
-            variant="destructive"
-            type="button"
-          >
-            <Trash />
-          </Button>
-        )}
-      </div>
 
-      {footer && footer}
+      {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
+      {(footer || deleteButton) && (
+        <div className="flex items-center justify-between">
+          <div>{deleteButton}</div>
+          <div>{footer}</div>
+        </div>
+      )}
     </div>
   );
 }

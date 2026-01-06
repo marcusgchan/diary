@@ -4,7 +4,7 @@ import {
   CircleChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
-import React, { type ReactNode, useCallback, useMemo } from "react";
+import React, { type ReactNode, useCallback, useMemo, useEffect } from "react";
 import { useDndContext } from "@dnd-kit/core";
 import { SortableItem } from "../../shared/SortableItem";
 import { cn } from "../../utils/cx";
@@ -41,33 +41,49 @@ export function PostsSelectionCarousel() {
   const { active } = useDndContext();
   const isDragging = active !== null;
 
-  function handleSelectPost(post: PostForm) {
-    editPostAction(post);
-    const el = getPostImageElementsMap().get(post.id)!;
-    scrollToPostImage(el);
+  const selectedPost = useMemo(() => {
+    return posts.find((post) => post.isSelected);
+  }, [posts]);
 
-    // Scroll to first image when clicking same post after selecting non-first image
-    if (post.images.length > 0) {
-      const firstImageId = post.images[0]!.id;
-      const imageElement = getImageElementsMap().get(firstImageId)!;
+  // Scroll to selected post when it changes
+  useEffect(() => {
+    if (!selectedPost) return;
+    const el = getPostImageElementsMap().get(selectedPost.id);
+    if (el) {
+      scrollToPostImage(el);
+    }
+  }, [selectedPost?.id, getPostImageElementsMap, scrollToPostImage]);
+
+  // Scroll to first image when selecting a post (if no image is selected)
+  useEffect(() => {
+    if (!selectedPost || selectedPost.images.length === 0) return;
+
+    const selectedImage = selectedPost.images.find((img) => img.isSelected);
+    if (!selectedImage) {
+      // No image selected, scroll to first image
+      const firstImageId = selectedPost.images[0]!.id;
+      const imageElement = getImageElementsMap().get(firstImageId);
       if (imageElement) {
         scrollToImage(imageElement, true);
       }
     }
+  }, [
+    selectedPost?.id,
+    selectedPost?.images,
+    getImageElementsMap,
+    scrollToImage,
+  ]);
+
+  function handleSelectPost(post: PostForm) {
+    editPostAction(post);
   }
 
   function handlePreviousPost() {
     previousPostAction();
-    const previousPostIndex = posts.findIndex((post) => post.isSelected) - 1;
-    const el = getPostImageElementsMap().get(posts[previousPostIndex]!.id)!;
-    scrollToPostImage(el);
   }
 
   function handleNextPost() {
     nextPostAction();
-    const nextPostIndex = posts.findIndex((post) => post.isSelected) + 1;
-    const el = getPostImageElementsMap().get(posts[nextPostIndex]!.id)!;
-    scrollToPostImage(el);
   }
 
   const firstPostSelected = useMemo(() => {

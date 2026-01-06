@@ -5,6 +5,8 @@ import { EditPosts } from "./EditPosts";
 import { EditPostsLoading } from "./EditPostsLoading";
 import { usePosts } from "../contexts/PostsContext";
 import { useParams, useRouter } from "next/navigation";
+import { Trash } from "lucide-react";
+import { usePostActions } from "../hooks/usePostActions";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -18,6 +20,7 @@ export function EditPostsSection() {
   const entryId = Number(params.entryId);
 
   const { state } = usePosts();
+  const { deletePostAction } = usePostActions();
   const mutation = useMutation(
     api.diary.updatePosts.mutationOptions({
       onSuccess() {
@@ -86,8 +89,19 @@ export function EditPostsSection() {
 
   return (
     <EditPosts
+      deleteButton={
+        state.posts.length > 1 ? (
+          <Button
+            onClick={deletePostAction}
+            variant="destructive"
+            type="button"
+          >
+            <Trash />
+          </Button>
+        ) : undefined
+      }
       footer={
-        <div className="flex justify-between">
+        <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => handleBack()}>
             Back
           </Button>

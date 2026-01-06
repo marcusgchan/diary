@@ -17,7 +17,6 @@ import { usePostActions } from "../hooks/usePostActions";
 import { usePostsSensors } from "../hooks/usePostsSensors";
 import { useDndState } from "../hooks/useDndState";
 import { usePosts } from "../contexts/PostsContext";
-import { PostListScrollTrackingContextProvider } from "../contexts/PostListScrollTrackingContext";
 import { PostsSelectionCarousel } from "./PostsListHeader";
 import type { PostFormImage } from "~/server/lib/types";
 import { Skeleton } from "../../ui/skeleton";
@@ -89,9 +88,7 @@ export function PostsHeaderDnd() {
         items={state.posts.map((post) => ({ id: post.id }))}
         strategy={horizontalListSortingStrategy}
       >
-        <PostListScrollTrackingContextProvider>
-          <PostsSelectionCarousel />
-        </PostListScrollTrackingContextProvider>
+        <PostsSelectionCarousel />
       </SortableContext>
       <DragOverlay>
         {activePost ? <DragOverlayItem post={activePost} /> : null}
