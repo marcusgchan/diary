@@ -265,7 +265,7 @@ function LocationDrawerWithState({
             Search a location for the selected post.
           </DrawerDescription>
         </DrawerHeader>
-        <div className="h-dvh">
+        <div className="h-[600px]">
           <InteractiveMap
             key={`${isOpen}-${initialZoom}`}
             defaultCenter={mapCenter}
