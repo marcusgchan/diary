@@ -21,19 +21,26 @@ import { LocationDisplay } from "./LocationDrawer";
 
 type EditPostsProps = {
   footer?: React.ReactNode;
+  deleteButton?: React.ReactNode;
 };
 
-export function EditPosts({ footer }: EditPostsProps) {
+export function EditPosts({ footer, deleteButton }: EditPostsProps) {
   return (
     <PostListScrollTrackingContextProvider>
       <ImageScrollTrackingContextProvider<HTMLDivElement, HTMLLIElement>>
-        <SelectedPostViewContent footer={footer} />
+        <SelectedPostViewContent footer={footer} deleteButton={deleteButton} />
       </ImageScrollTrackingContextProvider>
     </PostListScrollTrackingContextProvider>
   );
 }
 
-function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
+function SelectedPostViewContent({
+  footer,
+  deleteButton,
+}: {
+  footer?: React.ReactNode;
+  deleteButton?: React.ReactNode;
+}) {
   const api = useTRPC();
   const { state, dispatch } = usePosts();
 
@@ -180,19 +187,14 @@ function SelectedPostViewContent({ footer }: { footer?: React.ReactNode }) {
         value={selectedPostForm.description}
         onChange={(e) => descriptionChangeAction(e.target.value)}
       />
-      <div className="flex items-center">
-        {state.posts.length > 1 && (
-          <Button
-            onClick={deletePostAction}
-            variant="destructive"
-            type="button"
-          >
-            <Trash />
-          </Button>
-        )}
-      </div>
 
-      {footer && footer}
+      {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
+      {(footer || deleteButton) && (
+        <div className="flex items-center justify-between">
+          <div>{deleteButton}</div>
+          <div>{footer}</div>
+        </div>
+      )}
     </div>
   );
 }

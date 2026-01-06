@@ -4,6 +4,7 @@ import React, {
   type ReactNode,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
 import { CircleChevronLeft, CircleChevronRight } from "lucide-react";
 import {
@@ -69,32 +70,29 @@ export function PostImageThumbnails() {
 
   const isDragging = activeImageId !== null;
 
-  function handleSelectImage(imageId: string) {
-    imageSelectAction(imageId);
-    const thumbnailElement = getThumbnailElementsMap().get(imageId);
+  const selectedImage = useMemo(() => {
+    return images.find((image) => image.isSelected);
+  }, [images]);
+
+  // Scroll to selected image when it changes
+  useEffect(() => {
+    if (!selectedImage) return;
+    const thumbnailElement = getThumbnailElementsMap().get(selectedImage.id);
     if (thumbnailElement) {
       scrollThumbnailToImage(thumbnailElement);
     }
+  }, [selectedImage, getThumbnailElementsMap, scrollThumbnailToImage]);
+
+  function handleSelectImage(imageId: string) {
+    imageSelectAction(imageId);
   }
 
   function handlePreviousImage() {
     previousImageAction();
-    const selectedImageIndex = images.findIndex((image) => image.isSelected);
-    const previousImageIndex = selectedImageIndex - 1;
-    if (previousImageIndex >= 0) {
-      const el = getThumbnailElementsMap().get(images[previousImageIndex]!.id)!;
-      scrollThumbnailToImage(el);
-    }
   }
 
   function handleNextImage() {
     nextImageAction();
-    const selectedImageIndex = images.findIndex((image) => image.isSelected);
-    const nextImageIndex = selectedImageIndex + 1;
-    if (nextImageIndex < images.length) {
-      const el = getThumbnailElementsMap().get(images[nextImageIndex]!.id)!;
-      scrollThumbnailToImage(el);
-    }
   }
 
   const firstImageSelected = useMemo(() => {
