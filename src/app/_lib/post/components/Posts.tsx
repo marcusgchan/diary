@@ -44,18 +44,9 @@ export function Posts() {
     posts?.some((post) => post.location !== null) ?? false;
   const shouldShowMap = hasImageLocations || hasPostLocations;
 
-  if (posts && posts.length === 0) {
+  if (!shouldShowMap || (posts && posts.length === 0)) {
     return (
-      <div className="overflow-y-auto">
-        <PostsSection />
-      </div>
-    );
-  }
-
-  // No map - just show posts
-  if (!shouldShowMap) {
-    return (
-      <div className="overflow-y-auto">
+      <div className="h-full overflow-y-auto">
         <PostsSection />
       </div>
     );
@@ -213,7 +204,7 @@ function PostsSection() {
   }
 
   return (
-    <div className="h-full space-y-2">
+    <div className="h-full">
       <PostList posts={posts} />
     </div>
   );
