@@ -1,12 +1,11 @@
 "use client";
-import { Image as ImageIcon, Trash, X } from "lucide-react";
+import { Image as ImageIcon, X } from "lucide-react";
 import React, { useRef, useEffect } from "react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { usePostActions } from "../hooks/usePostActions";
 import { ImageScrollTrackingContextProvider } from "../contexts/ImageScrollTrackingContext";
 import { usePosts } from "../contexts/PostsContext";
-import { usePostListScrollTracking } from "../contexts/PostListScrollTrackingContext";
 import { PostListScrollTrackingContextProvider } from "../contexts/PostListScrollTrackingContext";
 import { useTRPC } from "~/trpc/TrpcProvider";
 import { useParams } from "next/navigation";
@@ -46,19 +45,12 @@ function SelectedPostViewContent({
 
   const {
     startNewPostAction,
-    deletePostAction,
     filesChangeAction,
     titleChangeAction,
     descriptionChangeAction,
   } = usePostActions();
 
-  const {
-    scrollToImage: scrollToPostImage,
-    getImageElementsMap: getPostImageElementsMap,
-  } = usePostListScrollTracking();
-
   const selectedPostForm = state.posts.find((post) => post.isSelected)!;
-  const previousPostsLengthRef = useRef(state.posts.length);
 
   const params = useParams();
   const diaryId = Number(params.diaryId);
@@ -83,29 +75,6 @@ function SelectedPostViewContent({
     }
     dispatch({ type: "UPDATE_IMAGES_STATUS", payload: uploadingState });
   }, [uploadingState, dispatch]);
-
-  // Scroll to newly created post when it's added
-  useEffect(() => {
-    const postsLengthIncreased =
-      state.posts.length > previousPostsLengthRef.current;
-    if (postsLengthIncreased) {
-      previousPostsLengthRef.current = state.posts.length;
-      const newPost = state.posts.find((post) => post.isSelected);
-      if (newPost) {
-        const el = getPostImageElementsMap().get(newPost.id);
-        if (el) {
-          scrollToPostImage(el);
-        }
-      }
-    } else {
-      previousPostsLengthRef.current = state.posts.length;
-    }
-  }, [
-    state.posts.length,
-    state.posts,
-    getPostImageElementsMap,
-    scrollToPostImage,
-  ]);
 
   const selectedImage = selectedPostForm.images.find(
     (image) => image.isSelected,
