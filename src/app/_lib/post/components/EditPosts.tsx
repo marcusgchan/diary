@@ -14,7 +14,7 @@ import { Textarea } from "../../ui/textarea";
 
 import { useQuery } from "@tanstack/react-query";
 import { PostsHeaderDnd } from "./PostsHeaderDnd";
-import { PostImageCarousel } from "./PostImageCarousel";
+import { PostImageCarousel as SelectedImage } from "./PostImageCarousel";
 import { PostImageThumbnails } from "./PostImageThumbnails";
 import { LocationDisplay } from "./LocationDrawer";
 
@@ -103,7 +103,7 @@ function SelectedPostViewContent({
 
       <LocationDisplay />
 
-      <PostImageCarousel />
+      <SelectedImage />
 
       <PostImageThumbnails />
 
