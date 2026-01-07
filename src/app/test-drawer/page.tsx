@@ -28,7 +28,7 @@ export default function TestDrawerPage() {
               This is a test drawer to check if the footer is cut off on mobile.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="h-[50vh] min-h-[300px] max-h-[600px] bg-muted p-4">
+          <div className="h-[50vh] max-h-[600px] min-h-[300px] bg-muted p-4">
             <p>This simulates the map area.</p>
             <p className="text-muted-foreground">
               The footer buttons below should be visible above the URL bar.
@@ -45,4 +45,3 @@ export default function TestDrawerPage() {
     </div>
   );
 }
-
