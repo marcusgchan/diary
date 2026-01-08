@@ -21,7 +21,7 @@ import { PostsSelectionCarousel } from "./PostsListHeader";
 import type { PostFormImage } from "~/server/lib/types";
 import { Skeleton } from "../../ui/skeleton";
 import Image from "next/image";
-import { customImageLoader } from "../../utils/imageLoader";
+import { customImageLoader, getBlurDataURL } from "../../utils/imageLoader";
 
 // Simple image renderer for drag overlay
 function ImageRenderer({ image }: { image: PostFormImage }) {
@@ -34,6 +34,8 @@ function ImageRenderer({ image }: { image: PostFormImage }) {
         className="pointer-events-none object-cover"
         sizes="40px"
         loader={customImageLoader}
+        placeholder="blur"
+        blurDataURL={getBlurDataURL(image.key)}
       />
     );
   }

@@ -30,7 +30,7 @@ import { useImageSensors } from "../hooks/useImageSensors";
 import { useDndState } from "../hooks/useDndState";
 import { Skeleton } from "../../ui/skeleton";
 import Image from "next/image";
-import { customImageLoader } from "../../utils/imageLoader";
+import { customImageLoader, getBlurDataURL } from "../../utils/imageLoader";
 
 export function PostImageThumbnails() {
   const { state, dispatch } = usePosts();
@@ -296,6 +296,8 @@ const ImageRenderer = React.forwardRef<
         className="pointer-events-none rounded object-cover"
         sizes="40px"
         loader={customImageLoader}
+        placeholder="blur"
+        blurDataURL={getBlurDataURL(image.key)}
       />
     );
   }

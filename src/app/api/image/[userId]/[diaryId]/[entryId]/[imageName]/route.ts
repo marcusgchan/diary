@@ -1,8 +1,5 @@
 import { headers } from "next/headers";
-import {
-  getImageSignedUrl,
-  getImage,
-} from "~/server/lib/integrations/s3Service";
+import { getImage } from "~/server/lib/integrations/s3Service";
 import { auth } from "~/server/lib/services/auth";
 import {
   getOptimizedImageKey,
@@ -25,48 +22,53 @@ export async function GET(
   if (!session || (session && session.user.id !== params.userId)) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });
   }
+  const key = `${session.user.id}/${params.diaryId}/${params.entryId}/${params.imageName}`;
 
-  const key = `${params.userId}/${params.diaryId}/${params.entryId}/${params.imageName}`;
-
-  // Check for optimization query params
   const { searchParams } = new URL(req.url);
   const width = searchParams.get("w");
 
-  // No width param, just redirect to original S3 image
   if (!width) {
-    const url = await getImageSignedUrl(key);
-    return new Response(null, {
-      status: 302,
+    const originalImage = await getImage(key);
+    if (!originalImage) {
+      return Response.json({ message: "Image not found" }, { status: 404 });
+    }
+    // Buffer extends Uint8Array, which is part of BodyInit, so this is safe at runtime
+    // TypeScript doesn't recognize the compatibility, hence the cast
+    return new Response(originalImage.buffer as unknown as BodyInit, {
       headers: {
-        Location: url,
-        "Cache-Control": "private, max-age=3600",
+        "Content-Type": originalImage.mimetype,
+        "Cache-Control": "private, max-age=31536000, immutable",
       },
     });
   }
 
   const targetWidth: number = getClosestSize(parseInt(width, 10));
 
-  // Try to get pre-generated optimized image
   const optimizedKey: string = getOptimizedImageKey(key, targetWidth);
   const optimizedImage = await getImage(optimizedKey);
 
-  if (optimizedImage) {
-    // Serve pre-generated image
-    return new Response(optimizedImage.buffer as unknown as BodyInit, {
+  if (!optimizedImage) {
+    // Fallback to original if optimized version doesn't exist
+    // This can happen if requested width > original image size
+    const originalImage = await getImage(key);
+    if (!originalImage) {
+      return Response.json({ message: "Image not found" }, { status: 404 });
+    }
+    return new Response(originalImage.buffer as unknown as BodyInit, {
       headers: {
-        "Content-Type": "image/webp",
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Type": originalImage.mimetype,
+        "Cache-Control": "private, max-age=31536000, immutable",
       },
     });
   }
 
-  // No pre-generated version exists, serve original from S3
-  const url = await getImageSignedUrl(key);
-  return new Response(null, {
-    status: 302,
+  // Serve pre-generated image
+  // Buffer extends Uint8Array, which is part of BodyInit, so this is safe at runtime
+  // TypeScript doesn't recognize the compatibility, hence the cast
+  return new Response(optimizedImage.buffer as unknown as BodyInit, {
     headers: {
-      Location: url,
-      "Cache-Control": "private, max-age=3600",
+      "Content-Type": "image/webp",
+      "Cache-Control": "private, max-age=31536000, immutable",
     },
   });
 }

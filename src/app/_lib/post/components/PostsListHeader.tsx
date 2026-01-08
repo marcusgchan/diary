@@ -22,7 +22,7 @@ import { usePosts } from "../contexts/PostsContext";
 import { usePostActions } from "../hooks/usePostActions";
 import { Badge } from "../../ui/badge";
 import Image from "next/image";
-import { customImageLoader } from "../../utils/imageLoader";
+import { customImageLoader, getBlurDataURL } from "../../utils/imageLoader";
 
 export function PostsSelectionCarousel() {
   const {
@@ -208,6 +208,8 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
         className="pointer-events-none rounded object-cover"
         sizes="40px"
         loader={customImageLoader}
+        placeholder="blur"
+        blurDataURL={getBlurDataURL(image.key)}
       />
     );
   }

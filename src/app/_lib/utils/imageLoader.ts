@@ -27,3 +27,20 @@ export function customImageLoader({
   const baseUrl = src.startsWith("/api/image/") ? src : `/api/image/${src}`;
   return `${baseUrl}?w=${optimizedWidth}`;
 }
+
+/**
+ * Generates a blur data URL for Next.js Image placeholder
+ * Uses the smallest optimized size (96w) for fast initial load
+ *
+ * @param src - The image key (e.g., "userId/diaryId/entryId/filename.jpg")
+ * @returns URL to the 96w optimized image for blur placeholder
+ */
+export function getBlurDataURL(src: string): string {
+  // If src is already a full URL, return it as-is
+  if (src.startsWith("http://") || src.startsWith("https://")) {
+    return src;
+  }
+
+  const baseUrl = src.startsWith("/api/image/") ? src : `/api/image/${src}`;
+  return `${baseUrl}?w=96`;
+}

@@ -21,7 +21,7 @@ import {
   useImageScrollTracking,
 } from "../contexts/ImageScrollTrackingContext";
 import Image from "next/image";
-import { customImageLoader } from "../../utils/imageLoader";
+import { customImageLoader, getBlurDataURL } from "../../utils/imageLoader";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -360,6 +360,8 @@ function PostImageContent({ post }: { post: Post }) {
                       className="object-cover"
                       sizes="(max-width: 768px) 100vw, 50vw"
                       loader={customImageLoader}
+                      placeholder="blur"
+                      blurDataURL={getBlurDataURL(image.key)}
                     />
                   );
                 }}
@@ -390,6 +392,8 @@ function PostImageContent({ post }: { post: Post }) {
                   className="object-cover"
                   loader={customImageLoader}
                   sizes="40px"
+                  placeholder="blur"
+                  blurDataURL={getBlurDataURL(image.key)}
                 />
               </button>
             </li>
