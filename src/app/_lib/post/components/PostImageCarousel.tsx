@@ -12,7 +12,7 @@ import { usePosts } from "../contexts/PostsContext";
 import { usePostActions } from "../hooks/usePostActions";
 import type { PostFormImage } from "~/server/lib/types";
 import Image from "next/image";
-import { customImageLoader } from "../../utils/imageLoader";
+import { customImageLoader, getBlurDataURL } from "../../utils/imageLoader";
 
 export function PostImageCarousel() {
   const { state } = usePosts();
@@ -103,6 +103,8 @@ const ImageRenderer = React.forwardRef<
         className="pointer-events-none rounded object-cover"
         sizes="(max-width: 768px) 100vw, 50vw"
         loader={customImageLoader}
+        placeholder="blur"
+        blurDataURL={getBlurDataURL(image.key)}
       />
     );
   }

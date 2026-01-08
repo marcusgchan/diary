@@ -4,20 +4,25 @@ import {
   CircleChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
-import React, { type ReactNode, useCallback, useMemo, useEffect } from "react";
+import React, {
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import { useDndContext } from "@dnd-kit/core";
 import { SortableItem } from "../../shared/SortableItem";
 import { cn } from "../../utils/cx";
 import type { PostForm, PostFormImage } from "~/server/lib/types";
 import { usePostListScrollTracking } from "../contexts/PostListScrollTrackingContext";
-import { useImageScrollTracking } from "../contexts/ImageScrollTrackingContext";
 import { useIntersectionObserver } from "../../utils/useIntersectionObserver";
 import { Skeleton } from "../../ui/skeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { usePostActions } from "../hooks/usePostActions";
 import { Badge } from "../../ui/badge";
 import Image from "next/image";
-import { customImageLoader } from "../../utils/imageLoader";
+import { customImageLoader, getBlurDataURL } from "../../utils/imageLoader";
 
 export function PostsSelectionCarousel() {
   const {
@@ -30,7 +35,6 @@ export function PostsSelectionCarousel() {
     setImageElementRef,
     getImageElementsMap: getPostImageElementsMap,
   } = usePostListScrollTracking();
-  const { scrollToImage, getImageElementsMap } = useImageScrollTracking();
   const {
     nextPostAction,
     previousPostAction,
@@ -42,37 +46,23 @@ export function PostsSelectionCarousel() {
   const isDragging = active !== null;
 
   const selectedPost = useMemo(() => {
-    return posts.find((post) => post.isSelected);
+    return posts.find((post) => post.isSelected)!;
   }, [posts]);
 
-  // Scroll to selected post when it changes
+  const previousSelectedPostIdRef = useRef<string>(null);
   useEffect(() => {
-    if (!selectedPost) return;
-    const el = getPostImageElementsMap().get(selectedPost.id);
-    if (el) {
-      scrollToPostImage(el);
+    if (
+      selectedPost.images.length === 0 ||
+      previousSelectedPostIdRef.current === null ||
+      selectedPost.id === previousSelectedPostIdRef.current
+    ) {
+      return;
     }
-  }, [selectedPost?.id, getPostImageElementsMap, scrollToPostImage]);
 
-  // Scroll to first image when selecting a post (if no image is selected)
-  useEffect(() => {
-    if (!selectedPost || selectedPost.images.length === 0) return;
-
-    const selectedImage = selectedPost.images.find((img) => img.isSelected);
-    if (!selectedImage) {
-      // No image selected, scroll to first image
-      const firstImageId = selectedPost.images[0]!.id;
-      const imageElement = getImageElementsMap().get(firstImageId);
-      if (imageElement) {
-        scrollToImage(imageElement, true);
-      }
-    }
-  }, [
-    selectedPost?.id,
-    selectedPost?.images,
-    getImageElementsMap,
-    scrollToImage,
-  ]);
+    const el = getPostImageElementsMap().get(selectedPost.id)!;
+    scrollToPostImage(el);
+    previousSelectedPostIdRef.current = selectedPost.id;
+  }, [posts.length, selectedPost, getPostImageElementsMap, scrollToPostImage]);
 
   function handleSelectPost(post: PostForm) {
     editPostAction(post);
@@ -218,6 +208,8 @@ function ImageRenderer({ image, showErrorText = false }: ImageProps) {
         className="pointer-events-none rounded object-cover"
         sizes="40px"
         loader={customImageLoader}
+        placeholder="blur"
+        blurDataURL={getBlurDataURL(image.key)}
       />
     );
   }

@@ -21,7 +21,7 @@ import {
   useImageScrollTracking,
 } from "../contexts/ImageScrollTrackingContext";
 import Image from "next/image";
-import { customImageLoader } from "../../utils/imageLoader";
+import { customImageLoader, getBlurDataURL } from "../../utils/imageLoader";
 
 const InteractiveMap = dynamic(() => import("../../map/components/Map"), {
   ssr: false,
@@ -44,18 +44,9 @@ export function Posts() {
     posts?.some((post) => post.location !== null) ?? false;
   const shouldShowMap = hasImageLocations || hasPostLocations;
 
-  if (posts && posts.length === 0) {
+  if (!shouldShowMap || (posts && posts.length === 0)) {
     return (
-      <div className="overflow-y-auto">
-        <PostsSection />
-      </div>
-    );
-  }
-
-  // No map - just show posts
-  if (!shouldShowMap) {
-    return (
-      <div className="overflow-y-auto">
+      <div className="h-full overflow-y-auto">
         <PostsSection />
       </div>
     );
@@ -213,7 +204,7 @@ function PostsSection() {
   }
 
   return (
-    <div className="h-full space-y-2">
+    <div className="h-full">
       <PostList posts={posts} />
     </div>
   );
@@ -369,6 +360,8 @@ function PostImageContent({ post }: { post: Post }) {
                       className="object-cover"
                       sizes="(max-width: 768px) 100vw, 50vw"
                       loader={customImageLoader}
+                      placeholder="blur"
+                      blurDataURL={getBlurDataURL(image.key)}
                     />
                   );
                 }}
@@ -399,6 +392,8 @@ function PostImageContent({ post }: { post: Post }) {
                   className="object-cover"
                   loader={customImageLoader}
                   sizes="40px"
+                  placeholder="blur"
+                  blurDataURL={getBlurDataURL(image.key)}
                 />
               </button>
             </li>

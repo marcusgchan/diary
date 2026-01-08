@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useMemo,
   useEffect,
+  useRef,
 } from "react";
 import { CircleChevronLeft, CircleChevronRight } from "lucide-react";
 import {
@@ -29,7 +30,7 @@ import { useImageSensors } from "../hooks/useImageSensors";
 import { useDndState } from "../hooks/useDndState";
 import { Skeleton } from "../../ui/skeleton";
 import Image from "next/image";
-import { customImageLoader } from "../../utils/imageLoader";
+import { customImageLoader, getBlurDataURL } from "../../utils/imageLoader";
 
 export function PostImageThumbnails() {
   const { state, dispatch } = usePosts();
@@ -74,14 +75,25 @@ export function PostImageThumbnails() {
     return images.find((image) => image.isSelected);
   }, [images]);
 
-  // Scroll to selected image when it changes
+  const previousSelectedImageIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedImage) return;
-    const thumbnailElement = getThumbnailElementsMap().get(selectedImage.id);
-    if (thumbnailElement) {
-      scrollThumbnailToImage(thumbnailElement);
+    if (
+      !selectedImage ||
+      previousSelectedImageIdRef.current === null ||
+      selectedImage.id === previousSelectedImageIdRef.current
+    ) {
+      return;
     }
-  }, [selectedImage, getThumbnailElementsMap, scrollThumbnailToImage]);
+
+    const thumbnailElement = getThumbnailElementsMap().get(selectedImage.id)!;
+    scrollThumbnailToImage(thumbnailElement);
+    previousSelectedImageIdRef.current = selectedImage.id;
+  }, [
+    images.length,
+    selectedImage,
+    getThumbnailElementsMap,
+    scrollThumbnailToImage,
+  ]);
 
   function handleSelectImage(imageId: string) {
     imageSelectAction(imageId);
@@ -284,6 +296,8 @@ const ImageRenderer = React.forwardRef<
         className="pointer-events-none rounded object-cover"
         sizes="40px"
         loader={customImageLoader}
+        placeholder="blur"
+        blurDataURL={getBlurDataURL(image.key)}
       />
     );
   }
