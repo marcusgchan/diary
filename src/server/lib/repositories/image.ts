@@ -23,19 +23,6 @@ export class ImageService {
   }
 
   async getImagesByEntryId(entryId: Entries["id"]) {
-    const foo1 = await this.db
-      .select({
-        entryId: entries.id,
-        key: imageKeys.key,
-      })
-      .from(entries)
-      .innerJoin(posts, eq(posts.entryId, entries.id))
-      .innerJoin(postImages, eq(postImages.postId, posts.id))
-      .innerJoin(imageKeys, eq(postImages.imageKey, imageKeys.key))
-      // .innerJoin(geoData, eq(geoData.key, imageKeys.key))
-      .where(eq(entries.id, entryId));
-    console.log({ foo1 });
-
     return await this.db
       .select({
         id: postImages.id,
