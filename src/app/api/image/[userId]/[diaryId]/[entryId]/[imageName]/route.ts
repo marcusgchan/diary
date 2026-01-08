@@ -1,10 +1,14 @@
 import { headers } from "next/headers";
-import { getImage } from "~/server/lib/integrations/s3Service";
+import {
+  getImage,
+  S3FileNotFoundError,
+} from "~/server/lib/integrations/s3Service";
 import { auth } from "~/server/lib/services/auth";
 import {
   getOptimizedImageKey,
   getClosestSize,
 } from "~/app/_lib/utils/getCompressedImageKey";
+import { tryCatch } from "~/app/_lib/utils/tryCatch";
 
 export async function GET(
   req: Request,
@@ -42,10 +46,12 @@ export async function GET(
     });
   }
 
-  const targetWidth: number = getClosestSize(parseInt(width, 10));
-
-  const optimizedKey: string = getOptimizedImageKey(key, targetWidth);
-  const optimizedImage = await getImage(optimizedKey);
+  const targetWidth = getClosestSize(parseInt(width, 10));
+  const optimizedKey = getOptimizedImageKey(key, targetWidth);
+  const [err, optimizedImage] = await tryCatch(getImage(optimizedKey));
+  if (err && !(err instanceof S3FileNotFoundError)) {
+    return Response.json({ message: "Something went wrong" }, { status: 500 });
+  }
 
   if (!optimizedImage) {
     // Fallback to original if optimized version doesn't exist

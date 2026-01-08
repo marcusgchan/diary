@@ -6,6 +6,7 @@ import {
   DeleteObjectsCommand,
   PutObjectCommand,
   S3ServiceException,
+  NoSuchKey,
 } from "@aws-sdk/client-s3";
 import { env } from "~/env.mjs";
 import { config } from "~/server/config";
@@ -74,6 +75,13 @@ export class S3DeleteImageError extends Error {
   }
 }
 
+export class S3FileNotFoundError extends Error {
+  constructor({ msg, options }: { msg?: string; options: ErrorOptions }) {
+    super(msg, options);
+    this.name = S3FileNotFoundError.name;
+  }
+}
+
 export async function getImage(
   key: string,
 ): Promise<
@@ -93,10 +101,17 @@ export async function getImage(
     if (mimetype === undefined) {
       throw new Error("mimetype is missing");
     }
+
     const buf = await streamToBuffer(data.Body as Readable);
     return { buffer: buf, mimetype, compressed: data?.Metadata?.compressed };
   } catch (e) {
-    console.log(e);
+    if (e instanceof NoSuchKey) {
+      throw new S3FileNotFoundError({
+        msg: "No file found with specified key",
+        options: { cause: e },
+      });
+    }
+    throw e;
   }
 }
 
@@ -197,13 +212,11 @@ export class S3ImageService {
     }
 
     const errors = data.Errors;
-    console.log({ errors });
+
     if (!errors) {
-      console.log("1");
       return;
     }
 
-    console.log("2");
     const failedKeys = errors
       .filter((error) => error.Key !== undefined)
       .map((error) => error.Key!);
