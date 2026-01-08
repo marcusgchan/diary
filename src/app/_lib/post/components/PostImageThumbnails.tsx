@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useMemo,
   useEffect,
+  useRef,
 } from "react";
 import { CircleChevronLeft, CircleChevronRight } from "lucide-react";
 import {
@@ -74,14 +75,25 @@ export function PostImageThumbnails() {
     return images.find((image) => image.isSelected);
   }, [images]);
 
-  // Scroll to selected image when it changes
+  const previousSelectedImageIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedImage) return;
-    const thumbnailElement = getThumbnailElementsMap().get(selectedImage.id);
-    if (thumbnailElement) {
-      scrollThumbnailToImage(thumbnailElement);
+    if (
+      !selectedImage ||
+      previousSelectedImageIdRef.current === null ||
+      selectedImage.id === previousSelectedImageIdRef.current
+    ) {
+      return;
     }
-  }, [selectedImage, getThumbnailElementsMap, scrollThumbnailToImage]);
+
+    const thumbnailElement = getThumbnailElementsMap().get(selectedImage.id)!;
+    scrollThumbnailToImage(thumbnailElement);
+    previousSelectedImageIdRef.current = selectedImage.id;
+  }, [
+    images.length,
+    selectedImage,
+    getThumbnailElementsMap,
+    scrollThumbnailToImage,
+  ]);
 
   function handleSelectImage(imageId: string) {
     imageSelectAction(imageId);
