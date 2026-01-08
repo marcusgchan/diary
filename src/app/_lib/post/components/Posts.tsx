@@ -54,7 +54,7 @@ export function Posts() {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-      <div className="grid min-h-full flex-1 gap-8 pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:1fr_1fr] lg:pr-0">
+      <div className="grid min-h-full flex-1 gap-8 pr-4 [grid-template-areas:'map''posts'] [grid-template-columns:minmax(0,1fr)] [grid-template-rows:minmax(375px,1fr)_1fr] lg:pr-0">
         <section className="flex min-h-0 w-full flex-col pr-0 [grid-area:posts] lg:pr-4">
           <PostsSection />
         </section>
