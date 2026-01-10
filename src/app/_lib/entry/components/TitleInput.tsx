@@ -84,7 +84,7 @@ export function TitleInput() {
   }
 
   if (isPending) {
-    return <Skeleton className="w-20" />;
+    return <Skeleton className="h-8 w-40" />;
   }
 
   return (

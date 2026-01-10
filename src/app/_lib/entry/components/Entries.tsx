@@ -121,7 +121,7 @@ export function Entries() {
     <ul className="flex flex-col gap-1">
       {Array.from({ length: 3 }).map((_, i) => (
         <li key={i}>
-          <Skeleton key={i} className="h-8 w-full" />
+          <Skeleton key={i} className="h-16 w-full" />
         </li>
       ))}
     </ul>
