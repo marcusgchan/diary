@@ -85,32 +85,23 @@ export function Entries() {
 
   if (entries) {
     return (
-      <ul className="grid gap-2">
+      <ul className="grid min-w-0 gap-2">
         {entries.map((entry) => {
           return (
-            <li key={entry.id}>
+            <li key={entry.id} className="min-w-0">
               <Link
                 className={cn(
-                  "hidden items-center justify-between gap-2 overflow-hidden rounded bg-secondary p-1 sm:flex",
-                  entryId && Number(entryId) === entry.id && "bg-secondary/20",
-                )}
-                href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
-              >
-                <span className="min-w-0 flex-1 truncate">{entry.day}</span>
-                <DeleteEntryDialog
-                  handleDelete={handleDelete}
-                  entryId={entry.id}
-                  diaryId={diaryId}
-                />
-              </Link>
-              <Link
-                className={cn(
-                  "flex items-center justify-between gap-2 overflow-hidden rounded bg-secondary p-1 sm:hidden",
+                  "flex min-w-0 items-center justify-between gap-2 overflow-hidden rounded bg-secondary p-2",
                   entryId && Number(entryId) === entry.id && "bg-secondary/15",
                 )}
                 href={`/diaries/${entry.diaryId}/entries/${entry.id}`}
               >
-                <span className="min-w-0 flex-1 truncate">{entry.day}</span>
+                <div className="flex min-w-0 flex-col overflow-hidden">
+                  <span className="truncate text-xl">
+                    {entry.title || "Untitled"}
+                  </span>
+                  <span>{entry.day}</span>
+                </div>
                 <DeleteEntryDialog
                   handleDelete={handleDelete}
                   entryId={entry.id}
@@ -130,7 +121,7 @@ export function Entries() {
     <ul className="flex flex-col gap-1">
       {Array.from({ length: 3 }).map((_, i) => (
         <li key={i}>
-          <Skeleton key={i} className="h-8 w-full" />
+          <Skeleton key={i} className="h-16 w-full" />
         </li>
       ))}
     </ul>

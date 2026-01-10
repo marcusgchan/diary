@@ -1,27 +1,24 @@
 "use client";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTRPC } from "~/trpc/TrpcProvider";
 
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "../../ui/skeleton";
+import { useDebounce } from "../../shared/hooks/useDebounce";
 
 export function TitleInput() {
   const api = useTRPC();
   const { diaryId, entryId } = useParams();
 
-  const { data } = useQuery(
+  const { data, isPending, isError } = useQuery(
     api.diary.getEntryTitle.queryOptions({
       entryId: Number(entryId),
     }),
   );
-  const [title, setTitle] = useState(data ?? "");
-  useEffect(() => {
-    if (data) {
-      setTitle(data);
-    }
-  }, [data]);
+  const [title, setTitle] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const saveTitleMutation = useMutation(
@@ -41,25 +38,59 @@ export function TitleInput() {
         );
 
         queryClient.setQueryData(
+          api.diary.getEntries.queryKey({ diaryId: Number(diaryId) }),
+          (entries) => {
+            if (!entries) {
+              return undefined;
+            }
+
+            return entries.map((entry) => {
+              if (entry.id === Number(entryId)) {
+                return { ...entry, title: data };
+              }
+
+              return entry;
+            });
+          },
+        );
+
+        queryClient.setQueryData(
           api.diary.getEntryTitle.queryKey({ entryId: Number(entryId) }),
           data,
         );
       },
     }),
   );
-  function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
+
+  const saveToBackend = useDebounce(
+    (data: string) => {
+      saveTitleMutation.mutate({
+        diaryId: Number(diaryId),
+        entryId: Number(entryId),
+        title: data,
+      });
+    },
+    { waitInMs: 500 },
+  );
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
     setTitle(title);
-    saveTitleMutation.mutate({
-      diaryId: Number(diaryId),
-      entryId: Number(entryId),
-      title: title,
-    });
+    saveToBackend(title);
+  };
+
+  if (isError) {
+    return <p>Could not fetch title</p>;
   }
+
+  if (isPending) {
+    return <Skeleton className="h-8 w-40" />;
+  }
+
   return (
     <input
       className="bg-transparent text-2xl"
-      value={title}
+      value={title ?? data}
       onChange={handleTitleChange}
       placeholder="Enter a title..."
     />
