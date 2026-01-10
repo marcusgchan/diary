@@ -38,6 +38,23 @@ export function TitleInput() {
         );
 
         queryClient.setQueryData(
+          api.diary.getEntries.queryKey({ diaryId: Number(diaryId) }),
+          (entries) => {
+            if (!entries) {
+              return undefined;
+            }
+
+            return entries.map((entry) => {
+              if (entry.id === Number(entryId)) {
+                return { ...entry, title: data };
+              }
+
+              return entry;
+            });
+          },
+        );
+
+        queryClient.setQueryData(
           api.diary.getEntryTitle.queryKey({ entryId: Number(entryId) }),
           data,
         );
