@@ -28,7 +28,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.10.0",
     "@lexical/code": "^0.17.1",
-    "@lexical/link": "^0.17.1",
+    "@lexical/link": "^0.38.1",
     "@lexical/list": "^0.17.1",
     "@lexical/react": "^0.17.1",
     "@lexical/rich-text": "^0.17.1",
